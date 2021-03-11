@@ -344,8 +344,8 @@ namespace SimplifyIoC.Framework
 		/// Provide the Binder with JSON data to perform runtime binding
 		/// </summary>
 		/// <param name="jsonString">A json-parsable string containing the bindings.</param>
-		virtual public void ConsumeBindings(string jsonString)
-		{
+		// virtual public void ConsumeBindings(string jsonString)
+		// {
 			// List<object> list = Json.Deserialize(jsonString) as List<object>;
 			// IBinding testBinding = GetRawBinding ();
 
@@ -353,7 +353,7 @@ namespace SimplifyIoC.Framework
 			// {
 			// 	ConsumeItem(list[a] as Dictionary<string, object>, testBinding);
 			// }
-		}
+		// }
 
 		/// <summary>
 		/// Consumes an individual JSON element and returns the Binding that element represents 
@@ -362,75 +362,75 @@ namespace SimplifyIoC.Framework
 		/// <param name="item">A Dictionary of definitions for the individual binding parameters</param>
 		/// <param name="testBinding">An example binding for the current Binder. This method uses the 
 		/// binding constraints of the example to raise errors if asked to parse illegally</param>
-		virtual protected IBinding ConsumeItem(Dictionary<string, object> item, IBinding testBinding)
-		{
-			int bindConstraints = (testBinding.keyConstraint == BindingConstraintType.ONE) ? 0 : 1;
-			bindConstraints |= (testBinding.valueConstraint == BindingConstraintType.ONE) ? 0 : 2;
-			IBinding binding = null;
-			List<object> keyList;
-			List<object> valueList;
+		// virtual protected IBinding ConsumeItem(Dictionary<string, object> item, IBinding testBinding)
+		// {
+		// 	int bindConstraints = (testBinding.keyConstraint == BindingConstraintType.ONE) ? 0 : 1;
+		// 	bindConstraints |= (testBinding.valueConstraint == BindingConstraintType.ONE) ? 0 : 2;
+		// 	IBinding binding = null;
+		// 	List<object> keyList;
+		// 	List<object> valueList;
 
-			if (item != null)
-			{
-				item = ConformRuntimeItem (item);
-				// Check that Bind exists
-				if (!item.ContainsKey ("Bind"))
-				{
-					throw new BinderException ("Attempted to consume a binding without a bind key.", BinderExceptionType.RUNTIME_NO_BIND);
-				}
-				else
-				{
-					keyList = conformRuntimeToList (item ["Bind"]);
-				}
-				// Check that key counts match the binding constraint
-				if (keyList.Count > 1 && (bindConstraints & 1) == 0)
-				{
-					throw new BinderException ("Binder " + this.ToString () + " supports only a single binding key. A runtime binding key including " + keyList [0].ToString () + " is trying to add more.", BinderExceptionType.RUNTIME_TOO_MANY_KEYS);
-				}
+		// 	if (item != null)
+		// 	{
+		// 		item = ConformRuntimeItem (item);
+		// 		// Check that Bind exists
+		// 		if (!item.ContainsKey ("Bind"))
+		// 		{
+		// 			throw new BinderException ("Attempted to consume a binding without a bind key.", BinderExceptionType.RUNTIME_NO_BIND);
+		// 		}
+		// 		else
+		// 		{
+		// 			keyList = conformRuntimeToList (item ["Bind"]);
+		// 		}
+		// 		// Check that key counts match the binding constraint
+		// 		if (keyList.Count > 1 && (bindConstraints & 1) == 0)
+		// 		{
+		// 			throw new BinderException ("Binder " + this.ToString () + " supports only a single binding key. A runtime binding key including " + keyList [0].ToString () + " is trying to add more.", BinderExceptionType.RUNTIME_TOO_MANY_KEYS);
+		// 		}
 
-				if (!item.ContainsKey ("To"))
-				{
-					valueList = keyList;
-				}
-				else
-				{
-					valueList = conformRuntimeToList (item ["To"]);
-				}
-				// Check that value counts match the binding constraint
-				if (valueList.Count > 1 && (bindConstraints & 2) == 0)
-				{
-					throw new BinderException ("Binder " + this.ToString () + " supports only a single binding value. A runtime binding value including " + valueList [0].ToString () + " is trying to add more.", BinderExceptionType.RUNTIME_TOO_MANY_VALUES);
-				}
+		// 		if (!item.ContainsKey ("To"))
+		// 		{
+		// 			valueList = keyList;
+		// 		}
+		// 		else
+		// 		{
+		// 			valueList = conformRuntimeToList (item ["To"]);
+		// 		}
+		// 		// Check that value counts match the binding constraint
+		// 		if (valueList.Count > 1 && (bindConstraints & 2) == 0)
+		// 		{
+		// 			throw new BinderException ("Binder " + this.ToString () + " supports only a single binding value. A runtime binding value including " + valueList [0].ToString () + " is trying to add more.", BinderExceptionType.RUNTIME_TOO_MANY_VALUES);
+		// 		}
 
-				// Check Whitelist if it exists
-				if (bindingWhitelist != null)
-				{
-					foreach (object value in valueList)
-					{
-						if (bindingWhitelist.IndexOf (value) == -1)
-						{
-							throw new BinderException ("Value " + value.ToString () + " not found on whitelist for " + this.ToString () + ".", BinderExceptionType.RUNTIME_FAILED_WHITELIST_CHECK);
-						}
-					}
-				}
+		// 		// Check Whitelist if it exists
+		// 		if (bindingWhitelist != null)
+		// 		{
+		// 			foreach (object value in valueList)
+		// 			{
+		// 				if (bindingWhitelist.IndexOf (value) == -1)
+		// 				{
+		// 					throw new BinderException ("Value " + value.ToString () + " not found on whitelist for " + this.ToString () + ".", BinderExceptionType.RUNTIME_FAILED_WHITELIST_CHECK);
+		// 				}
+		// 			}
+		// 		}
 
-				binding = performKeyValueBindings (keyList, valueList);
+		// 		binding = performKeyValueBindings (keyList, valueList);
 
-				// Optionally look for ToName
-				if (item.ContainsKey ("ToName"))
-				{
-					binding = binding.ToName (item ["ToName"]);
-				}
+		// 		// Optionally look for ToName
+		// 		if (item.ContainsKey ("ToName"))
+		// 		{
+		// 			binding = binding.ToName (item ["ToName"]);
+		// 		}
 
-				// Add runtime options
-				if (item.ContainsKey ("Options"))
-				{
-					List<object> optionsList = conformRuntimeToList (item ["Options"]);
-					addRuntimeOptions (binding, optionsList);
-				}
-			}
-			return binding;
-		}
+		// 		// Add runtime options
+		// 		if (item.ContainsKey ("Options"))
+		// 		{
+		// 			List<object> optionsList = conformRuntimeToList (item ["Options"]);
+		// 			addRuntimeOptions (binding, optionsList);
+		// 		}
+		// 	}
+		// 	return binding;
+		// }
 
 		/// <summary>
 		/// Override this method in subclasses to add special-case SYNTACTICAL SUGAR for Runtime JSON bindings.

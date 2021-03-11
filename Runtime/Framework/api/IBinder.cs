@@ -94,7 +94,7 @@ namespace SimplifyIoC.Framework
 		void WhitelistBindings(List<object> list);
 
 		/// Provide the Binder with JSON data to perform dynamic runtime binding
-		void ConsumeBindings(string jsonString);
+		//svoid ConsumeBindings(string jsonString);
 
 		/// <summary>
 		/// Places individual Bindings into the bindings Dictionary as part of the resolving process

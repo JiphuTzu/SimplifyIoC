@@ -27,7 +27,7 @@ namespace UMa.Bootstraps
             public ExampleContext(ExampleBootstrap view) : base(view) { }
             protected override void BindSignals()
             {
-				BindSignal<RecordChangedSignal>();
+				
             }
             protected override void BindValues()
             {
@@ -39,8 +39,7 @@ namespace UMa.Bootstraps
             }
             protected override void BindViews()
             {
-                BindView<CameraView, CameraMediator>();
-                BindView<RecordView, RecordMediator>();
+                
 				BindView<LifeTimeView,LifeTimeMediator>();
             }
         }

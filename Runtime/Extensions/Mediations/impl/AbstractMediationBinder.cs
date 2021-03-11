@@ -155,58 +155,58 @@ namespace SimplifyIoC.Extensions.Mediations
 			return binding;
 		}
 
-		override protected Dictionary<string, object> ConformRuntimeItem(Dictionary<string, object> dictionary)
-		{
-			Dictionary<string, object> bindItems = new Dictionary<string, object> ();
-			Dictionary<string, object> toItems = new Dictionary<string, object> ();
-			foreach (var item in dictionary) 
-			{
-				if (item.Key == "BindView")
-				{
-					bindItems.Add ("Bind", item.Value);
-				}
-				else if (item.Key == "ToMediator")
-				{
-					toItems.Add ("To", item.Value);
-				}
-			}
-			foreach (var item in bindItems)
-			{
-				dictionary.Remove ("BindView");
-				dictionary.Add ("Bind", item.Value);
-			}
-			foreach (var item in toItems) 
-			{
-				dictionary.Remove ("ToMediator");
-				dictionary.Add ("To", item.Value);
-			}
-			return dictionary;
-		}
+		// override protected Dictionary<string, object> ConformRuntimeItem(Dictionary<string, object> dictionary)
+		// {
+		// 	Dictionary<string, object> bindItems = new Dictionary<string, object> ();
+		// 	Dictionary<string, object> toItems = new Dictionary<string, object> ();
+		// 	foreach (var item in dictionary) 
+		// 	{
+		// 		if (item.Key == "BindView")
+		// 		{
+		// 			bindItems.Add ("Bind", item.Value);
+		// 		}
+		// 		else if (item.Key == "ToMediator")
+		// 		{
+		// 			toItems.Add ("To", item.Value);
+		// 		}
+		// 	}
+		// 	foreach (var item in bindItems)
+		// 	{
+		// 		dictionary.Remove ("BindView");
+		// 		dictionary.Add ("Bind", item.Value);
+		// 	}
+		// 	foreach (var item in toItems) 
+		// 	{
+		// 		dictionary.Remove ("ToMediator");
+		// 		dictionary.Add ("To", item.Value);
+		// 	}
+		// 	return dictionary;
+		// }
 
-		override protected IBinding ConsumeItem(Dictionary<string, object> item, IBinding testBinding)
-		{
-			IBinding binding = base.ConsumeItem(item, testBinding);
+		// override protected IBinding ConsumeItem(Dictionary<string, object> item, IBinding testBinding)
+		// {
+		// 	IBinding binding = base.ConsumeItem(item, testBinding);
 
-			foreach (var i in item)
-			{
-				if (i.Key == "ToAbstraction")
-				{
-					Type abstractionType = Type.GetType (i.Value as string);
-					IMediationBinding mediationBinding = (binding as IMediationBinding);
-					if (abstractionType == null)
-					{
-						throw new BinderException ("A runtime abstraction in the MediationBinder returned a null Type. " + i.ToString(), BinderExceptionType.RUNTIME_NULL_VALUE);
-					}
-					if (mediationBinding == null)
-					{
-						throw new MediationException ("During an attempt at runtime abstraction a MediationBinding could not be found. " + i.ToString(), MediationExceptionType.BINDING_RESOLVED_TO_NULL);
-					}
+		// 	foreach (var i in item)
+		// 	{
+		// 		if (i.Key == "ToAbstraction")
+		// 		{
+		// 			Type abstractionType = Type.GetType (i.Value as string);
+		// 			IMediationBinding mediationBinding = (binding as IMediationBinding);
+		// 			if (abstractionType == null)
+		// 			{
+		// 				throw new BinderException ("A runtime abstraction in the MediationBinder returned a null Type. " + i.ToString(), BinderExceptionType.RUNTIME_NULL_VALUE);
+		// 			}
+		// 			if (mediationBinding == null)
+		// 			{
+		// 				throw new MediationException ("During an attempt at runtime abstraction a MediationBinding could not be found. " + i.ToString(), MediationExceptionType.BINDING_RESOLVED_TO_NULL);
+		// 			}
 
-					mediationBinding.ToAbstraction (abstractionType);
-				}
-			}
-			return binding;
-		}
+		// 			mediationBinding.ToAbstraction (abstractionType);
+		// 		}
+		// 	}
+		// 	return binding;
+		// }
 
 		new public IMediationBinding Bind<T> ()
 		{

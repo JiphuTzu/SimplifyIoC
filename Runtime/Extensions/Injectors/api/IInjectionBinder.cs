@@ -123,7 +123,7 @@ namespace SimplifyIoC.Extensions.Injectors
 		void WhitelistBindings(List<object> list);
 
 		/// Provide the Binder with JSON data to perform dynamic runtime binding
-		void ConsumeBindings(string jsonString);
+		//void ConsumeBindings(string jsonString);
 	}
 }
 
