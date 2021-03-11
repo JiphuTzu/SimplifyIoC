@@ -227,11 +227,11 @@ namespace SimplifyIoC.Extensions.Contexts
 			injectionBinder.Bind<IContext>().ToValue(this).ToName(ContextKeys.CONTEXT);
 			injectionBinder.Bind<ICommandBinder>().To<SignalCommandBinder>().ToSingleton();
 			//This binding is for local dispatchers
-			injectionBinder.Bind<IEventDispatcher>().To<EventDispatcher>();
+			//injectionBinder.Bind<IEventDispatcher>().To<EventDispatcher>();
 			//This binding is for the common system bus
 			injectionBinder.Bind<IEventDispatcher>().To<EventDispatcher>().ToSingleton().ToName(ContextKeys.CONTEXT_DISPATCHER);
 			injectionBinder.Bind<IMediationBinder>().To<SignalMediationBinder>().ToSingleton();
-			injectionBinder.Bind<ISequencer>().To<EventSequencer>().ToSingleton();
+			injectionBinder.Bind<ISequencer>().To<Sequencer>().ToSingleton();
 			injectionBinder.Bind<IImplicitBinder>().To<ImplicitBinder>().ToSingleton();
 		}
 		
@@ -243,12 +243,12 @@ namespace SimplifyIoC.Extensions.Contexts
 				throw new ContextException("MVCSContext requires a ContextView of type MonoBehaviour", ContextExceptionType.NO_CONTEXT_VIEW);
 			}
 			injectionBinder.Bind<GameObject>().ToValue(contextView).ToName(ContextKeys.CONTEXT_VIEW);
-			commandBinder = injectionBinder.GetInstance<ICommandBinder>() as ICommandBinder;
+			commandBinder = injectionBinder.GetInstance<ICommandBinder>();
 			
-			dispatcher = injectionBinder.GetInstance<IEventDispatcher>(ContextKeys.CONTEXT_DISPATCHER) as IEventDispatcher;
-			mediationBinder = injectionBinder.GetInstance<IMediationBinder>() as IMediationBinder;
-			sequencer = injectionBinder.GetInstance<ISequencer>() as ISequencer;
-			implicitBinder = injectionBinder.GetInstance<IImplicitBinder>() as IImplicitBinder;
+			dispatcher = injectionBinder.GetInstance<IEventDispatcher>(ContextKeys.CONTEXT_DISPATCHER);
+			mediationBinder = injectionBinder.GetInstance<IMediationBinder>();
+			sequencer = injectionBinder.GetInstance<ISequencer>();
+			implicitBinder = injectionBinder.GetInstance<IImplicitBinder>();
 
 			(dispatcher as ITriggerProvider).AddTriggerable(commandBinder as ITriggerable);
 			(dispatcher as ITriggerProvider).AddTriggerable(sequencer as ITriggerable);
@@ -265,10 +265,10 @@ namespace SimplifyIoC.Extensions.Contexts
 		/// Fires ContextEvent.START
 		/// Whatever Command/Sequence you want to happen first should 
 		/// be mapped to this event.
-		public override void Launch()
-		{
-			dispatcher.Dispatch(ContextEvent.START);
-		}
+		// public override void Launch()
+		// {
+		// 	dispatcher.Dispatch(ContextEvent.START);
+		// }
 		
 		/// Gets an instance of the provided generic type.
 		/// Always bear in mind that doing this risks adding

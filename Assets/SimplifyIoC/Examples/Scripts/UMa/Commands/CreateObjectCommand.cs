@@ -1,4 +1,5 @@
 using SimplifyIoC.Extensions.Commands;
+using SimplifyIoC.Extensions.Contexts;
 using UnityEngine;
 //============================================================
 //支持中文，文件使用UTF-8编码
@@ -12,6 +13,8 @@ namespace UMa.Commands
 {
     public class CreateObjectCommand : Command
     {
+		[Inject(ContextKeys.CONTEXT_VIEW)]
+		public GameObject root{get;set;}
         [Inject]
         public GameObject[] objects { get; set; }
         [Inject]
@@ -19,7 +22,7 @@ namespace UMa.Commands
         public override void Execute()
         {
             var index = Random.Range(0, objects.Length);
-            var go = GameObject.Instantiate(objects[index]);
+            var go = GameObject.Instantiate(objects[index],root.transform);
             go.transform.position = pos + Vector3.up * Random.Range(0.8f, 1.6f);
             go.SetActive(true);
         }
