@@ -392,7 +392,7 @@ namespace SimplifyIoC.Extensions.Commands
 
 			injectionBinder.Bind (type).To (type);
 			injectionBinder.Bind<Pool>().To(poolType).ToName (CommandKeys.COMMAND_POOL);
-			Pool pool = injectionBinder.GetInstance<Pool> (CommandKeys.COMMAND_POOL) as Pool;
+			Pool pool = injectionBinder.GetInstance<Pool> (CommandKeys.COMMAND_POOL);
 			injectionBinder.Unbind<Pool> (CommandKeys.COMMAND_POOL);
 			return pool;
 		}
