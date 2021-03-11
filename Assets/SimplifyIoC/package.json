@@ -1,0 +1,18 @@
+﻿{
+    "name": "com.uma.simplifyioc",
+    "version": "1.0.0",
+    "displayName": "SimplifyIoC",
+    "description": "A simplify version of StrangeIoC.",
+    "unity": "2019.3",
+    "keywords": [
+      "mvc",
+      "ioc",
+      "framework"
+    ],
+    "author": {
+      "name": "JiphuTzu",
+      "email": "jiphutzu@gmail.com",
+      "url": "https://jiphutzu.com"
+    },
+    "type": "library"
+  }
