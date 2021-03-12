@@ -1,6 +1,6 @@
 ﻿{
     "name": "com.uma.simplifyioc",
-    "version": "1.0.3",
+    "version": "1.0.0",
     "displayName": "SimplifyIoC",
     "description": "A simplify version of StrangeIoC.",
     "unity": "2019.3",
