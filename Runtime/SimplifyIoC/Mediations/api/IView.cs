@@ -15,7 +15,7 @@
  */
 
 /**
- * @class strange.extensions.mediation.api.IView
+ * @class SimplifyIoC.Mediations.IView
  * 
  * Monobehaviours must implement this interface in order to be injectable.
  * 
@@ -23,7 +23,7 @@
  * with bubbling.
  */
 
-namespace SimplifyIoC.Extensions.Mediations
+namespace SimplifyIoC.Mediations
 {
     public interface IView
 	{

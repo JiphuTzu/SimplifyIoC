@@ -15,12 +15,12 @@
  */
 
 /**
- * @interface strange.extensions.dispatcher.eventdispatcher.api.IEvent
+ * @interface SimplifyIoC.Dispatchers.IEvent
  * 
  * The interface for an event sent by the EventDispatcher
  */
 
-namespace SimplifyIoC.Extensions.Dispatchers
+namespace SimplifyIoC.Dispatchers
 {
     public interface IEvent
 	{
@@ -34,4 +34,3 @@ namespace SimplifyIoC.Extensions.Dispatchers
 		object data{ get; set; }
 	}
 }
-

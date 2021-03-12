@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-namespace SimplifyIoC.Extensions.Mediations
+namespace SimplifyIoC.Mediations
 {
     public enum MediationEvent
 	{
@@ -31,4 +31,3 @@ namespace SimplifyIoC.Extensions.Mediations
 		DISABLED
 	}
 }
-

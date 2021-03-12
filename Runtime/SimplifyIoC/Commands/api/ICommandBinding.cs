@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface SimplifyIoC.Extensions.Commands.ICommandBinding
+ * @interface SimplifyIoC.Commands.ICommandBinding
  * 
  * Defines the form of a Binding for use with the CommandBinder. 
  * 
@@ -27,7 +27,7 @@
 
 using SimplifyIoC.Framework;
 
-namespace SimplifyIoC.Extensions.Commands
+namespace SimplifyIoC.Commands
 {
     public interface ICommandBinding : IBinding
 	{

@@ -15,7 +15,7 @@
  */
 
 using System;
-using SimplifyIoC.Extensions.Injectors;
+using SimplifyIoC.Injectors;
 
 /// <summary>
 /// Declares a Class to be implicitly bound.

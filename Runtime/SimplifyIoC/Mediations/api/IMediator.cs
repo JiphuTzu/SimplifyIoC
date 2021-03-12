@@ -15,17 +15,17 @@
  */
 
 /**
- * @interface strange.extensions.mediation.api.IMediator
+ * @interface SimplifyIoC.Mediations.IMediator
  * 
- * Look at strange.extensions.mediation.api.IMediationBinder,
+ * Look at SimplifyIoC.Mediations.IMediationBinder,
  * where I explain the purpose of Mediation in detail.
  * 
- * @see strange.extensions.mediation.api.IMediationBinder
+ * @see SimplifyIoC.Mediations.IMediationBinder
  */
 
 using UnityEngine;
 
-namespace SimplifyIoC.Extensions.Mediations
+namespace SimplifyIoC.Mediations
 {
     public interface IMediator
 	{

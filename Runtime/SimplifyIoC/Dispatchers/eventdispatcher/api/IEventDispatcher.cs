@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface strange.extensions.dispatcher.eventdispatcher.api.IEventDispatcher
+ * @interface SimplifyIoC.Dispatchers.IEventDispatcher
  * 
  * Interface for allowing a client to register as an observer.
  * 
@@ -29,10 +29,10 @@
  * (though by separating EventDispatcher from Dispatcher I'm obviously
  * signalling that I don't think it's the only possible one).
  * 
- * @see strange.extensions.dispatcher.eventdispatcher.api.IEvent
+ * @see SimplifyIoC.Dispatchers.IEvent
  */
 
-namespace SimplifyIoC.Extensions.Dispatchers
+namespace SimplifyIoC.Dispatchers
 {
     public interface IEventDispatcher : IDispatcher
 	{

@@ -15,7 +15,7 @@
  */
 
 /**
- * @class strange.extensions.mediation.SignalMediationBinder
+ * @class SimplifyIoC.Mediations.SignalMediationBinder
  * 
  * This subclass of the MediationBinder provides support for
  * the ListensTo shortcut.
@@ -23,10 +23,10 @@
 
 using System;
 using System.Reflection;
-using SimplifyIoC.Extensions.Reflectors;
-using SimplifyIoC.Extensions.Signals;
+using SimplifyIoC.Reflectors;
+using SimplifyIoC.Signals;
 
-namespace SimplifyIoC.Extensions.Mediations
+namespace SimplifyIoC.Mediations
 {
     public class SignalMediationBinder : MediationBinder
 	{

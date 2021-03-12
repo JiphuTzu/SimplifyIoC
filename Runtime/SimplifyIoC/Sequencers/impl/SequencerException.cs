@@ -15,28 +15,27 @@
  */
 
 /**
- * @class strange.extensions.sequencer.impl.SequencerException
+ * @class SimplifyIoC.Sequencers.SequencerException
  * 
  * @deprecated
  */
 
 using System;
 
-namespace SimplifyIoC.Extensions.Sequencers
+namespace SimplifyIoC.Sequencers
 {
     public class SequencerException : Exception
-	{
-		public SequencerExceptionType type{ get; set;}
+    {
+        public SequencerExceptionType type { get; set; }
 
-		public SequencerException () : base()
-		{
-		}
+        public SequencerException() : base()
+        {
+        }
 
-		/// Constructs a SequencerException with a message and SequencerExceptionType
-		public SequencerException(string message, SequencerExceptionType exceptionType) : base(message)
-		{
-			type = exceptionType;
-		}
-	}
+        /// Constructs a SequencerException with a message and SequencerExceptionType
+        public SequencerException(string message, SequencerExceptionType exceptionType) : base(message)
+        {
+            type = exceptionType;
+        }
+    }
 }
-

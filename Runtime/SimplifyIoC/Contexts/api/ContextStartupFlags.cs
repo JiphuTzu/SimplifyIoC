@@ -20,7 +20,7 @@
 
 using System;
 
-namespace SimplifyIoC.Extensions.Contexts
+namespace SimplifyIoC.Contexts
 {
 	[Flags]
 	public enum ContextStartupFlags

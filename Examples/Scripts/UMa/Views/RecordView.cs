@@ -1,7 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
-using SimplifyIoC.Extensions.Mediations;
-using UnityEngine;
+using SimplifyIoC.Mediations;
 using UnityEngine.UI;
 //============================================================
 //支持中文，文件使用UTF-8编码
@@ -13,27 +10,31 @@ using UnityEngine.UI;
 //============================================================
 namespace UMa.Views
 {
-	public class RecordView : View {
-		public Text record;
-		private int _total;
-		private int _current;
+    public class RecordView : View
+    {
+        public Text record;
+        private int _total;
+        private int _current;
         protected override void Start()
         {
             base.Start();
-			Show();
+            Show();
         }
-        
-		public void Add(){
-			_total+=1;
-			_current+=1;
-			Show();
-		}
-		public void Minus(){
-			_current-= 1;
-			Show();
-		}
-		private  void Show(){
-			record.text = $"{_current}/{_total}";
-		}
-	}
+
+        public void Add()
+        {
+            _total += 1;
+            _current += 1;
+            Show();
+        }
+        public void Minus()
+        {
+            _current -= 1;
+            Show();
+        }
+        private void Show()
+        {
+            record.text = $"{_current}/{_total}";
+        }
+    }
 }

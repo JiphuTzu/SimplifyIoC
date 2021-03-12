@@ -15,7 +15,7 @@
  */
 
 /**
- * @class strange.extensions.signal.api.IBaseSignal
+ * @class SimplifyIoC.Signals.IBaseSignal
  * 
  * The API that defines the use of a Signal.
  * 
@@ -38,39 +38,39 @@
  * SIGNALS ARE LIMITED TO FOUR PARAMETERS. If you require more than four, consider
  * creating a value object to hold additional values.
  * 
- * Example uses in strange.extensions.signal.impl.Signal 
+ * Example uses in SimplifyIoC.Signals.Signal 
  * 
- * @see strange.extensions.signal.impl.BaseSignal
- * @see strange.extensions.signal.impl.Signal
+ * @see SimplifyIoC.Signals.BaseSignal
+ * @see SimplifyIoC.Signals.Signal
  */
 
 using System;
 using System.Collections.Generic;
 
-namespace SimplifyIoC.Extensions.Signals
+namespace SimplifyIoC.Signals
 {
     public interface IBaseSignal
-	{
-		/// Instruct a Signal to call on all its registered listeners
-		void Dispatch(object[] args);
+    {
+        /// Instruct a Signal to call on all its registered listeners
+        void Dispatch(object[] args);
 
-		/// Attach a callback to this Signal
-		/// The callback parameters must match the Types and order which were
-		/// originally assigned to the Signal on its creation
-		void AddListener(Action<IBaseSignal, object[]> callback);
+        /// Attach a callback to this Signal
+        /// The callback parameters must match the Types and order which were
+        /// originally assigned to the Signal on its creation
+        void AddListener(Action<IBaseSignal, object[]> callback);
 
-		/// Attach a callback to this Signal for the duration of exactly one Dispatch
-		/// The callback parameters must match the Types and order which were
-		/// originally assigned to the Signal on its creation, and the callback
-		/// will be removed immediately after the Signal dispatches
-		void AddOnce (Action<IBaseSignal, object[]> callback);
+        /// Attach a callback to this Signal for the duration of exactly one Dispatch
+        /// The callback parameters must match the Types and order which were
+        /// originally assigned to the Signal on its creation, and the callback
+        /// will be removed immediately after the Signal dispatches
+        void AddOnce(Action<IBaseSignal, object[]> callback);
 
-		/// Remove a callback from this Signal
-		void RemoveListener(Action<IBaseSignal, object[]> callback);
+        /// Remove a callback from this Signal
+        void RemoveListener(Action<IBaseSignal, object[]> callback);
 
-		void RemoveAllListeners();
+        void RemoveAllListeners();
 
-		/// Returns a List<System.Type> representing the Types bindable to this Signal
-		List<Type> GetTypes();
-	}
+        /// Returns a List<System.Type> representing the Types bindable to this Signal
+        List<Type> GetTypes();
+    }
 }

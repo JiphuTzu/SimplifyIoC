@@ -15,21 +15,16 @@
  */
 
 /**
- * @interface strange.extensions.sequencer.api.ISequenceCommand
+ * @interface SimplifyIoC.Sequencers.ISequenceCommand
  * 
  * @deprecated
  * 
- * @see strange.extensions.command.api.ICommand
+ * @see SimplifyIoC.Commands.ICommand
  */
 
-using SimplifyIoC.Extensions.Commands;
+using SimplifyIoC.Commands;
 
-namespace SimplifyIoC.Extensions.Sequencers
+namespace SimplifyIoC.Sequencers
 {
-    public interface ISequenceCommand : ICommand
-	{
-
-
-	}
+    public interface ISequenceCommand : ICommand { }
 }
-

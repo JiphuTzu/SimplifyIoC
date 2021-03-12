@@ -6,7 +6,7 @@ using System.Collections;
 //
 //@description:在Start中调用context.Launch
 //============================================================
-namespace SimplifyIoC.Extensions.Contexts
+namespace SimplifyIoC.Contexts
 {
     public abstract class SimplifyBootstrap : ContextView {
         //在Awake中进行context的实例化

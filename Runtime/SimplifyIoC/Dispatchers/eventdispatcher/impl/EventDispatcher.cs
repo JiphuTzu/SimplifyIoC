@@ -15,7 +15,7 @@
  */
 
 /**
-* @class strange.extensions.dispatcher.eventdispatcher.impl.EventDispatcher
+* @class SimplifyIoC.Dispatchers.EventDispatcher
 * 
 * A Dispatcher that uses IEvent to send messages.
 * 
@@ -30,17 +30,17 @@
 	* 
 	* EventDispatcher is both an ITriggerProvider and an ITriggerable.
 	* 
-	* @see strange.extensions.dispatcher.eventdispatcher.api.IEvent
-	* @see strange.extensions.dispatcher.api.ITriggerProvider
-	* @see strange.extensions.dispatcher.api.ITriggerable
+	* @see SimplifyIoC.Dispatchers.IEvent
+	* @see SimplifyIoC.Dispatchers.ITriggerProvider
+	* @see SimplifyIoC.Dispatchers.ITriggerable
 	*/
 
 using System;
 using System.Collections.Generic;
 using SimplifyIoC.Framework;
-using SimplifyIoC.Extensions.Pools;
+using SimplifyIoC.Pools;
 
-namespace SimplifyIoC.Extensions.Dispatchers
+namespace SimplifyIoC.Dispatchers
 {
     public class EventDispatcher : Binder, IEventDispatcher, ITriggerProvider, ITriggerable
 	{

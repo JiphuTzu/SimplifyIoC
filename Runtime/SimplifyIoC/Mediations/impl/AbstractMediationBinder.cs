@@ -15,20 +15,20 @@
  */
 
 /**
- * @class strange.extensions.mediation.impl.MediationBinder
+ * @class SimplifyIoC.Mediations.MediationBinder
  * 
  * Highest-level abstraction of the MediationBinder. Agnostic as to View and Mediator Type.
  * 
- * Please read strange.extensions.mediation.api.IMediationBinder
+ * Please read SimplifyIoC.Mediations.IMediationBinder
  * where I've extensively explained the purpose of View mediation
  */
 
 using System;
 using System.Collections.Generic;
-using SimplifyIoC.Extensions.Injectors;
+using SimplifyIoC.Injectors;
 using SimplifyIoC.Framework;
 
-namespace SimplifyIoC.Extensions.Mediations
+namespace SimplifyIoC.Mediations
 {
     abstract public class AbstractMediationBinder : Binder, IMediationBinder
 	{

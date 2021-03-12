@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface strange.extensions.context.api.IContextView
+ * @interface SimplifyIoC.Contexts.IContextView
  * 
  * The ContextView is the entry point to the application.
  * 
@@ -24,9 +24,9 @@
  * It's most important role is to instantiate and call `Start()` on the Context.
  */
 
-using SimplifyIoC.Extensions.Mediations;
+using SimplifyIoC.Mediations;
 
-namespace SimplifyIoC.Extensions.Contexts
+namespace SimplifyIoC.Contexts
 {
     public interface IContextView : IView
 	{

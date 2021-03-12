@@ -15,7 +15,7 @@
  */
 
 /**
- * @class strange.extensions.context.impl.CrossContext
+ * @class SimplifyIoC.Contexts.CrossContext
  * 
  * Provides the capabilities that allow a Context to communicate across
  * the Context boundary. Specifically, CrossContext provides
@@ -25,10 +25,10 @@
  */
 
 using SimplifyIoC.Framework;
-using SimplifyIoC.Extensions.Dispatchers;
-using SimplifyIoC.Extensions.Injectors;
+using SimplifyIoC.Dispatchers;
+using SimplifyIoC.Injectors;
 
-namespace SimplifyIoC.Extensions.Contexts
+namespace SimplifyIoC.Contexts
 {
     public class CrossContext : Context, ICrossContextCapable
 	{

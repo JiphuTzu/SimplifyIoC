@@ -17,7 +17,7 @@
 
 
 /**
-* @class strange.extensions.context.impl.Context
+* @class SimplifyIoC.Contexts.Context
 * 
 * A Context is the entry point to the binding framework.
 * 
@@ -28,7 +28,7 @@
 * your extension from the ContextView.
 */
 using SimplifyIoC.Framework;
-namespace SimplifyIoC.Extensions.Contexts
+namespace SimplifyIoC.Contexts
 {
 	public class Context : Binder, IContext
 	{

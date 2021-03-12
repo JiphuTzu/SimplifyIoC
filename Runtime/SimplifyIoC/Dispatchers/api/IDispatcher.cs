@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface SimplifyIoC.Extensions.Dispatchers.IDispatcher
+ * @interface SimplifyIoC.Dispatchers.IDispatcher
  * 
  * A Dispatcher sends notifiations to any registered listener.
  * It represents the subject in a standard Observer pattern.
@@ -23,7 +23,7 @@
  * In MVCSContext the dispatched notification is an IEvent.
  */
 
-namespace SimplifyIoC.Extensions.Dispatchers
+namespace SimplifyIoC.Dispatchers
 {
     public interface IDispatcher
 	{
@@ -36,4 +36,3 @@ namespace SimplifyIoC.Extensions.Dispatchers
 		void Dispatch (object eventType, object data);
 	}
 }
-

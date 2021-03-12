@@ -15,12 +15,12 @@
  */
 
 /**
- * @enum SimplifyIoC.Extensions.Commands.CommandExceptionType
+ * @enum SimplifyIoC.Commands.CommandExceptionType
  * 
  * Errors relating to the CommandBinder
  */
 
-namespace SimplifyIoC.Extensions.Commands
+namespace SimplifyIoC.Commands
 {
 	public enum CommandExceptionType
 	{

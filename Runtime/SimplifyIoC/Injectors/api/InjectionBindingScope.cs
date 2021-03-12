@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-namespace SimplifyIoC.Extensions.Injectors
+namespace SimplifyIoC.Injectors
 {
 	public enum InjectionBindingScope
 	{

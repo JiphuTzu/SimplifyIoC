@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-namespace SimplifyIoC.Extensions.Pools
+namespace SimplifyIoC.Pools
 {
     public enum PoolInflationType
 	{
@@ -25,4 +25,3 @@ namespace SimplifyIoC.Extensions.Pools
 		DOUBLE
 	}
 }
-

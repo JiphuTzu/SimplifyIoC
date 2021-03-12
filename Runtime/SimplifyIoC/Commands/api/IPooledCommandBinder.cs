@@ -14,15 +14,15 @@
  *		limitations under the License.
  */
 /**
- *	@interface strange.extensions.command.api.IPooledCommandBinder
+ *	@interface SimplifyIoC.Commands.IPooledCommandBinder
  *
  *	Interface for a CommandBinder that allows pooling. Pooling allows Commands to
  *	be recycled, which can be more efficient.
  */
 
-using SimplifyIoC.Extensions.Pools;
+using SimplifyIoC.Pools;
 
-namespace SimplifyIoC.Extensions.Commands
+namespace SimplifyIoC.Commands
 {
     public interface IPooledCommandBinder
 	{

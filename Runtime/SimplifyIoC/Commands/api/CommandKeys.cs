@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-namespace SimplifyIoC.Extensions.Commands
+namespace SimplifyIoC.Commands
 {
     public enum CommandKeys
 	{

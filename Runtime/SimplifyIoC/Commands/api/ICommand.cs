@@ -33,7 +33,7 @@
  * has no effect on Commands operating in parallel.
  */
 
-namespace SimplifyIoC.Extensions.Commands
+namespace SimplifyIoC.Commands
 {
     public interface ICommand
 	{

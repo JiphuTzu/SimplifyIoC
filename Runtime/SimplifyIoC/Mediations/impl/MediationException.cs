@@ -15,28 +15,25 @@
  */
 
 /**
- * @class strange.extensions.mediation.impl.MediationException
+ * @class SimplifyIoC.Mediations.MediationException
  * 
  * An exception thrown by the Mediation system
  */
 
 using System;
 
-namespace SimplifyIoC.Extensions.Mediations
+namespace SimplifyIoC.Mediations
 {
     public class MediationException : Exception
-	{
-		public MediationExceptionType type{ get; set;}
+    {
+        public MediationExceptionType type { get; set; }
 
-		public MediationException() : base()
-		{
-		}
+        public MediationException() : base() { }
 
-		/// Constructs a MediationException with a message and MediationExceptionType
-		public MediationException(string message, MediationExceptionType exceptionType) : base(message)
-		{
-			type = exceptionType;
-		}
-	}
+        /// Constructs a MediationException with a message and MediationExceptionType
+        public MediationException(string message, MediationExceptionType exceptionType) : base(message)
+        {
+            type = exceptionType;
+        }
+    }
 }
-

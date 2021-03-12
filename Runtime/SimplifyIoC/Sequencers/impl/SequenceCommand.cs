@@ -15,16 +15,16 @@
  */
 
 /**
- * @class strange.extensions.sequencer.impl.SequenceCommand
+ * @class SimplifyIoC.Sequencers.SequenceCommand
  * 
  * @deprecated
  * 
- * @see strange.extensions.command.api.ICommand
+ * @see SimplifyIoC.Sequencers.ICommand
  */
 
-using SimplifyIoC.Extensions.Commands;
+using SimplifyIoC.Commands;
 
-namespace SimplifyIoC.Extensions.Sequencers
+namespace SimplifyIoC.Sequencers
 {
     public abstract class SequenceCommand : Command, ISequenceCommand
 	{

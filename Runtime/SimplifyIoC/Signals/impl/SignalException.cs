@@ -15,29 +15,25 @@
  */
 
 /**
- * @class strange.extensions.signal.impl.SignalException
+ * @class SimplifyIoC.Signals.SignalException
  * 
  * An exception thrown by the Signal system.
  */
 
 using System;
 
-namespace SimplifyIoC.Extensions.Signals
+namespace SimplifyIoC.Signals
 {
     public class SignalException : Exception
-	{
+    {
 
-		public SignalExceptionType type { get; set; }
-		public SignalException() : base()
-		{
-		}
+        public SignalExceptionType type { get; set; }
+        public SignalException() : base() { }
 
-		/// Constructs a SignalException with a message and SignalExceptionType
-		public SignalException(string message, SignalExceptionType exceptionType) : base(message)
-		{
-			type = exceptionType;
-		}
-
-	}
+        /// Constructs a SignalException with a message and SignalExceptionType
+        public SignalException(string message, SignalExceptionType exceptionType) : base(message)
+        {
+            type = exceptionType;
+        }
+    }
 }
-

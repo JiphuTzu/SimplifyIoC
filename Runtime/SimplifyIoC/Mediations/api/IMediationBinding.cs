@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface strange.extensions.mediation.api.IMediationBinding
+ * @interface SimplifyIoC.Mediations.IMediationBinding
  * 
  * Interface for MediationBindings
  * 
@@ -25,7 +25,7 @@
 using System;
 using SimplifyIoC.Framework;
 
-namespace SimplifyIoC.Extensions.Mediations
+namespace SimplifyIoC.Mediations
 {
     public interface IMediationBinding : IBinding
 	{

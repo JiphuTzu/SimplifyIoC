@@ -1,6 +1,4 @@
-using System.Collections;
-using System.Collections.Generic;
-using SimplifyIoC.Extensions.Mediations;
+using SimplifyIoC.Mediations;
 using UnityEngine;
 using UnityEngine.Events;
 //============================================================
@@ -13,7 +11,7 @@ using UnityEngine.Events;
 //============================================================
 namespace UMa.Views
 {
-	public class LifeTimeView : View {
+    public class LifeTimeView : View {
 		public float lifeTime = 2;
 		public UnityEvent OnDead;
 		private float _startTime;

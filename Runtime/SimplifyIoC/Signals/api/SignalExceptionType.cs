@@ -15,9 +15,9 @@
  */
 
 /**
- * @class strange.extensions.signal.api.SignalExceptionType
+ * @class SimplifyIoC.Signals.SignalExceptionType
  */
-namespace SimplifyIoC.Extensions.Signals
+namespace SimplifyIoC.Signals
 {
 	public enum SignalExceptionType
 	{

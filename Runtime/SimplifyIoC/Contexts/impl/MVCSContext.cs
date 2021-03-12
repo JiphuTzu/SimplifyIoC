@@ -15,7 +15,7 @@
  */
 
 /**
- * @class strange.extensions.context.impl.MVCSContext
+ * @class SimplifyIoC.Contexts.MVCSContext
  * 
  * The recommended Context for getting the most out of StrangeIoC.
  * 
@@ -157,16 +157,16 @@
  * 
  */
 
-using SimplifyIoC.Extensions.Commands;
-using SimplifyIoC.Extensions.Dispatchers;
-using SimplifyIoC.Extensions.ImplicitBinds;
-using SimplifyIoC.Extensions.Injectors;
-using SimplifyIoC.Extensions.Mediations;
-using SimplifyIoC.Extensions.Sequencers;
+using SimplifyIoC.Commands;
+using SimplifyIoC.Dispatchers;
+using SimplifyIoC.ImplicitBinds;
+using SimplifyIoC.Injectors;
+using SimplifyIoC.Mediations;
+using SimplifyIoC.Sequencers;
 using SimplifyIoC.Framework;
 using UnityEngine;
 
-namespace SimplifyIoC.Extensions.Contexts
+namespace SimplifyIoC.Contexts
 {
     public class MVCSContext : CrossContext
 	{

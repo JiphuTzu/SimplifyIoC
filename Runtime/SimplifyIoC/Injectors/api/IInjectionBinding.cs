@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface strange.extensions.injector.api.IInjectionBinding
+ * @interface SimplifyIoC.Injectors.IInjectionBinding
  * 
  * The Binding form for the Injection system.
  * 
@@ -42,13 +42,13 @@
  * only bind one value. (The Injection system needs to know which concrete
  * class you want created.)
  * 
- * @see strange.extensions.injector.api.IInjectionBinder
+ * @see SimplifyIoC.Injectors.IInjectionBinder
  */
 
 using System;
 using SimplifyIoC.Framework;
 
-namespace SimplifyIoC.Extensions.Injectors
+namespace SimplifyIoC.Injectors
 {
     public interface IInjectionBinding : IBinding
 	{
@@ -113,4 +113,3 @@ namespace SimplifyIoC.Extensions.Injectors
 
 	}
 }
-

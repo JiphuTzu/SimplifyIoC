@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-namespace SimplifyIoC.Extensions.Contexts
+namespace SimplifyIoC.Contexts
 {
     public enum ContextKeys
 	{
@@ -28,4 +28,3 @@ namespace SimplifyIoC.Extensions.Contexts
 		CROSS_CONTEXT_DISPATCHER
 	}
 }
-

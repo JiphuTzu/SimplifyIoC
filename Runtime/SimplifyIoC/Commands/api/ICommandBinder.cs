@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface SimplifyIoC.Extensions.Commands.ICommandBinder
+ * @interface SimplifyIoC.Commands.ICommandBinder
  * 
  * Interface for a Binder that triggers the instantiation of Commands.
  * 
@@ -53,7 +53,7 @@
 
 using SimplifyIoC.Framework;
 
-namespace SimplifyIoC.Extensions.Commands
+namespace SimplifyIoC.Commands
 {
     public interface ICommandBinder : IBinder
 	{

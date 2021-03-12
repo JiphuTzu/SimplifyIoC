@@ -15,14 +15,14 @@
  */
 
 /**
- * @interface strange.extensions.sequencer.api.ISequencer
+ * @interface SimplifyIoC.Sequencers.ISequencer
  * 
  * @deprecated
  */
 
-using SimplifyIoC.Extensions.Commands;
+using SimplifyIoC.Commands;
 
-namespace SimplifyIoC.Extensions.Sequencers
+namespace SimplifyIoC.Sequencers
 {
     public interface ISequencer : ICommandBinder
 	{

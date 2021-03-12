@@ -15,28 +15,27 @@
  */
 
 /**
- * @class strange.extensions.reflector.impl.ReflectionException
+ * @class SimplifyIoC.Reflectors.ReflectionException
  * 
  * An exception thrown by the Reflector.
  */
 
 using System;
 
-namespace SimplifyIoC.Extensions.Reflectors
+namespace SimplifyIoC.Reflectors
 {
     public class ReflectionException : Exception
-	{
-		public ReflectionExceptionType type{ get; set;}
+    {
+        public ReflectionExceptionType type { get; set; }
 
-		public ReflectionException() : base()
-		{
-		}
+        public ReflectionException() : base()
+        {
+        }
 
-		/// Constructs a ReflectionException with a message and ReflectionExceptionType
-		public ReflectionException(string message, ReflectionExceptionType exceptionType) : base(message)
-		{
-			type = exceptionType;
-		}
-	}
+        /// Constructs a ReflectionException with a message and ReflectionExceptionType
+        public ReflectionException(string message, ReflectionExceptionType exceptionType) : base(message)
+        {
+            type = exceptionType;
+        }
+    }
 }
-

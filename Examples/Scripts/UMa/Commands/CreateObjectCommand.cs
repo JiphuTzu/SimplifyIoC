@@ -1,5 +1,5 @@
-using SimplifyIoC.Extensions.Commands;
-using SimplifyIoC.Extensions.Contexts;
+using SimplifyIoC.Commands;
+using SimplifyIoC.Contexts;
 using UnityEngine;
 //============================================================
 //支持中文，文件使用UTF-8编码
