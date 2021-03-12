@@ -1,11 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
-using SimplifyIoC.Extensions.Contexts;
+using SimplifyIoC.Contexts;
 using UMa.Commands;
 using UMa.Mediators;
 using UMa.Signals;
 using UMa.Views;
-using UnityEngine;
 //============================================================
 //支持中文，文件使用UTF-8编码
 //@author	JiphuTzu

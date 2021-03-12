@@ -14,11 +14,8 @@
  *		limitations under the License.
  */
 
-
-
-using SimplifyIoC.Framework;
 /**
-* @class strange.extensions.command.impl.CommandBinding
+* @class SimplifyIoC.Commands.CommandBinding
 * 
 * The Binding for CommandBinder.
 * 
@@ -26,7 +23,8 @@ using SimplifyIoC.Framework;
 * is the addition of `Once()`, which signals that the Binding
 * should be destroyed immediately after a single use.
 */
-namespace SimplifyIoC.Extensions.Commands
+using SimplifyIoC.Framework;
+namespace SimplifyIoC.Commands
 {
     public class CommandBinding : Binding, ICommandBinding
 	{

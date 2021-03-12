@@ -15,7 +15,7 @@
  */
 
 /**
- * @class strange.extensions.command.impl.CommandBinder
+ * @class SimplifyIoC.Commands.CommandBinder
  * 
  * A Binder that triggers the instantiation of Commands.
  * 
@@ -54,11 +54,11 @@
 using System;
 using System.Collections.Generic;
 using SimplifyIoC.Framework;
-using SimplifyIoC.Extensions.Dispatchers;
-using SimplifyIoC.Extensions.Injectors;
-using SimplifyIoC.Extensions.Pools;
+using SimplifyIoC.Dispatchers;
+using SimplifyIoC.Injectors;
+using SimplifyIoC.Pools;
 
-namespace SimplifyIoC.Extensions.Commands
+namespace SimplifyIoC.Commands
 {
     public class CommandBinder : Binder, ICommandBinder, IPooledCommandBinder, ITriggerable
 	{

@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface SimplifyIoC.Extensions.Dispatchers.ITriggerProvider
+ * @interface SimplifyIoC.Dispatchers.ITriggerProvider
  * 
  * Interface for declaring a class capable of triggering an ITriggerable class.
  * 
@@ -25,10 +25,10 @@
  * This allows notifications, such as IEvents, to pass through 
  * the event bus and trigger other binders.
  * 
- * @see SimplifyIoC.Extensions.Dispatchers.ITriggerable
+ * @see SimplifyIoC.Dispatchers.ITriggerable
  */
 
-namespace SimplifyIoC.Extensions.Dispatchers
+namespace SimplifyIoC.Dispatchers
 {
     public interface ITriggerProvider
 	{
@@ -42,4 +42,3 @@ namespace SimplifyIoC.Extensions.Dispatchers
 		int Triggerables{ get;}
 	}
 }
-

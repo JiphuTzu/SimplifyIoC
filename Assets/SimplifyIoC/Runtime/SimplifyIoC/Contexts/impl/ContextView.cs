@@ -35,15 +35,13 @@
 
 using UnityEngine;
 
-namespace SimplifyIoC.Extensions.Contexts
+namespace SimplifyIoC.Contexts
 {
     public class ContextView : MonoBehaviour, IContextView
 	{
 		public IContext context{get;set;}
 		
-		public ContextView ()
-		{
-		}
+		public ContextView (){}
 
 		/// <summary>
 		/// When a ContextView is Destroyed, automatically removes the associated Context.
@@ -66,4 +64,3 @@ namespace SimplifyIoC.Extensions.Contexts
 		#endregion
 	}
 }
-

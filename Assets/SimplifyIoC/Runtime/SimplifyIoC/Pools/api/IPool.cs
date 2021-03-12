@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface strange.extensions.pool.api.IPool
+ * @interface SimplifyIoC.Pools.IPool
  *
  * A mechanism for storing and reusing instances.
  *
@@ -44,13 +44,13 @@
  * 
  * 2. Pooling presupposes that when the instance is finished doing what it does it is cleaned up and
  * returned to the Pool. Use IPool.ReturnInstance() to mark an object as ready for reuse.
- * @see strange.extensions.pool.api.IPoolable for more on cleaning up.
+ * @see SimplifyIoC.Pools.IPoolable for more on cleaning up.
  */
 
 using System;
 using SimplifyIoC.Framework;
 
-namespace SimplifyIoC.Extensions.Pools
+namespace SimplifyIoC.Pools
 {
     public interface IPool<T> : IPool
 	{
@@ -115,4 +115,3 @@ namespace SimplifyIoC.Extensions.Pools
 		PoolInflationType inflationType{ get; set; }
 	}
 }
-

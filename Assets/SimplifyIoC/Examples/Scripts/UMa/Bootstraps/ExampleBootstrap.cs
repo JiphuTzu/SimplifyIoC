@@ -1,8 +1,8 @@
+using SimplifyIoC.Contexts;
 using UMa.Commands;
-using UMa.Views;
 using UMa.Mediators;
 using UMa.Signals;
-using SimplifyIoC.Extensions.Contexts;
+using UMa.Views;
 using UnityEngine;
 //============================================================
 //支持中文，文件使用UTF-8编码

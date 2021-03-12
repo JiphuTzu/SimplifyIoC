@@ -15,31 +15,30 @@
  */
 
 /**
- * @interface strange.extensions.sequencer.api.ISequenceBinding
+ * @interface SimplifyIoC.Sequencers.ISequenceBinding
  * 
  * @deprecated
  */
 
-using SimplifyIoC.Extensions.Commands;
+using SimplifyIoC.Commands;
 
-namespace SimplifyIoC.Extensions.Sequencers
+namespace SimplifyIoC.Sequencers
 {
     public interface ISequenceBinding : ICommandBinding
-	{
-		/// Declares that the Binding is a one-off. As soon as it's satisfied, it will be unmapped.
-		new ISequenceBinding Once();
+    {
+        /// Declares that the Binding is a one-off. As soon as it's satisfied, it will be unmapped.
+        new ISequenceBinding Once();
 
-		/// Get/set the property set to `true` by `Once()`
-		new bool isOneOff{ get; set;}
+        /// Get/set the property set to `true` by `Once()`
+        new bool isOneOff { get; set; }
 
-		new ISequenceBinding Bind<T>();
-		new ISequenceBinding Bind(object key);
-		new ISequenceBinding To<T>();
-		new ISequenceBinding To(object o);
-		new ISequenceBinding ToName<T> ();
-		new ISequenceBinding ToName (object o);
-		new ISequenceBinding Named<T>();
-		new ISequenceBinding Named(object o);
-	}
+        new ISequenceBinding Bind<T>();
+        new ISequenceBinding Bind(object key);
+        new ISequenceBinding To<T>();
+        new ISequenceBinding To(object o);
+        new ISequenceBinding ToName<T>();
+        new ISequenceBinding ToName(object o);
+        new ISequenceBinding Named<T>();
+        new ISequenceBinding Named(object o);
+    }
 }
-

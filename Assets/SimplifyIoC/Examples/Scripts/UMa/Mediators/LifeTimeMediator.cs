@@ -1,4 +1,4 @@
-using SimplifyIoC.Extensions.Mediations;
+using SimplifyIoC.Mediations;
 using UMa.Signals;
 using UMa.Views;
 //============================================================

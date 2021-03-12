@@ -15,7 +15,7 @@
  */
 
 /**
- * @class strange.extensions.context.impl.CrossContextBridge
+ * @class SimplifyIoC.Contexts.CrossContextBridge
  * 
  * A relay for events mapped across multiple Contexts.
  * 
@@ -38,11 +38,11 @@
  * relay that Event to other Contexts.
  */
 
-using SimplifyIoC.Extensions.Dispatchers;
+using SimplifyIoC.Dispatchers;
 using SimplifyIoC.Framework;
 using System.Collections.Generic;
 
-namespace SimplifyIoC.Extensions.Contexts
+namespace SimplifyIoC.Contexts
 {
     public class CrossContextBridge : Binder, ITriggerable
 	{

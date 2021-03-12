@@ -15,9 +15,9 @@
  */
 
 /**
-* @class strange.extensions.pool.impl.Pool
+* @class SimplifyIoC.Pools.Pool
 *
-* @see strange.extensions.pool.api.IPool
+* @see SimplifyIoC.Pools.IPool
  */
 
 using System;
@@ -25,7 +25,7 @@ using System.Collections;
 using System.Collections.Generic;
 using SimplifyIoC.Framework;
 
-namespace SimplifyIoC.Extensions.Pools
+namespace SimplifyIoC.Pools
 {
     public class Pool<T> : Pool, IPool<T>
 	{
@@ -277,4 +277,3 @@ namespace SimplifyIoC.Extensions.Pools
 		}
 	}
 }
-

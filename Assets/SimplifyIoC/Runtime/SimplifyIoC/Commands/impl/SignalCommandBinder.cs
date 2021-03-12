@@ -15,7 +15,7 @@
  */
 
 /**
- * @class strange.extensions.command.impl.SignalCommandBinder;
+ * @class SimplifyIoC.Commands.SignalCommandBinder;
  * 
  * A Binder that triggers the instantiation of Commands using Signals.
  * 
@@ -57,10 +57,10 @@
 using System;
 using System.Collections.Generic;
 using SimplifyIoC.Framework;
-using SimplifyIoC.Extensions.Injectors;
-using SimplifyIoC.Extensions.Signals;
+using SimplifyIoC.Injectors;
+using SimplifyIoC.Signals;
 
-namespace SimplifyIoC.Extensions.Commands
+namespace SimplifyIoC.Commands
 {
     public class SignalCommandBinder : CommandBinder
 	{

@@ -15,14 +15,14 @@
  */
 
 /**
- * @interface strange.extensions.injector.api.IInjectorFactory
+ * @interface SimplifyIoC.Injectors.IInjectorFactory
  * 
  * Interface for the Factory that instantiates all instances.
  * 
- * @see strange.extensions.injector.api.IInjector
+ * @see SimplifyIoC.Injectors.IInjector
  */
 
-namespace SimplifyIoC.Extensions.Injectors
+namespace SimplifyIoC.Injectors
 {
     public interface IInjectorFactory
 	{

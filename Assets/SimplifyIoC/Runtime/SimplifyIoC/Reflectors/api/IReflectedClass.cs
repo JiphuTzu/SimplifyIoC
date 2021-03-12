@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface strange.extensions.reflector.api.IReflectedClass
+ * @interface SimplifyIoC.Reflectors.IReflectedClass
  * 
  * Interface for representation of a class.
  * 
@@ -28,7 +28,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace SimplifyIoC.Extensions.Reflectors
+namespace SimplifyIoC.Reflectors
 {
     public interface IReflectedClass
 	{
@@ -81,4 +81,3 @@ namespace SimplifyIoC.Extensions.Reflectors
 		}
 	}
 }
-

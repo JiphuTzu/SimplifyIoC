@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface strange.extensions.context.api.ICrossContextCapable
+ * @interface SimplifyIoC.Contexts.ICrossContextCapable
  * 
  * API for allowing Contexts to register across the Context border.
  * 
@@ -23,13 +23,13 @@
  * 
  * MVCSContext inherits CrossContext to obtain important capabilities, such as shared injections.
  * 
- * @see strange.extensions.injector.api.IInjectionBinding
+ * @see SimplifyIoC.Injectors.IInjectionBinding
  */
 
-using SimplifyIoC.Extensions.Dispatchers;
-using SimplifyIoC.Extensions.Injectors;
+using SimplifyIoC.Dispatchers;
+using SimplifyIoC.Injectors;
 
-namespace SimplifyIoC.Extensions.Contexts
+namespace SimplifyIoC.Contexts
 {
     public interface ICrossContextCapable
 	{

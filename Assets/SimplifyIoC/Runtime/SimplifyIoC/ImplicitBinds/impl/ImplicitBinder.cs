@@ -18,10 +18,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using SimplifyIoC.Extensions.Injectors;
-using SimplifyIoC.Extensions.Mediations;
+using SimplifyIoC.Injectors;
+using SimplifyIoC.Mediations;
 
-namespace SimplifyIoC.Extensions.ImplicitBinds
+namespace SimplifyIoC.ImplicitBinds
 {
     public class ImplicitBinder : IImplicitBinder
 	{

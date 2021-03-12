@@ -15,14 +15,14 @@
  */
 
 /**
- * @class strange.extensions.dispatcher.impl.DispatcherException
+ * @class SimplifyIoC.Dispatchers.DispatcherException
  * 
  * An exception thrown by the Dispatcher system.
  */
 
 using System;
 
-namespace SimplifyIoC.Extensions.Dispatchers
+namespace SimplifyIoC.Dispatchers
 {
     public class DispatcherException : Exception
 	{

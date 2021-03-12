@@ -15,7 +15,7 @@
  */
 
 /**
-* @interface strange.extensions.pool.api.IPoolable
+* @interface SimplifyIoC.Pools.IPoolable
 *
 * Interface for items that belong to a Pool
 *
@@ -30,7 +30,7 @@
 * it to the Pool.
 */
 
-namespace SimplifyIoC.Extensions.Pools
+namespace SimplifyIoC.Pools
 {
     public interface IPoolable
 	{
@@ -58,4 +58,3 @@ namespace SimplifyIoC.Extensions.Pools
 		bool retain { get; }
 	}
 }
-

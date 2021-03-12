@@ -15,16 +15,16 @@
  */
 
 /**
- * @class strange.extensions.command.impl.CommandException
+ * @class SimplifyIoC.Commands.CommandException
  * 
  * An exception raised by the Command system.
  * 
- * @see strange.extensions.context.api.CommandExceptionType
+ * @see SimplifyIoC.Commands.CommandExceptionType
  */
 
 using System;
 
-namespace SimplifyIoC.Extensions.Commands
+namespace SimplifyIoC.Commands
 {
     public class CommandException : Exception
 	{

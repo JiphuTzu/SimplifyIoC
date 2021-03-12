@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-namespace SimplifyIoC.Extensions.Mediations
+namespace SimplifyIoC.Mediations
 {
     public enum MediationExceptionType
 	{
@@ -51,4 +51,3 @@ namespace SimplifyIoC.Extensions.Mediations
 		VIEW_NOT_ASSIGNABLE,
 	}
 }
-

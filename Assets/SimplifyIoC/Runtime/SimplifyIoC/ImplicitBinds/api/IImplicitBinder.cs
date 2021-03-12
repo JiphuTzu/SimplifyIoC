@@ -16,7 +16,7 @@
 
 using System.Reflection;
 
-namespace SimplifyIoC.Extensions.ImplicitBinds
+namespace SimplifyIoC.ImplicitBinds
 {
     public interface IImplicitBinder
 	{

@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface strange.extensions.reflector.api.IReflectionBinder
+ * @interface SimplifyIoC.Reflectors.IReflectionBinder
  * 
  * Generates `ReflectedClass` instances.
  * 
@@ -28,15 +28,14 @@
 
 using System;
 
-namespace SimplifyIoC.Extensions.Reflectors
+namespace SimplifyIoC.Reflectors
 {
     public interface IReflectionBinder
-	{
-		/// Get a binding based on the provided Type
-		IReflectedClass Get (Type type);
+    {
+        /// Get a binding based on the provided Type
+        IReflectedClass Get(Type type);
 
-		/// Get a binding based on the provided Type generic.
-		IReflectedClass Get<T> ();
-	}
+        /// Get a binding based on the provided Type generic.
+        IReflectedClass Get<T>();
+    }
 }
-

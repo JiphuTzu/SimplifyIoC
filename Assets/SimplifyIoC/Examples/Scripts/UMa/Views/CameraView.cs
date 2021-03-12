@@ -1,5 +1,5 @@
 using System;
-using SimplifyIoC.Extensions.Mediations;
+using SimplifyIoC.Mediations;
 using UnityEngine;
 using UnityEngine.Events;
 //============================================================

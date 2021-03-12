@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface strange.extensions.injector.api.IInjectionBinder
+ * @interface SimplifyIoC.Injectors.IInjectionBinder
  * 
  * A Binder that implements Dependency Injection in StrangeIoC.
  * 
@@ -54,14 +54,14 @@
  * 
  * `Bind<ISimpleInterface>().To<string>();`
  * 
- * @see strange.extensions.injector.api.IInjectionBinding
+ * @see SimplifyIoC.Injectors.IInjectionBinding
  */
 
 using System;
 using System.Collections.Generic;
 using SimplifyIoC.Framework;
 
-namespace SimplifyIoC.Extensions.Injectors
+namespace SimplifyIoC.Injectors
 {
     public interface IInjectionBinder : IInstanceProvider
 	{

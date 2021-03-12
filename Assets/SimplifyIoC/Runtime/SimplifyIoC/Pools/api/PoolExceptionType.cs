@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-namespace SimplifyIoC.Extensions.Pools
+namespace SimplifyIoC.Pools
 {
     public enum PoolExceptionType
 	{
@@ -29,4 +29,3 @@ namespace SimplifyIoC.Extensions.Pools
 		NO_INSTANCE_PROVIDER,
 	}
 }
-

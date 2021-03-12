@@ -15,28 +15,27 @@
  */
 
 /**
- * @class strange.extensions.injector.impl.InjectionException
+ * @class SimplifyIoC.Injectors.InjectionException
  * 
  * An exception thrown by the Injection system.
  */
 
 using System;
 
-namespace SimplifyIoC.Extensions.Injectors
+namespace SimplifyIoC.Injectors
 {
     public class InjectionException : Exception
-	{
-		public InjectionExceptionType type{ get; set;}
+    {
+        public InjectionExceptionType type { get; set; }
 
-		public InjectionException() : base()
-		{
-		}
+        public InjectionException() : base()
+        {
+        }
 
-		/// Constructs an InjectionException with a message and InjectionExceptionType
-		public InjectionException(string message, InjectionExceptionType exceptionType) : base(message)
-		{
-			type = exceptionType;
-		}
-	}
+        /// Constructs an InjectionException with a message and InjectionExceptionType
+        public InjectionException(string message, InjectionExceptionType exceptionType) : base(message)
+        {
+            type = exceptionType;
+        }
+    }
 }
-

@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface SimplifyIoC.Extensions.Contexts.IContext
+ * @interface SimplifyIoC.Contexts.IContext
  * 
  * A Context is the entry point to the binding framework.
  * 
@@ -26,7 +26,7 @@
 
 using SimplifyIoC.Framework;
 
-namespace SimplifyIoC.Extensions.Contexts
+namespace SimplifyIoC.Contexts
 {
     public interface IContext : IBinder
 	{

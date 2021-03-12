@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface strange.extensions.dispatcher.eventdispatcher.api.IEventBinding
+ * @interface SimplifyIoC.Dispatchers.IEventBinding
  * 
  * Binding interface for EventDispatcher.
  * 
@@ -25,32 +25,29 @@
  * The IEvent only accepts strings as keys, so in the standard MVCSContext
  * setup, your EventBinder keys should also be strings.
  * 
- * @see strange.extensions.dispatcher.eventdispatcher.api.IEvent
+ * @see SimplifyIoC.Dispatchers.IEvent
  */
 
 using SimplifyIoC.Framework;
 
-namespace SimplifyIoC.Extensions.Dispatchers
+namespace SimplifyIoC.Dispatchers
 {
     /// Delegate for adding a listener with a single argument
     public delegate void EventCallback(IEvent payload);
 
-	/// Delegate for adding a listener with a no arguments
-	public delegate void EmptyCallback();
+    /// Delegate for adding a listener with a no arguments
+    public delegate void EmptyCallback();
 
-	public interface IEventBinding : IBinding
-	{
-		/// Retrieve the type of the provided callback
-		EventCallbackType TypeForCallback (EventCallback callback);
+    public interface IEventBinding : IBinding
+    {
+        /// Retrieve the type of the provided callback
+        EventCallbackType TypeForCallback(EventCallback callback);
 
-		/// Retrieve the type of the provided callback
-		EventCallbackType TypeForCallback (EmptyCallback callback);
+        /// Retrieve the type of the provided callback
+        EventCallbackType TypeForCallback(EmptyCallback callback);
 
-		new IEventBinding Bind (object key);
-		IEventBinding To (EventCallback callback);
-		IEventBinding To (EmptyCallback callback);
-
-
-	}
+        new IEventBinding Bind(object key);
+        IEventBinding To(EventCallback callback);
+        IEventBinding To(EmptyCallback callback);
+    }
 }
-

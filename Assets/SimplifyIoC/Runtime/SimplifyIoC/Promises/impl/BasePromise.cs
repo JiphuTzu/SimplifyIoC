@@ -15,15 +15,15 @@
  */
 
 /**
- * @class strange.extensions.promise.impl.BasePromise
+ * @class SimplifyIoC.Promises.BasePromise
  *
- * @see strange.extensions.promise.api.IPromise
+ * @see SimplifyIoC.Promises.IPromise
  */
 
 using System;
 using System.Linq;
 
-namespace SimplifyIoC.Extensions.Promises
+namespace SimplifyIoC.Promises
 {
     public abstract class BasePromise : IBasePromise
 	{

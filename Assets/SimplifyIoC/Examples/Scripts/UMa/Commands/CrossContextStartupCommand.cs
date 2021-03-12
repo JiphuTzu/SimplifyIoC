@@ -1,4 +1,4 @@
-using SimplifyIoC.Extensions.Commands;
+using SimplifyIoC.Commands;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 //============================================================

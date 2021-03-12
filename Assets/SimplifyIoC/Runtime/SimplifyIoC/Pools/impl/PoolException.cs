@@ -17,21 +17,18 @@
 
 using System;
 
-namespace SimplifyIoC.Extensions.Pools
+namespace SimplifyIoC.Pools
 {
     public class PoolException : Exception
-	{
-		public PoolExceptionType type{ get; set;}
+    {
+        public PoolExceptionType type { get; set; }
 
-		public PoolException() : base()
-		{
-		}
+        public PoolException() : base() { }
 
-		/// Constructs a PoolException with a message and PoolExceptionType
-		public PoolException(string message, PoolExceptionType exceptionType) : base(message)
-		{
-			type = exceptionType;
-		}
-	}
+        /// Constructs a PoolException with a message and PoolExceptionType
+        public PoolException(string message, PoolExceptionType exceptionType) : base(message)
+        {
+            type = exceptionType;
+        }
+    }
 }
-

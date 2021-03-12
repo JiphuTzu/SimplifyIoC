@@ -1,6 +1,6 @@
-using SimplifyIoC.Extensions.Commands;
-using SimplifyIoC.Extensions.Injectors;
-using SimplifyIoC.Extensions.Signals;
+using SimplifyIoC.Commands;
+using SimplifyIoC.Injectors;
+using SimplifyIoC.Signals;
 //============================================================
 //@author	JiphuTzu
 //@create	2019/11/13
@@ -11,7 +11,7 @@ using SimplifyIoC.Extensions.Signals;
 //             1.添加简便绑定方法
 //             2.完成虚方法，在方法中进行分类绑定
 //============================================================
-namespace SimplifyIoC.Extensions.Contexts
+namespace SimplifyIoC.Contexts
 {
     public abstract class SimplifyContext<B, T> : MVCSContext where B : SimplifyBootstrap where T : Command
     {

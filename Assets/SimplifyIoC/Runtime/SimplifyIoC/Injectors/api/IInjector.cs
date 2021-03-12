@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface strange.extensions.injector.api.IInjector
+ * @interface SimplifyIoC.Injectors.IInjector
  * 
  * Interface for the Injector, which dependencies into provided instances.
  * 
@@ -33,43 +33,42 @@
  *  <li>[PostConstruct] - Use this metatag on any method(s) you wish to fire directly after dependencies are supplied</li>
  * </ul>
  * 
- * @see strange.extensions.reflector.api.IReflectionBinder
- * @see strange.extensions.injector.api.IInjectionBinder
- * @see strange.extensions.injector.api.IInjectorFactory
+ * @see SimplifyIoC.Reflectors.IReflectionBinder
+ * @see SimplifyIoC.Injectors.IInjectionBinder
+ * @see SimplifyIoC.Injectors.IInjectorFactory
  */
 
-using SimplifyIoC.Extensions.Reflectors;
+using SimplifyIoC.Reflectors;
 
-namespace SimplifyIoC.Extensions.Injectors
+namespace SimplifyIoC.Injectors
 {
     public interface IInjector
-	{
-		/// Request an instantiation based on the given binding.
-		/// This request is made to the Injector, but it's really the InjectorFactory that does the instantiation.
-		object Instantiate (IInjectionBinding binding, bool tryInjectHere);
+    {
+        /// Request an instantiation based on the given binding.
+        /// This request is made to the Injector, but it's really the InjectorFactory that does the instantiation.
+        object Instantiate(IInjectionBinding binding, bool tryInjectHere);
 
-		//Attempt to inject based on binding setting
-		object TryInject(IInjectionBinding binding, object target);
+        //Attempt to inject based on binding setting
+        object TryInject(IInjectionBinding binding, object target);
 
-		/// Request that the provided target be injected.
-		object Inject(object target);
+        /// Request that the provided target be injected.
+        object Inject(object target);
 
-		/// Request that the provided target be injected.
-		object Inject(object target, bool attemptConstructorInjection);
+        /// Request that the provided target be injected.
+        object Inject(object target, bool attemptConstructorInjection);
 
-		/// Clear the injections from the provided instance.
-		/// Note that Uninject can only clean public properties...therefore only
-		/// setters will be uninjected...not injections provided via constructor injection
-		void Uninject(object target);
+        /// Clear the injections from the provided instance.
+        /// Note that Uninject can only clean public properties...therefore only
+        /// setters will be uninjected...not injections provided via constructor injection
+        void Uninject(object target);
 
-		/// Get/set an InjectorFactory.
-		IInjectorFactory factory{ get; set;}
+        /// Get/set an InjectorFactory.
+        IInjectorFactory factory { get; set; }
 
-		/// Get/set an InjectionBinder.
-		IInjectionBinder binder{ get; set;}
+        /// Get/set an InjectionBinder.
+        IInjectionBinder binder { get; set; }
 
-		/// Get/set a ReflectionBinder.
-		IReflectionBinder reflector{ get; set;}
-	}
+        /// Get/set a ReflectionBinder.
+        IReflectionBinder reflector { get; set; }
+    }
 }
-

@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface strange.extensions.mediation.api.IMediationBinder
+ * @interface SimplifyIoC.Mediations.IMediationBinder
  * 
  * Interface for the Binder which maps Views to Mediators.
  * 
@@ -64,7 +64,7 @@
 
 using SimplifyIoC.Framework;
 
-namespace SimplifyIoC.Extensions.Mediations
+namespace SimplifyIoC.Mediations
 {
     public interface IMediationBinder : IBinder
 	{

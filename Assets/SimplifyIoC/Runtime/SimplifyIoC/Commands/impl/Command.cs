@@ -15,7 +15,7 @@
  */
 
 /**
- * @class strange.extensions.command.impl.Command
+ * @class SimplifyIoC.Commands.Command
  * 
  * Commands are where you place your business logic.
  * 
@@ -33,10 +33,10 @@
  * has no effect on Commands operating in parallel.
  */
 
-using SimplifyIoC.Extensions.Injectors;
-using SimplifyIoC.Extensions.Pools;
+using SimplifyIoC.Injectors;
+using SimplifyIoC.Pools;
 
-namespace SimplifyIoC.Extensions.Commands
+namespace SimplifyIoC.Commands
 {
     public abstract class Command : ICommand, IPoolable
 	{

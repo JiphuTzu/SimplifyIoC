@@ -15,7 +15,7 @@
  */
 
 /** 
- * @enum strange.extensions.pool.api.PoolOverflowBehavior
+ * @enum SimplifyIoC.Pools.PoolOverflowBehavior
  *
  * Behavior when a fixed-size pool overflows its limit.
  * By default, a fixed-size pool will throw an Exception if it is requested to
@@ -25,18 +25,17 @@
  * PoolInflationType.
  */
 
-namespace SimplifyIoC.Extensions.Pools
+namespace SimplifyIoC.Pools
 {
     public enum PoolOverflowBehavior
-	{
-		/// Requesting more than the fixed size will throw an exception.
-		EXCEPTION,
-		
-		/// Requesting more than the fixed size will throw a warning.
-		WARNING,
+    {
+        /// Requesting more than the fixed size will throw an exception.
+        EXCEPTION,
 
-		/// Requesting more than the fixed size will return null and not throw an error.
-		IGNORE
-	}
+        /// Requesting more than the fixed size will throw a warning.
+        WARNING,
+
+        /// Requesting more than the fixed size will return null and not throw an error.
+        IGNORE
+    }
 }
-

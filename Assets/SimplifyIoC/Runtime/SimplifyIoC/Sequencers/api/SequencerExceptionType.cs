@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-namespace SimplifyIoC.Extensions.Sequencers
+namespace SimplifyIoC.Sequencers
 {
     public enum SequencerExceptionType
 	{
@@ -25,4 +25,3 @@ namespace SimplifyIoC.Extensions.Sequencers
 		COMMAND_USED_IN_SEQUENCE
 	}
 }
-

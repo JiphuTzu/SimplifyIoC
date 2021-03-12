@@ -15,30 +15,27 @@
  */
 
 /**
- * @class strange.extensions.context.impl.ContextException
+ * @class SimplifyIoC.Contexts.ContextException
  * 
  * An exception raised by the Context system.
  * 
- * @see strange.extensions.context.api.ContextExceptionType
+ * @see SimplifyIoC.Contexts.ContextExceptionType
  */
 
 using System;
 
-namespace SimplifyIoC.Extensions.Contexts
+namespace SimplifyIoC.Contexts
 {
     public class ContextException : Exception
-	{
-		public ContextExceptionType type{ get; set;}
+    {
+        public ContextExceptionType type { get; set; }
 
-		public ContextException () : base()
-		{
-		}
+        public ContextException() : base() { }
 
-		/// Constructs a ContextException with a message and ContextExceptionType
-		public ContextException(string message, ContextExceptionType exceptionType) : base(message)
-		{
-			type = exceptionType;
-		}
-	}
+        /// Constructs a ContextException with a message and ContextExceptionType
+        public ContextException(string message, ContextExceptionType exceptionType) : base(message)
+        {
+            type = exceptionType;
+        }
+    }
 }
-
