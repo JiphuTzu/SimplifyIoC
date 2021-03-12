@@ -39,4 +39,3 @@ namespace SimplifyIoC.Framework
 		RUNTIME_FAILED_WHITELIST_CHECK
 	}
 }
-

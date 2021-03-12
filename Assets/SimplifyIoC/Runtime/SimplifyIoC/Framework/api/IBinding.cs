@@ -43,81 +43,80 @@
 namespace SimplifyIoC.Framework
 {
     public interface IBinding
-	{
-		/**
+    {
+        /**
 		 * Tie this binding to a Type key
 		 */
-		IBinding Bind<T>();
-		/**
+        IBinding Bind<T>();
+        /**
 		 * Tie this binding to a value key, such as a string or class instance
 		 */
-		IBinding Bind(object key);
+        IBinding Bind(object key);
 
-		/**
+        /**
 		 * Set the Binding's value to a Type
 		 **/
-		IBinding To<T>();
-		/**
+        IBinding To<T>();
+        /**
 		 * Set the Binding's value to a value, such as a string or class instance
 		 */
-		IBinding To(object o);
+        IBinding To(object o);
 
-		/**
+        /**
 		 * Qualify a binding using a marker type
 		 */
-		IBinding ToName<T> ();
+        IBinding ToName<T>();
 
-		/**
+        /**
 		 * Qualify a binding using a value, such as a string or class instance
 		 */
-		IBinding ToName (object o);
+        IBinding ToName(object o);
 
-		/**
+        /**
 		 * Retrieve a binding if the supplied name matches, by Type
 		 */
-		IBinding Named<T>();
+        IBinding Named<T>();
 
-		/**
+        /**
 		 * Retrieve a binding if the supplied name matches, by value
 		 */
-		IBinding Named(object o);
+        IBinding Named(object o);
 
-		/**
+        /**
 		 * Remove a specific key from the binding.
 		 */
-		void RemoveKey (object o);
+        void RemoveKey(object o);
 
-		/**
+        /**
 		 * Remove a specific value from the binding
 		 */
-		void RemoveValue (object o);
+        void RemoveValue(object o);
 
-		/**
+        /**
 		 * Remove a name from the binding
 		 */
-		void RemoveName (object o);
+        void RemoveName(object o);
 
-		/// Get the binding''s key
-		object key{ get; }
+        /// Get the binding''s key
+        object key { get; }
 
-		/// Get the binding's name
-		object name{ get; }
+        /// Get the binding's name
+        object name { get; }
 
-		/// Get the binding's value
-		object value{ get; }
+        /// Get the binding's value
+        object value { get; }
 
-		/// Get or set a MANY or ONE constraint on the Key
-		BindingConstraintType keyConstraint{ get; set;}
+        /// Get or set a MANY or ONE constraint on the Key
+        BindingConstraintType keyConstraint { get; set; }
 
-		/// Get or set a MANY or ONE constraint on the Value
-		BindingConstraintType valueConstraint{ get; set;}
+        /// Get or set a MANY or ONE constraint on the Value
+        BindingConstraintType valueConstraint { get; set; }
 
-		//Mark a binding as weak, so that any new binding will override it
-		IBinding Weak();
+        //Mark a binding as weak, so that any new binding will override it
+        IBinding Weak();
 
-		//Get whether or not the binding is weak, default false
-		bool isWeak { get; }
+        //Get whether or not the binding is weak, default false
+        bool isWeak { get; }
 
-	}
+    }
 }
-

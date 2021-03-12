@@ -19,19 +19,16 @@ using System;
 
 namespace SimplifyIoC.Framework
 {
-	public class BinderException : Exception
-	{
-		public BinderExceptionType type{ get; set;}
+    public class BinderException : Exception
+    {
+        public BinderExceptionType type { get; set; }
 
-		public BinderException() : base()
-		{
-		}
+        public BinderException() : base() { }
 
-		/// Constructs a BinderException with a message and BinderExceptionType
-		public BinderException(string message, BinderExceptionType exceptionType) : base(message)
-		{
-			type = exceptionType;
-		}
-	}
+        /// Constructs a BinderException with a message and BinderExceptionType
+        public BinderException(string message, BinderExceptionType exceptionType) : base(message)
+        {
+            type = exceptionType;
+        }
+    }
 }
-

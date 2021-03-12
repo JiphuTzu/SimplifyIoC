@@ -32,7 +32,7 @@ namespace SimplifyIoC.Promises
 		private event Action OnFinally;
 		private Exception exception;
 
-		public PromiseState State { get; protected set; }
+		public PromiseState state { get; protected set; }
 
 		public enum PromiseState
 		{
@@ -43,13 +43,13 @@ namespace SimplifyIoC.Promises
 
 		protected BasePromise()
 		{
-			State = PromiseState.Pending;
+			state = PromiseState.Pending;
 		}
 
 		public void ReportFail(Exception ex)
 		{
 			exception = ex;
-			State = PromiseState.Failed;
+			state = PromiseState.Failed;
 			if (OnFail != null)
 				OnFail(ex);
 			Finally();
@@ -67,9 +67,9 @@ namespace SimplifyIoC.Promises
 		/// </summary>
 		protected bool Fulfill()
 		{
-			if (Resolved) return false;
+			if (resolved) return false;
 
-			State = PromiseState.Fulfilled;
+			state = PromiseState.Fulfilled;
 			return true;
 		}
 
@@ -81,7 +81,7 @@ namespace SimplifyIoC.Promises
 
 		public IBasePromise Fail(Action<Exception> listener)
 		{
-			if (Failed)
+			if (failed)
 			{
 				listener(exception);
 				Finally();
@@ -93,7 +93,7 @@ namespace SimplifyIoC.Promises
 
 		public IBasePromise Finally(Action listener)
 		{
-			if (Resolved)
+			if (resolved)
 				listener();
 			else
 				OnFinally = AddUnique(OnFinally, listener);
@@ -150,10 +150,10 @@ namespace SimplifyIoC.Promises
 			return listeners;
 		}
 
-		protected bool Pending { get { return State == PromiseState.Pending; } }
-		protected bool Resolved { get { return State != PromiseState.Pending; } }
-		protected bool Fulfilled { get { return State == PromiseState.Fulfilled; } }
-		protected bool Failed { get { return State == PromiseState.Failed; } }
+		protected bool pending { get { return state == PromiseState.Pending; } }
+		protected bool resolved { get { return state != PromiseState.Pending; } }
+		protected bool fulfilled { get { return state == PromiseState.Fulfilled; } }
+		protected bool failed { get { return state == PromiseState.Failed; } }
 
 		public abstract int ListenerCount();
 	}

@@ -34,13 +34,13 @@ namespace SimplifyIoC.ImplicitBinds
 
 
 		//Hold a copy of the assembly so we aren't retrieving this multiple times. 
-		public Assembly Assembly { get; set; }
+		public Assembly assembly { get; set; }
 
 
 		[PostConstruct]
 		public void PostConstruct()
 		{
-			Assembly = Assembly.GetExecutingAssembly();
+			assembly = Assembly.GetExecutingAssembly();
 		}
 
 		/// <summary>
@@ -51,10 +51,10 @@ namespace SimplifyIoC.ImplicitBinds
 
 		public virtual void ScanForAnnotatedClasses(params string[] usingNamespaces)
 		{
-			if (Assembly != null)
+			if (assembly != null)
 			{
 
-				IEnumerable<Type> types = Assembly.GetExportedTypes();
+				IEnumerable<Type> types = assembly.GetExportedTypes();
 
 				List<Type> typesInNamespaces = new List<Type>();
 				int namespacesLength = usingNamespaces.Length;
@@ -80,13 +80,13 @@ namespace SimplifyIoC.ImplicitBinds
 					{
 
 						ImplementedBy implBy = (ImplementedBy)implementedBy.First();
-						if (implBy.DefaultType.GetInterfaces().Contains(type)) //Verify this DefaultType exists and implements the tagged interface
+						if (implBy.defaultType.GetInterfaces().Contains(type)) //Verify this DefaultType exists and implements the tagged interface
 						{
-							implementedByBindings.Add(new ImplicitBindingVO(type, implBy.DefaultType, implBy.Scope == InjectionBindingScope.CROSS_CONTEXT, null));
+							implementedByBindings.Add(new ImplicitBindingVO(type, implBy.defaultType, implBy.scope == InjectionBindingScope.CROSS_CONTEXT, null));
 						}
 						else
 						{
-							throw new InjectionException("Default Type: " + implBy.DefaultType.Name + " does not implement annotated interface " + type.Name,
+							throw new InjectionException("Default Type: " + implBy.defaultType.Name + " does not implement annotated interface " + type.Name,
 								InjectionExceptionType.IMPLICIT_BINDING_IMPLEMENTOR_DOES_NOT_IMPLEMENT_INTERFACE);
 						}
 
@@ -103,29 +103,29 @@ namespace SimplifyIoC.ImplicitBinds
 						foreach (Implements impl in implements)
 						{
 							//Confirm this type implements the type specified
-							if (impl.DefaultInterface != null)
+							if (impl.defaultInterface != null)
 							{
 								//Verify this Type implements the passed interface
-								if (interfaces.Contains(impl.DefaultInterface) || type == impl.DefaultInterface)
+								if (interfaces.Contains(impl.defaultInterface) || type == impl.defaultInterface)
 								{
-									bindTypes.Add(impl.DefaultInterface);
+									bindTypes.Add(impl.defaultInterface);
 								}
 								else
 								{
-									throw new InjectionException("Annotated type " + type.Name + " does not implement Default Interface " + impl.DefaultInterface.Name,
+									throw new InjectionException("Annotated type " + type.Name + " does not implement Default Interface " + impl.defaultInterface.Name,
 									InjectionExceptionType.IMPLICIT_BINDING_TYPE_DOES_NOT_IMPLEMENT_DESIGNATED_INTERFACE);
 								}
 							}
 							else //Concrete
 							{
-								if (impl.Name is Type)
+								if (impl.name is Type)
 									Console.WriteLine("You have bound a type: " + type.Name + " as the name of this implements binding. Did you mean to use the (Type, InjectionBindingScope) signature instead of the (InjectionBindingScope, object) signature?");
 
 								bindTypes.Add(type);
 							}
 
-							isCrossContext = isCrossContext || impl.Scope == InjectionBindingScope.CROSS_CONTEXT;
-							name = name ?? impl.Name;
+							isCrossContext = isCrossContext || impl.scope == InjectionBindingScope.CROSS_CONTEXT;
+							name = name ?? impl.name;
 						}
 
 						ImplicitBindingVO thisBindingVo = new ImplicitBindingVO(bindTypes, type, isCrossContext, name);
@@ -144,7 +144,7 @@ namespace SimplifyIoC.ImplicitBinds
 					if (mediated.Any())
 					{
 						viewType = type;
-						mediatorType = ((MediatedBy)mediated.First()).MediatorType;
+						mediatorType = ((MediatedBy)mediated.First()).mediatorType;
 
 						if (mediatorType == null)
 							throw new MediationException("Cannot implicitly bind view of type: " + type.Name + " due to null MediatorType",
@@ -153,7 +153,7 @@ namespace SimplifyIoC.ImplicitBinds
 					else if (mediates.Any())
 					{
 						mediatorType = type;
-						viewType = ((Mediates)mediates.First()).ViewType;
+						viewType = ((Mediates)mediates.First()).viewType;
 
 						if (viewType == null)
 							throw new MediationException("Cannot implicitly bind Mediator of type: " + type.Name + " due to null ViewType",

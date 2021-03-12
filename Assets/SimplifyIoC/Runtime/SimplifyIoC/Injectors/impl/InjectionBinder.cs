@@ -25,7 +25,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using SimplifyIoC.Reflectors;
 using SimplifyIoC.Framework;
 
@@ -82,7 +81,7 @@ namespace SimplifyIoC.Injectors
 
         override public IBinding GetRawBinding()
         {
-            return new InjectionBinding(resolver);
+            return new InjectionBinding(Resolver);
         }
 
         public IInjector injector
@@ -167,7 +166,7 @@ namespace SimplifyIoC.Injectors
             return count;
         }
 
-        override protected IBinding performKeyValueBindings(List<object> keyList, List<object> valueList)
+        override protected IBinding PerformKeyValueBindings(List<object> keyList, List<object> valueList)
         {
             IBinding binding = null;
 
@@ -202,46 +201,46 @@ namespace SimplifyIoC.Injectors
         }
 
         /// Additional options: ToSingleton, CrossContext
-        override protected IBinding addRuntimeOptions(IBinding b, List<object> options)
-        {
-            base.addRuntimeOptions(b, options);
-            IInjectionBinding binding = b as IInjectionBinding;
-            if (options.IndexOf("ToSingleton") > -1)
-            {
-                binding.ToSingleton();
-            }
-            if (options.IndexOf("CrossContext") > -1)
-            {
-                binding.CrossContext();
-            }
-            IEnumerable<Dictionary<string, object>> dict = options.OfType<Dictionary<string, object>>();
-            if (dict.Any())
-            {
-                Dictionary<string, object> supplyToDict = dict.First(a => a.Keys.Contains("SupplyTo"));
-                if (supplyToDict != null)
-                {
-                    foreach (KeyValuePair<string, object> kv in supplyToDict)
-                    {
-                        if (kv.Value is string)
-                        {
-                            Type valueType = Type.GetType(kv.Value as string);
-                            binding.SupplyTo(valueType);
-                        }
-                        else
-                        {
-                            List<object> values = kv.Value as List<object>;
-                            for (int a = 0, aa = values.Count; a < aa; a++)
-                            {
-                                Type valueType = Type.GetType(values[a] as string);
-                                binding.SupplyTo(valueType);
-                            }
-                        }
-                    }
-                }
-            }
+        // override protected IBinding AddRuntimeOptions(IBinding b, List<object> options)
+        // {
+        //     base.AddRuntimeOptions(b, options);
+        //     IInjectionBinding binding = b as IInjectionBinding;
+        //     if (options.IndexOf("ToSingleton") > -1)
+        //     {
+        //         binding.ToSingleton();
+        //     }
+        //     if (options.IndexOf("CrossContext") > -1)
+        //     {
+        //         binding.CrossContext();
+        //     }
+        //     IEnumerable<Dictionary<string, object>> dict = options.OfType<Dictionary<string, object>>();
+        //     if (dict.Any())
+        //     {
+        //         Dictionary<string, object> supplyToDict = dict.First(a => a.Keys.Contains("SupplyTo"));
+        //         if (supplyToDict != null)
+        //         {
+        //             foreach (KeyValuePair<string, object> kv in supplyToDict)
+        //             {
+        //                 if (kv.Value is string)
+        //                 {
+        //                     Type valueType = Type.GetType(kv.Value as string);
+        //                     binding.SupplyTo(valueType);
+        //                 }
+        //                 else
+        //                 {
+        //                     List<object> values = kv.Value as List<object>;
+        //                     for (int a = 0, aa = values.Count; a < aa; a++)
+        //                     {
+        //                         Type valueType = Type.GetType(values[a] as string);
+        //                         binding.SupplyTo(valueType);
+        //                     }
+        //                 }
+        //             }
+        //         }
+        //     }
 
-            return binding;
-        }
+        //     return binding;
+        // }
 
         public IInjectionBinding GetSupplier(Type injectionType, Type targetType)
         {
@@ -270,7 +269,7 @@ namespace SimplifyIoC.Injectors
             Unsupply(typeof(T), typeof(U));
         }
 
-        override protected void resolver(IBinding binding)
+        override protected void Resolver(IBinding binding)
         {
             IInjectionBinding iBinding = binding as IInjectionBinding;
             object[] supply = iBinding.GetSupply();
@@ -296,7 +295,7 @@ namespace SimplifyIoC.Injectors
                 }
             }
 
-            base.resolver(binding);
+            base.Resolver(binding);
         }
     }
 }

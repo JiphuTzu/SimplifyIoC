@@ -29,9 +29,8 @@ using SimplifyIoC.Mediations;
 namespace SimplifyIoC.Contexts
 {
     public interface IContextView : IView
-	{
-		/// Get and set the Context
-		IContext context{get;set;}
-	}
+    {
+        /// Get and set the Context
+        IContext context { get; set; }
+    }
 }
-

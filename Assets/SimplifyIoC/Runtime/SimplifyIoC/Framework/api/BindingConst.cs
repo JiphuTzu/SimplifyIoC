@@ -22,4 +22,3 @@ namespace SimplifyIoC.Framework
 		NULLOID
 	}
 }
-

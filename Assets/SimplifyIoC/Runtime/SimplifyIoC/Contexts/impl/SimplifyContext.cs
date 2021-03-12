@@ -23,9 +23,9 @@ namespace SimplifyIoC.Contexts
             bootstrap = view as B;
             return base.SetContextView(view);
         }
-        protected sealed override void mapBindings()
+        protected sealed override void MapBindings()
         {
-            base.mapBindings();
+            base.MapBindings();
             BindCommand<StartupSignal, T>(true, false);
             BindCommands();
             BindViews();

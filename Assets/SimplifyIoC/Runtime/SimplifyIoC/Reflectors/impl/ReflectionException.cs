@@ -28,9 +28,7 @@ namespace SimplifyIoC.Reflectors
     {
         public ReflectionExceptionType type { get; set; }
 
-        public ReflectionException() : base()
-        {
-        }
+        public ReflectionException() : base() { }
 
         /// Constructs a ReflectionException with a message and ReflectionExceptionType
         public ReflectionException(string message, ReflectionExceptionType exceptionType) : base(message)

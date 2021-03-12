@@ -32,15 +32,15 @@ namespace SimplifyIoC.Contexts
 {
     public class CrossContext : Context, ICrossContextCapable
 	{
-		private ICrossContextInjectionBinder _injectionBinder;
+		// private ICrossContextInjectionBinder _injectionBinder;
 		private IBinder _crossContextBridge;
 
 		/// A Binder that handles dependency injection binding and instantiation
-		public ICrossContextInjectionBinder injectionBinder
-		{
-			get { return _injectionBinder ?? (_injectionBinder = new CrossContextInjectionBinder()); }
-		    set { _injectionBinder = value; }
-		}
+		public ICrossContextInjectionBinder injectionBinder {get;set;} = new CrossContextInjectionBinder();
+		// {
+		// 	get { return _injectionBinder ?? (_injectionBinder = new CrossContextInjectionBinder()); }
+		//     set { _injectionBinder = value; }
+		// }
 
 		/// A specific instance of EventDispatcher that communicates 
 		/// across multiple contexts. An event sent across this 
@@ -55,27 +55,20 @@ namespace SimplifyIoC.Contexts
 	    protected IEventDispatcher _crossContextDispatcher;
 
         
-		public CrossContext() : base()
-		{}
+		public CrossContext() : base(){}
 
-		public CrossContext(object view) : base(view)
-		{
-		}
+		public CrossContext(object view) : base(view){}
 
-		public CrossContext(object view, ContextStartupFlags flags) : base(view, flags)
-		{
-		}
+		public CrossContext(object view, ContextStartupFlags flags) : base(view, flags){}
 
-		public CrossContext(object view, bool autoMapping) : base(view, autoMapping)
-		{
-		}
+		public CrossContext(object view, bool autoMapping) : base(view, autoMapping){}
 
-		protected override void addCoreComponents()
+		protected override void AddCoreComponents()
 		{
-			base.addCoreComponents();
-			if (injectionBinder.CrossContextBinder == null)  //Only null if it could not find a parent context / firstContext
+			base.AddCoreComponents();
+			if (injectionBinder.crossContextBinder == null)  //Only null if it could not find a parent context / firstContext
 			{
-				injectionBinder.CrossContextBinder = new CrossContextInjectionBinder();
+				injectionBinder.crossContextBinder = new CrossContextInjectionBinder();
 			}
 
 			if (firstContext == this)
@@ -86,9 +79,9 @@ namespace SimplifyIoC.Contexts
 
 		}
 
-		protected override void instantiateCoreComponents()
+		protected override void InstantiateCoreComponents()
 		{
-			base.instantiateCoreComponents();
+			base.InstantiateCoreComponents();
 
 			IInjectionBinding dispatcherBinding = injectionBinder.GetBinding<IEventDispatcher> (ContextKeys.CONTEXT_DISPATCHER);
 
@@ -116,7 +109,7 @@ namespace SimplifyIoC.Contexts
 		virtual public void AssignCrossContext(ICrossContextCapable childContext)
 		{
 			childContext.crossContextDispatcher = crossContextDispatcher;
-			childContext.injectionBinder.CrossContextBinder = injectionBinder.CrossContextBinder;
+			childContext.injectionBinder.crossContextBinder = injectionBinder.crossContextBinder;
 		}
 
 		virtual public void RemoveCrossContext(ICrossContextCapable childContext)

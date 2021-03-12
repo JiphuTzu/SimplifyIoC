@@ -25,18 +25,15 @@ using System;
 namespace SimplifyIoC.Dispatchers
 {
     public class EventDispatcherException : Exception
-	{
-		public EventDispatcherExceptionType type{ get; set;}
+    {
+        public EventDispatcherExceptionType type { get; set; }
 
-		public EventDispatcherException() : base()
-		{
-		}
+        public EventDispatcherException() : base() { }
 
-		/// Constructs an EventDispatcherException with a message and EventDispatcherExceptionType
-		public EventDispatcherException(string message, EventDispatcherExceptionType exceptionType) : base(message)
-		{
-			type = exceptionType;
-		}
-	}
+        /// Constructs an EventDispatcherException with a message and EventDispatcherExceptionType
+        public EventDispatcherException(string message, EventDispatcherExceptionType exceptionType) : base(message)
+        {
+            type = exceptionType;
+        }
+    }
 }
-

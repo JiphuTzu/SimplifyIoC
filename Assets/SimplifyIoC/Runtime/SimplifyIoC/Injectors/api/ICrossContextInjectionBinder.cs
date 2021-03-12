@@ -27,6 +27,6 @@ namespace SimplifyIoC.Injectors
     public interface ICrossContextInjectionBinder : IInjectionBinder
 	{
 		//Cross-context Injection Binder is shared across all child contexts
-		IInjectionBinder CrossContextBinder { get; set; }
+		IInjectionBinder crossContextBinder { get; set; }
 	}
 }

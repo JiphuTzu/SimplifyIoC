@@ -29,77 +29,77 @@ using SimplifyIoC.Signals;
 namespace SimplifyIoC.Mediations
 {
     public class SignalMediationBinder : MediationBinder
-	{
+    {
 
-		/// Adds a Mediator to a View
-		protected override object CreateMediator(IView view, Type mediatorType)
-		{
-			object mediator = base.CreateMediator(view, mediatorType);
-			if (mediator is IMediator)
-			{
-				HandleDelegates(mediator, mediatorType, true);
-			}
-			return mediator;
-		}
+        /// Adds a Mediator to a View
+        protected override object CreateMediator(IView view, Type mediatorType)
+        {
+            object mediator = base.CreateMediator(view, mediatorType);
+            if (mediator is IMediator)
+            {
+                HandleDelegates(mediator, mediatorType, true);
+            }
+            return mediator;
+        }
 
-		/// Manage Delegates, then remove the Mediator from a View
-		protected override IMediator DestroyMediator(IView view, Type mediatorType)
-		{
-			IMediator mediator = base.DestroyMediator(view, mediatorType);
-			if (mediator != null)
-			{
-				HandleDelegates(mediator, mediatorType, false);
-			}
+        /// Manage Delegates, then remove the Mediator from a View
+        protected override IMediator DestroyMediator(IView view, Type mediatorType)
+        {
+            IMediator mediator = base.DestroyMediator(view, mediatorType);
+            if (mediator != null)
+            {
+                HandleDelegates(mediator, mediatorType, false);
+            }
 
-			return mediator;
-		}
+            return mediator;
+        }
 
-		/// Determine whether to add or remove ListensTo delegates
-		protected void HandleDelegates(object mono, Type mediatorType, bool toAdd)
-		{
-			IReflectedClass reflectedClass = injectionBinder.injector.reflector.Get(mediatorType);
+        /// Determine whether to add or remove ListensTo delegates
+        protected void HandleDelegates(object mono, Type mediatorType, bool toAdd)
+        {
+            IReflectedClass reflectedClass = injectionBinder.injector.reflector.Get(mediatorType);
 
-			//GetInstance Signals and add listeners
-			foreach (var pair in reflectedClass.attrMethods)
-			{
-				if (pair.Value is ListensTo)
-				{
-					ListensTo attr = (ListensTo)pair.Value;
-					ISignal signal = (ISignal)injectionBinder.GetInstance(attr.type);
-					if (toAdd)
-						AssignDelegate(mono, signal, pair.Key);
-					else
-						RemoveDelegate(mono, signal, pair.Key);
-				}
-			}
-		}
+            //GetInstance Signals and add listeners
+            foreach (var pair in reflectedClass.attrMethods)
+            {
+                if (pair.Value is ListensTo)
+                {
+                    ListensTo attr = (ListensTo)pair.Value;
+                    ISignal signal = (ISignal)injectionBinder.GetInstance(attr.type);
+                    if (toAdd)
+                        AssignDelegate(mono, signal, pair.Key);
+                    else
+                        RemoveDelegate(mono, signal, pair.Key);
+                }
+            }
+        }
 
-		/// Remove any existing ListensTo Delegates
-		protected void RemoveDelegate(object mediator, ISignal signal, MethodInfo method)
-		{
-			if (signal.GetType().BaseType.IsGenericType) //e.g. Signal<T>, Signal<T,U> etc.
-			{
-				Delegate toRemove = Delegate.CreateDelegate(signal.listener.GetType(), mediator, method);
-				signal.listener = Delegate.Remove(signal.listener,toRemove);
-			}
-			else
-			{
-				((Signal)signal).RemoveListener((Action)Delegate.CreateDelegate(typeof(Action), mediator, method)); //Assign and cast explicitly for Type == Signal case
-			}
-		}
+        /// Remove any existing ListensTo Delegates
+        protected void RemoveDelegate(object mediator, ISignal signal, MethodInfo method)
+        {
+            if (signal.GetType().BaseType.IsGenericType) //e.g. Signal<T>, Signal<T,U> etc.
+            {
+                Delegate toRemove = Delegate.CreateDelegate(signal.listener.GetType(), mediator, method);
+                signal.listener = Delegate.Remove(signal.listener, toRemove);
+            }
+            else
+            {
+                ((Signal)signal).RemoveListener((Action)Delegate.CreateDelegate(typeof(Action), mediator, method)); //Assign and cast explicitly for Type == Signal case
+            }
+        }
 
-		/// Apply ListensTo delegates
-		protected void AssignDelegate(object mediator, ISignal signal, MethodInfo method)
-		{
-			if (signal.GetType().BaseType.IsGenericType)
-			{
-				var toAdd = Delegate.CreateDelegate(signal.listener.GetType(), mediator, method); //e.g. Signal<T>, Signal<T,U> etc.
-				signal.listener = Delegate.Combine(signal.listener, toAdd);
-			}
-			else
-			{
-				((Signal)signal).AddListener((Action)Delegate.CreateDelegate(typeof(Action), mediator, method)); //Assign and cast explicitly for Type == Signal case
-			}
-		}
-	}
+        /// Apply ListensTo delegates
+        protected void AssignDelegate(object mediator, ISignal signal, MethodInfo method)
+        {
+            if (signal.GetType().BaseType.IsGenericType)
+            {
+                var toAdd = Delegate.CreateDelegate(signal.listener.GetType(), mediator, method); //e.g. Signal<T>, Signal<T,U> etc.
+                signal.listener = Delegate.Combine(signal.listener, toAdd);
+            }
+            else
+            {
+                ((Signal)signal).AddListener((Action)Delegate.CreateDelegate(typeof(Action), mediator, method)); //Assign and cast explicitly for Type == Signal case
+            }
+        }
+    }
 }

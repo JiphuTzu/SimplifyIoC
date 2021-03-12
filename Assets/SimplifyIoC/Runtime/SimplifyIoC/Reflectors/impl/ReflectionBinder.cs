@@ -34,9 +34,7 @@ namespace SimplifyIoC.Reflectors
 {
     public class ReflectionBinder : SimplifyIoC.Framework.Binder, IReflectionBinder
     {
-        public ReflectionBinder()
-        {
-        }
+        public ReflectionBinder(){}
 
         public IReflectedClass Get<T>()
         {
@@ -51,17 +49,17 @@ namespace SimplifyIoC.Reflectors
             {
                 binding = GetRawBinding();
                 IReflectedClass reflected = new ReflectedClass();
-                mapPreferredConstructor(reflected, binding, type);
-                mapSetters(reflected, binding, type); //map setters before mapping methods
-                mapMethods(reflected, binding, type);
+                MapPreferredConstructor(reflected, binding, type);
+                MapSetters(reflected, binding, type); //map setters before mapping methods
+                MapMethods(reflected, binding, type);
                 binding.Bind(type).To(reflected);
                 retv = binding.value as IReflectedClass;
-                retv.PreGenerated = false;
+                retv.preGenerated = false;
             }
             else
             {
                 retv = binding.value as IReflectedClass;
-                retv.PreGenerated = true;
+                retv.preGenerated = true;
             }
             return retv;
         }
@@ -73,9 +71,9 @@ namespace SimplifyIoC.Reflectors
             return binding;
         }
 
-        private void mapPreferredConstructor(IReflectedClass reflected, IBinding binding, Type type)
+        private void MapPreferredConstructor(IReflectedClass reflected, IBinding binding, Type type)
         {
-            ConstructorInfo constructor = findPreferredConstructor(type);
+            ConstructorInfo constructor = FindPreferredConstructor(type);
             if (constructor == null)
             {
                 throw new ReflectionException("The reflector requires concrete classes.\nType " + type + " has no constructor. Is it an interface?", ReflectionExceptionType.CANNOT_REFLECT_INTERFACE);
@@ -98,16 +96,16 @@ namespace SimplifyIoC.Reflectors
                 }
                 i++;
             }
-            reflected.Constructor = constructor;
-            reflected.ConstructorParameters = paramList;
-            reflected.ConstructorParameterNames = names;
+            reflected.constructor = constructor;
+            reflected.constructorParameters = paramList;
+            reflected.constructorParameterNames = names;
         }
 
         //Look for a constructor in the order:
         //1. Only one (just return it, since it's our only option)
         //2. Tagged with [Construct] tag
         //3. The constructor with the fewest parameters
-        private ConstructorInfo findPreferredConstructor(Type type)
+        private ConstructorInfo FindPreferredConstructor(Type type)
         {
             ConstructorInfo[] constructors = type.GetConstructors(BindingFlags.FlattenHierarchy |
                                                                     BindingFlags.Public |
@@ -137,7 +135,7 @@ namespace SimplifyIoC.Reflectors
             return shortestConstructor;
         }
 
-        private void mapMethods(IReflectedClass reflected, IBinding binding, Type type)
+        private void MapMethods(IReflectedClass reflected, IBinding binding, Type type)
         {
             MethodInfo[] methods = type.GetMethods(BindingFlags.FlattenHierarchy |
                                                          BindingFlags.Public |
@@ -170,7 +168,7 @@ namespace SimplifyIoC.Reflectors
             reflected.attrMethods = attrMethods.ToArray();
         }
 
-        private void mapSetters(IReflectedClass reflected, IBinding binding, Type type)
+        private void MapSetters(IReflectedClass reflected, IBinding binding, Type type)
         {
             MemberInfo[] privateMembers = type.FindMembers(MemberTypes.Property,
                                                     BindingFlags.FlattenHierarchy |
@@ -219,7 +217,7 @@ namespace SimplifyIoC.Reflectors
                         namedAttributes[point.Name] = new ReflectedAttribute(point.PropertyType, point, attr.name);
                 }
             }
-            reflected.Setters = namedAttributes.Values.ToArray();
+            reflected.setters = namedAttributes.Values.ToArray();
         }
     }
 
@@ -228,13 +226,13 @@ namespace SimplifyIoC.Reflectors
         int IComparer.Compare(Object x, Object y)
         {
 
-            int pX = getPriority(x as MethodInfo);
-            int pY = getPriority(y as MethodInfo);
+            int pX = GetPriority(x as MethodInfo);
+            int pY = GetPriority(y as MethodInfo);
 
             return (pX < pY) ? -1 : (pX == pY) ? 0 : 1;
         }
 
-        private int getPriority(MethodInfo methodInfo)
+        private int GetPriority(MethodInfo methodInfo)
         {
             PostConstruct attr = methodInfo.GetCustomAttributes(true)[0] as PostConstruct;
             int priority = attr.priority;

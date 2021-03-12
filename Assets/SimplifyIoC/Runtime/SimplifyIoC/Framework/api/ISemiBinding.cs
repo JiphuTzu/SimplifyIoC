@@ -40,12 +40,11 @@
 namespace SimplifyIoC.Framework
 {
     public interface ISemiBinding : IManagedList
-	{
-		/// Set or get the constraint. 
-		BindingConstraintType constraint{ get; set;}
+    {
+        /// Set or get the constraint. 
+        BindingConstraintType constraint { get; set; }
 
-		/// A secondary constraint that ensures that this SemiBinding will never contain multiple values equivalent to each other. 
-		bool uniqueValues{get;set;}
-	}
+        /// A secondary constraint that ensures that this SemiBinding will never contain multiple values equivalent to each other. 
+        bool uniqueValues { get; set; }
+    }
 }
-
