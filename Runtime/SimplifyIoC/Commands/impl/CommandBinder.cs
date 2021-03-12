@@ -61,346 +61,345 @@ using SimplifyIoC.Pools;
 namespace SimplifyIoC.Commands
 {
     public class CommandBinder : Binder, ICommandBinder, IPooledCommandBinder, ITriggerable
-	{
-		[Inject]
-		public IInjectionBinder injectionBinder { get; set; }
+    {
+        [Inject]
+        public IInjectionBinder injectionBinder { get; set; }
 
-		protected Dictionary<Type, Pool> pools = new Dictionary<Type, Pool> ();
+        protected Dictionary<Type, Pool> pools = new Dictionary<Type, Pool>();
 
-		/// Tracker for parallel commands in progress
-		protected HashSet<ICommand> activeCommands = new HashSet<ICommand>();
+        /// Tracker for parallel commands in progress
+        protected HashSet<ICommand> activeCommands = new HashSet<ICommand>();
 
-		/// Tracker for sequences in progress
-		protected Dictionary<ICommand, ICommandBinding> activeSequences = new Dictionary<ICommand, ICommandBinding> ();
+        /// Tracker for sequences in progress
+        protected Dictionary<ICommand, ICommandBinding> activeSequences = new Dictionary<ICommand, ICommandBinding>();
 
-		public CommandBinder ()
-		{
-			usePooling = true;
-		}
+        public CommandBinder()
+        {
+            usePooling = true;
+        }
 
-		public override IBinding GetRawBinding ()
-		{
-			return new CommandBinding(resolver);
-		}
+        public override IBinding GetRawBinding()
+        {
+            return new CommandBinding(Resolver);
+        }
 
-		virtual public void ReactTo (object trigger)
-		{
-			ReactTo (trigger, null);
-		}
-		
-		virtual public void ReactTo(object trigger, object data)
-		{
-			if (data is IPoolable)
-			{
-				(data as IPoolable).Retain ();
-			}
-			ICommandBinding binding = GetBinding (trigger) as ICommandBinding;
-			if (binding != null)
-			{
-				if (binding.isSequence)
-				{
-					next (binding, data, 0);
-				}
-				else
-				{
-					object[] values = binding.value as object[];
-					int aa = values.Length + 1;
-					for (int a = 0; a < aa; a++)
-					{
-						next (binding, data, a);
-					}
-				}
-			}
-		}
+        virtual public void ReactTo(object trigger)
+        {
+            ReactTo(trigger, null);
+        }
 
-		protected void next(ICommandBinding binding, object data, int depth)
-		{
-			object[] values = binding.value as object[];
-			if (depth < values.Length)
-			{
-				Type cmd = values [depth] as Type;
-				ICommand command = invokeCommand (cmd, binding, data, depth);
-				ReleaseCommand (command);
-			}
-			else
-			{
-				disposeOfSequencedData (data);
-				if (binding.isOneOff)
-				{
-					Unbind (binding);
-				}
-			}
-		}
+        virtual public void ReactTo(object trigger, object data)
+        {
+            if (data is IPoolable)
+            {
+                (data as IPoolable).Retain();
+            }
+            ICommandBinding binding = GetBinding(trigger) as ICommandBinding;
+            if (binding != null)
+            {
+                if (binding.isSequence)
+                {
+                    Next(binding, data, 0);
+                }
+                else
+                {
+                    object[] values = binding.value as object[];
+                    int aa = values.Length + 1;
+                    for (int a = 0; a < aa; a++)
+                    {
+                        Next(binding, data, a);
+                    }
+                }
+            }
+        }
 
-		//EventCommandBinder (and perhaps other sub-classes) use this method to dispose of the data in sequenced commands
-		virtual protected void disposeOfSequencedData(object data)
-		{
-			//No-op. Override if necessary.
-		}
+        protected void Next(ICommandBinding binding, object data, int depth)
+        {
+            object[] values = binding.value as object[];
+            if (depth < values.Length)
+            {
+                Type cmd = values[depth] as Type;
+                ICommand command = InvokeCommand(cmd, binding, data, depth);
+                ReleaseCommand(command);
+            }
+            else
+            {
+                DisposeOfSequencedData(data);
+                if (binding.isOneOff)
+                {
+                    Unbind(binding);
+                }
+            }
+        }
 
-		virtual protected ICommand invokeCommand(Type cmd, ICommandBinding binding, object data, int depth)
-		{
-			ICommand command = createCommand (cmd, data);
-			command.sequenceId = depth;
-			trackCommand (command, binding);
-			executeCommand (command);
-			return command;
-		}
+        //EventCommandBinder (and perhaps other sub-classes) use this method to dispose of the data in sequenced commands
+        virtual protected void DisposeOfSequencedData(object data)
+        {
+            //No-op. Override if necessary.
+        }
 
-		virtual protected ICommand createCommand(object cmd, object data)
-		{
-			ICommand command = getCommand (cmd as Type);
+        virtual protected ICommand InvokeCommand(Type cmd, ICommandBinding binding, object data, int depth)
+        {
+            ICommand command = CreateCommand(cmd, data);
+            command.sequenceId = depth;
+            TrackCommand(command, binding);
+            ExecuteCommand(command);
+            return command;
+        }
 
-			if (command == null)
-			{
-				string msg = "A Command ";
-				if (data != null)
-				{
-					msg += "tied to data " + data.ToString ();
-				}
-				msg += " could not be instantiated.\nThis might be caused by a null pointer during instantiation or failing to override Execute (generally you shouldn't have constructor code in Commands).";
-				throw new CommandException(msg, CommandExceptionType.BAD_CONSTRUCTOR);
-			}
+        virtual protected ICommand CreateCommand(object cmd, object data)
+        {
+            ICommand command = GetCommand(cmd as Type);
 
-			command.data = data;
-			return command;
-		}
+            if (command == null)
+            {
+                string msg = "A Command ";
+                if (data != null)
+                {
+                    msg += "tied to data " + data.ToString();
+                }
+                msg += " could not be instantiated.\nThis might be caused by a null pointer during instantiation or failing to override Execute (generally you shouldn't have constructor code in Commands).";
+                throw new CommandException(msg, CommandExceptionType.BAD_CONSTRUCTOR);
+            }
 
-		protected ICommand getCommand(Type type)
-		{
-			if (usePooling && pools.ContainsKey(type))
-			{
-				Pool pool = pools [type];
-				ICommand command = pool.GetInstance () as ICommand;
-				if (command.IsClean)
-				{
-					injectionBinder.injector.Inject (command);
-					command.IsClean = false;
-				}
-				return command;
-			}
-			else
-			{
-				injectionBinder.Bind<ICommand> ().To (type);
-				ICommand command = injectionBinder.GetInstance<ICommand> ();
-				injectionBinder.Unbind<ICommand> ();
-				return command;
-			}
-		}
+            command.data = data;
+            return command;
+        }
 
-		protected void trackCommand (ICommand command, ICommandBinding binding)
-		{
-			if (binding.isSequence)
-			{
-				activeSequences.Add(command, binding);
-			}
-			else
-			{
-				activeCommands.Add(command);
-			}
-		}
+        protected ICommand GetCommand(Type type)
+        {
+            if (usePooling && pools.ContainsKey(type))
+            {
+                Pool pool = pools[type];
+                ICommand command = pool.GetInstance() as ICommand;
+                if (command.isClean)
+                {
+                    injectionBinder.injector.Inject(command);
+                    command.isClean = false;
+                }
+                return command;
+            }
+            else
+            {
+                injectionBinder.Bind<ICommand>().To(type);
+                ICommand command = injectionBinder.GetInstance<ICommand>();
+                injectionBinder.Unbind<ICommand>();
+                return command;
+            }
+        }
 
-		protected void executeCommand(ICommand command)
-		{
-			if (command == null)
-			{
-				return;
-			}
-			command.Execute ();
-		}
+        protected void TrackCommand(ICommand command, ICommandBinding binding)
+        {
+            if (binding.isSequence)
+            {
+                activeSequences.Add(command, binding);
+            }
+            else
+            {
+                activeCommands.Add(command);
+            }
+        }
 
-		public virtual void Stop(object key)
-		{
-			if (key is ICommand && activeSequences.ContainsKey(key as ICommand))
-			{
-				removeSequence (key as ICommand);
-			}
-			else
-			{
-				ICommandBinding binding = GetBinding (key) as ICommandBinding;
-				if (binding != null)
-				{
-					if (activeSequences.ContainsValue (binding))
-					{
-						foreach(KeyValuePair<ICommand, ICommandBinding> sequence in activeSequences)
-						{
-							if (sequence.Value == binding)
-							{
-								ICommand command = sequence.Key;
-								removeSequence (command);
-							}
-						}
-					}
-				}
-			}
-		}
+        protected void ExecuteCommand(ICommand command)
+        {
+            if (command == null)
+            {
+                return;
+            }
+            command.Execute();
+        }
 
-		public virtual void ReleaseCommand (ICommand command)
-		{
-			if (command.retain == false)
-			{
-				Type t = command.GetType ();
-				if (usePooling && pools.ContainsKey (t))
-				{
-					pools [t].ReturnInstance (command);
-				}
-				if (activeCommands.Contains(command))
-				{
-					activeCommands.Remove (command);
-				}
-				else if (activeSequences.ContainsKey(command))
-				{
-					ICommandBinding binding = activeSequences [command];
-					object data = command.data;
-					activeSequences.Remove (command);
-					next (binding, data, command.sequenceId + 1);
-				}
-			}
-		}
+        public virtual void Stop(object key)
+        {
+            if (key is ICommand && activeSequences.ContainsKey(key as ICommand))
+            {
+                RemoveSequence(key as ICommand);
+            }
+            else
+            {
+                ICommandBinding binding = GetBinding(key) as ICommandBinding;
+                if (binding != null)
+                {
+                    if (activeSequences.ContainsValue(binding))
+                    {
+                        foreach (KeyValuePair<ICommand, ICommandBinding> sequence in activeSequences)
+                        {
+                            if (sequence.Value == binding)
+                            {
+                                ICommand command = sequence.Key;
+                                RemoveSequence(command);
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-		public bool usePooling { get; set; }
+        public virtual void ReleaseCommand(ICommand command)
+        {
+            if (command.retain == false)
+            {
+                Type t = command.GetType();
+                if (usePooling && pools.ContainsKey(t))
+                {
+                    pools[t].ReturnInstance(command);
+                }
+                if (activeCommands.Contains(command))
+                {
+                    activeCommands.Remove(command);
+                }
+                else if (activeSequences.ContainsKey(command))
+                {
+                    ICommandBinding binding = activeSequences[command];
+                    object data = command.data;
+                    activeSequences.Remove(command);
+                    Next(binding, data, command.sequenceId + 1);
+                }
+            }
+        }
 
-		public Pool<T> GetPool<T>()
-		{
-			Type t = typeof (T);
-			if (pools.ContainsKey(t as Type))
-				return pools[t] as Pool<T>;
-			return null;
-		}
+        public bool usePooling { get; set; }
 
-		override protected IBinding performKeyValueBindings(List<object> keyList, List<object> valueList)
-		{
-			IBinding binding = null;
+        public Pool<T> GetPool<T>()
+        {
+            Type t = typeof(T);
+            if (pools.ContainsKey(t as Type))
+                return pools[t] as Pool<T>;
+            return null;
+        }
 
-			// Bind in order
-			foreach (object key in keyList)
-			{
-				//Attempt to resolve key as a class
-				Type keyType = Type.GetType (key as string);
-				Enum enumerator = null;
-				if (keyType == null)
-				{
-					//If it's not a class, attempt to resolve as an Enum
-					string keyString = key as string;
-					int separator = keyString.LastIndexOf(".");
-					if (separator > -1)
-					{
-						string enumClassName = keyString.Substring(0, separator);
-						Type enumType = Type.GetType (enumClassName as string);
-						if (enumType != null)
-						{
-							string enumName = keyString.Substring(separator+1);
-							enumerator = Enum.Parse (enumType, enumName) as Enum;
-						}
-					}
-				}
-				//If all else fails, just bind the original key
-				object bindingKey = keyType ?? enumerator ?? key;
-				binding = Bind (bindingKey);
-			}
-			foreach (object value in valueList)
-			{
-				Type valueType = Type.GetType (value as string);
-				if (valueType == null)
-				{
-					throw new BinderException("A runtime Command Binding has resolved to null. Did you forget to register its fully-qualified name?\n Command:" + value, BinderExceptionType.RUNTIME_NULL_VALUE);
-				}
-				binding = binding.To (valueType);
-			}
+        override protected IBinding PerformKeyValueBindings(List<object> keyList, List<object> valueList)
+        {
+            IBinding binding = null;
 
-			return binding;
-		}
+            // Bind in order
+            foreach (object key in keyList)
+            {
+                //Attempt to resolve key as a class
+                Type keyType = Type.GetType(key as string);
+                Enum enumerator = null;
+                if (keyType == null)
+                {
+                    //If it's not a class, attempt to resolve as an Enum
+                    string keyString = key as string;
+                    int separator = keyString.LastIndexOf(".");
+                    if (separator > -1)
+                    {
+                        string enumClassName = keyString.Substring(0, separator);
+                        Type enumType = Type.GetType(enumClassName as string);
+                        if (enumType != null)
+                        {
+                            string enumName = keyString.Substring(separator + 1);
+                            enumerator = Enum.Parse(enumType, enumName) as Enum;
+                        }
+                    }
+                }
+                //If all else fails, just bind the original key
+                object bindingKey = keyType ?? enumerator ?? key;
+                binding = Bind(bindingKey);
+            }
+            foreach (object value in valueList)
+            {
+                Type valueType = Type.GetType(value as string);
+                if (valueType == null)
+                {
+                    throw new BinderException("A runtime Command Binding has resolved to null. Did you forget to register its fully-qualified name?\n Command:" + value, BinderExceptionType.RUNTIME_NULL_VALUE);
+                }
+                binding = binding.To(valueType);
+            }
 
-		/// Additional options: Once, InParallel, InSequence, Pooled
-		override protected IBinding addRuntimeOptions(IBinding b, List<object> options)
-		{
-			base.addRuntimeOptions (b, options);
-			ICommandBinding binding = b as ICommandBinding;
-			if (options.IndexOf ("Once") > -1)
-			{
-				binding.Once ();
-			}
-			if (options.IndexOf ("InParallel") > -1)
-			{
-				binding.InParallel ();
-			}
-			if (options.IndexOf ("InSequence") > -1)
-			{
-				binding.InSequence ();
-			}
-			if (options.IndexOf ("Pooled") > -1)
-			{
-				binding.Pooled ();
-			}
+            return binding;
+        }
 
-			return binding;
-		}
+        /// Additional options: Once, InParallel, InSequence, Pooled
+        // override protected IBinding AddRuntimeOptions(IBinding b, List<object> options)
+        // {
+        //     base.AddRuntimeOptions(b, options);
+        //     ICommandBinding binding = b as ICommandBinding;
+        //     if (options.IndexOf("Once") > -1)
+        //     {
+        //         binding.Once();
+        //     }
+        //     if (options.IndexOf("InParallel") > -1)
+        //     {
+        //         binding.InParallel();
+        //     }
+        //     if (options.IndexOf("InSequence") > -1)
+        //     {
+        //         binding.InSequence();
+        //     }
+        //     if (options.IndexOf("Pooled") > -1)
+        //     {
+        //         binding.Pooled();
+        //     }
 
-		private void removeSequence(ICommand command)
-		{
-			if (activeSequences.ContainsKey (command))
-			{
-				command.Cancel();
-				activeSequences.Remove (command);
-			}
-		}
+        //     return binding;
+        // }
 
-		public bool Trigger<T>(object data)
-		{
-			return Trigger (typeof(T), data);
-		}
+        private void RemoveSequence(ICommand command)
+        {
+            if (activeSequences.ContainsKey(command))
+            {
+                command.Cancel();
+                activeSequences.Remove(command);
+            }
+        }
 
-		public bool Trigger(object key, object data)
-		{
-			ReactTo(key, data);
-			return true;
-		}
+        public bool Trigger<T>(object data)
+        {
+            return Trigger(typeof(T), data);
+        }
 
-		new public virtual  ICommandBinding Bind<T> ()
-		{
-			return base.Bind<T> () as ICommandBinding;
-		}
+        public bool Trigger(object key, object data)
+        {
+            ReactTo(key, data);
+            return true;
+        }
 
-		new public virtual ICommandBinding Bind (object value)
-		{
-			return base.Bind (value) as ICommandBinding;
-		}
+        new public virtual ICommandBinding Bind<T>()
+        {
+            return base.Bind<T>() as ICommandBinding;
+        }
 
-		override protected void resolver(IBinding binding)
-		{
-			base.resolver (binding);
-			if (usePooling && (binding as ICommandBinding).isPooled)
-			{
-				if (binding.value != null)
-				{
-					object[] values = binding.value as object[];
-					foreach (Type value in values)
-					{
-						if (pools.ContainsKey (value) == false)
-						{
-							var myPool = makePoolFromType (value);
-							pools [value] = myPool;
-						}
-					}
-				}
-			}
-		}
+        new public virtual ICommandBinding Bind(object value)
+        {
+            return base.Bind(value) as ICommandBinding;
+        }
 
-		virtual protected Pool makePoolFromType(Type type)
-		{
-			Type poolType = typeof(Pool<>).MakeGenericType(type);
+        override protected void Resolver(IBinding binding)
+        {
+            base.Resolver(binding);
+            if (usePooling && (binding as ICommandBinding).isPooled)
+            {
+                if (binding.value != null)
+                {
+                    object[] values = binding.value as object[];
+                    foreach (Type value in values)
+                    {
+                        if (pools.ContainsKey(value) == false)
+                        {
+                            var myPool = MakePoolFromType(value);
+                            pools[value] = myPool;
+                        }
+                    }
+                }
+            }
+        }
 
-			injectionBinder.Bind (type).To (type);
-			injectionBinder.Bind<Pool>().To(poolType).ToName (CommandKeys.COMMAND_POOL);
-			Pool pool = injectionBinder.GetInstance<Pool> (CommandKeys.COMMAND_POOL);
-			injectionBinder.Unbind<Pool> (CommandKeys.COMMAND_POOL);
-			return pool;
-		}
+        virtual protected Pool MakePoolFromType(Type type)
+        {
+            Type poolType = typeof(Pool<>).MakeGenericType(type);
 
-		new public virtual ICommandBinding GetBinding<T>()
-		{
-			return base.GetBinding<T>() as ICommandBinding;
-		}
-	}
+            injectionBinder.Bind(type).To(type);
+            injectionBinder.Bind<Pool>().To(poolType).ToName(CommandKeys.COMMAND_POOL);
+            Pool pool = injectionBinder.GetInstance<Pool>(CommandKeys.COMMAND_POOL);
+            injectionBinder.Unbind<Pool>(CommandKeys.COMMAND_POOL);
+            return pool;
+        }
+
+        new public virtual ICommandBinding GetBinding<T>()
+        {
+            return base.GetBinding<T>() as ICommandBinding;
+        }
+    }
 }
-

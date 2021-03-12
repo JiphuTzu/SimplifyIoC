@@ -26,4 +26,3 @@ namespace SimplifyIoC.Framework
 		POOL,
 	}
 }
-

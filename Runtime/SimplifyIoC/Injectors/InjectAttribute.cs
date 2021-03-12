@@ -64,64 +64,64 @@
 
 using System;
 
-[AttributeUsage(AttributeTargets.Property, 
-		AllowMultiple = false,
-		Inherited = true)]
-public class Inject: Attribute
+[AttributeUsage(AttributeTargets.Property,
+        AllowMultiple = false,
+        Inherited = true)]
+public class Inject : Attribute
 {
-	public Inject(){}
-	
-	public Inject(object n)
-	{
-		name = n;
-	}
-	
-	public object name{get; set;}
+    public Inject() { }
+
+    public Inject(object n)
+    {
+        name = n;
+    }
+
+    public object name { get; set; }
 }
 
 //Tag [Name] to perform named injection in constructors and pseudo-constructors
 [AttributeUsage(AttributeTargets.Parameter,
         AllowMultiple = false,
         Inherited = false)]
-public class Name : Attribute 
+public class Name : Attribute
 {
-	public Name(object n) 
-	{
-		name = n;
-	}
+    public Name(object n)
+    {
+        name = n;
+    }
 
-	public object name { get; set; }
+    public object name { get; set; }
 }
 
 //Tag [Construct] to perform construction injection
-[AttributeUsage(AttributeTargets.Constructor, 
-		AllowMultiple = false,
-		Inherited = true)]
-public class Construct: Attribute
+[AttributeUsage(AttributeTargets.Constructor,
+        AllowMultiple = false,
+        Inherited = true)]
+public class Construct : Attribute
 {
-	public Construct(){}
+    public Construct() { }
 }
 
 //Tag [PostConstruct] to perform post-injection construction actions
-[AttributeUsage(AttributeTargets.Method, 
-		AllowMultiple = false,
-		Inherited = true)]
-public class PostConstruct: Attribute
+[AttributeUsage(AttributeTargets.Method,
+        AllowMultiple = false,
+        Inherited = true)]
+public class PostConstruct : Attribute
 {
-	public PostConstruct(){}
+    public PostConstruct() { }
 
-	public PostConstruct(int p)
-	{
-		priority = p;
-	}
+    public PostConstruct(int p)
+    {
+        priority = p;
+    }
 
-	public int priority{get; set;}
+    public int priority { get; set; }
 }
 
-[AttributeUsage(AttributeTargets.Method, 
-		AllowMultiple = false,
-		Inherited = true)]
-public class Deconstruct: Attribute
+[AttributeUsage(AttributeTargets.Method,
+        AllowMultiple = false,
+        Inherited = true)]
+public class Deconstruct : Attribute
 {
-	public Deconstruct(){}
+    public Deconstruct() { }
 }

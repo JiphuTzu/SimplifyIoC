@@ -126,4 +126,3 @@ namespace SimplifyIoC.Injectors
 		//void ConsumeBindings(string jsonString);
 	}
 }
-

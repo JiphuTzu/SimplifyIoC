@@ -15,7 +15,7 @@
  */
 
 /**
- * @interface strange.extensions.command.api.ICommand
+ * @interface SimplifyIoC.Commands.ICommand
  * 
  * Interface for Commands, which is where you place your business logic.
  * 
@@ -55,7 +55,7 @@ namespace SimplifyIoC.Commands
 
 		/// Flag to indicate that a pooled Command has been restored to its pristine state.
 		/// The CommandBinder will use this to determine if re-Injection is required.
-		bool IsClean { get; set; }
+		bool isClean { get; set; }
 
 		/// The property set by `Retain` and `Release` to indicate whether the Command should be cleaned up on completion of the `Execute()` method. 
 		bool retain { get; }

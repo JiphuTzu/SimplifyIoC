@@ -40,4 +40,3 @@ namespace SimplifyIoC.Dispatchers
 		bool Trigger(object key, object data);
 	}
 }
-

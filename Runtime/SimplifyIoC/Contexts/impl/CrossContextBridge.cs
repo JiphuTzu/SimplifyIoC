@@ -52,16 +52,14 @@ namespace SimplifyIoC.Contexts
 		/// Prevents the currently dispatching Event from cycling back on itself
 		protected HashSet<object> eventsInProgress = new HashSet<object>();
 
-		public CrossContextBridge ()
-		{
-		}
+		public CrossContextBridge (){}
 
 		override public IBinding Bind(object key)
 		{
 			IBinding binding;
 			binding = GetRawBinding ();
 			binding.Bind(key);
-			resolver (binding);
+			Resolver (binding);
 			return binding;
 		}
 
@@ -87,4 +85,3 @@ namespace SimplifyIoC.Contexts
 		#endregion
 	}
 }
-

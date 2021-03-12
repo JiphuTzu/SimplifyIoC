@@ -33,4 +33,3 @@ namespace SimplifyIoC.Injectors
 		object Get (IInjectionBinding binding, object[] args);
 	}
 }
-

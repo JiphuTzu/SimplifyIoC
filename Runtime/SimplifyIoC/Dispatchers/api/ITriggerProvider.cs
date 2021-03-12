@@ -31,14 +31,14 @@
 namespace SimplifyIoC.Dispatchers
 {
     public interface ITriggerProvider
-	{
-		/// Register a Triggerable client with this provider.
-		void AddTriggerable(ITriggerable target);
+    {
+        /// Register a Triggerable client with this provider.
+        void AddTriggerable(ITriggerable target);
 
-		/// Remove a previously registered Triggerable client from this provider.
-		void RemoveTriggerable(ITriggerable target);
+        /// Remove a previously registered Triggerable client from this provider.
+        void RemoveTriggerable(ITriggerable target);
 
-		/// Count of the current number of trigger clients.
-		int Triggerables{ get;}
-	}
+        /// Count of the current number of trigger clients.
+        int triggerables { get; }
+    }
 }

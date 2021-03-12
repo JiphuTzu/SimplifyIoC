@@ -46,12 +46,12 @@ namespace SimplifyIoC.Promises
         /// <param name="action">The callback (no arguments).</param>
         public IPromise Then(Action action)
         {
-            if (Fulfilled)
+            if (fulfilled)
             {
                 action();
                 Finally();
             }
-            else if (Pending)
+            else if (pending)
             {
                 Listener = AddUnique(Listener, action);
             }
@@ -108,12 +108,12 @@ namespace SimplifyIoC.Promises
         /// <param name="action">The callback (one argument).</param>
         public IPromise<T> Then(Action<T> action)
         {
-            if (Fulfilled)
+            if (fulfilled)
             {
                 action(this.t);
                 Finally();
             }
-            else if (Pending)
+            else if (pending)
             {
                 Listener = AddUnique(Listener, action);
             }
@@ -171,12 +171,12 @@ namespace SimplifyIoC.Promises
         /// <param name="action">The callback (two arguments).</param>
         public IPromise<T, U> Then(Action<T, U> action)
         {
-            if (Fulfilled)
+            if (fulfilled)
             {
                 action(this.t, this.u);
                 Finally();
             }
-            else if (Pending)
+            else if (pending)
             {
                 Listener = AddUnique(Listener, action);
             }
@@ -245,12 +245,12 @@ namespace SimplifyIoC.Promises
         /// <param name="action">The callback (three arguments).</param>
         public IPromise<T, U, V> Then(Action<T, U, V> action)
         {
-            if (Fulfilled)
+            if (fulfilled)
             {
                 action(this.t, this.u, this.v);
                 Finally();
             }
-            else if (Pending)
+            else if (pending)
             {
                 Listener = AddUnique(Listener, action);
             }
@@ -322,12 +322,12 @@ namespace SimplifyIoC.Promises
         /// <param name="action">The callback (four arguments).</param>
         public IPromise<T, U, V, W> Then(Action<T, U, V, W> action)
         {
-            if (Fulfilled)
+            if (fulfilled)
             {
                 action(t, u, v, w);
                 Finally();
             }
-            else if (Pending)
+            else if (pending)
             {
                 Listener = AddUnique(Listener, action);
             }

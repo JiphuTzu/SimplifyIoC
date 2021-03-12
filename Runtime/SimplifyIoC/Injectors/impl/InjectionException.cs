@@ -28,9 +28,7 @@ namespace SimplifyIoC.Injectors
     {
         public InjectionExceptionType type { get; set; }
 
-        public InjectionException() : base()
-        {
-        }
+        public InjectionException() : base() { }
 
         /// Constructs an InjectionException with a message and InjectionExceptionType
         public InjectionException(string message, InjectionExceptionType exceptionType) : base(message)

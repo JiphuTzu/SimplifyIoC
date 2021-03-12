@@ -27,18 +27,15 @@ using System;
 namespace SimplifyIoC.Commands
 {
     public class CommandException : Exception
-	{
-		public CommandExceptionType type{ get; set;}
+    {
+        public CommandExceptionType type { get; set; }
 
-		public CommandException () : base()
-		{
-		}
+        public CommandException() : base() { }
 
-		/// Constructs a CommandException with a message and CommandExceptionType
-		public CommandException(string message, CommandExceptionType exceptionType) : base(message)
-		{
-			type = exceptionType;
-		}
-	}
+        /// Constructs a CommandException with a message and CommandExceptionType
+        public CommandException(string message, CommandExceptionType exceptionType) : base(message)
+        {
+            type = exceptionType;
+        }
+    }
 }
-

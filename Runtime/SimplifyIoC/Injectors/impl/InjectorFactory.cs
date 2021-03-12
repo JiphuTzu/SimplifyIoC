@@ -39,14 +39,14 @@ namespace SimplifyIoC.Injectors
             switch (type)
             {
                 case InjectionBindingType.SINGLETON:
-                    return singletonOf(binding, args);
+                    return SingletonOf(binding, args);
                 case InjectionBindingType.VALUE:
-                    return valueOf(binding);
+                    return ValueOf(binding);
                 default:
                     break;
             }
 
-            return instanceOf(binding, args);
+            return InstanceOf(binding, args);
         }
 
         public object Get(IInjectionBinding binding)
@@ -55,13 +55,13 @@ namespace SimplifyIoC.Injectors
         }
 
         /// Generate a Singleton instance
-        protected object singletonOf(IInjectionBinding binding, object[] args)
+        protected object SingletonOf(IInjectionBinding binding, object[] args)
         {
             if (binding.value != null)
             {
                 if (binding.value.GetType().IsInstanceOfType(typeof(Type)))
                 {
-                    object o = createFromValue(binding.value, args);
+                    object o = CreateFromValue(binding.value, args);
                     if (o == null)
                         return null;
                     binding.SetValue(o);
@@ -73,40 +73,40 @@ namespace SimplifyIoC.Injectors
             }
             else
             {
-                binding.SetValue(generateImplicit((binding.key as object[])[0], args));
+                binding.SetValue(GenerateImplicit((binding.key as object[])[0], args));
             }
             return binding.value;
         }
 
-        protected object generateImplicit(object key, object[] args)
+        protected object GenerateImplicit(object key, object[] args)
         {
             Type type = key as Type;
             if (!type.IsInterface && !type.IsAbstract)
             {
-                return createFromValue(key, args);
+                return CreateFromValue(key, args);
             }
             throw new InjectionException("InjectorFactory can't instantiate an Interface or Abstract Class. Class: " + key.ToString(), InjectionExceptionType.NOT_INSTANTIABLE);
         }
 
         /// The binding already has a value. Simply return it.
-        protected object valueOf(IInjectionBinding binding)
+        protected object ValueOf(IInjectionBinding binding)
         {
             return binding.value;
         }
 
         /// Generate a new instance
-        protected object instanceOf(IInjectionBinding binding, object[] args)
+        protected object InstanceOf(IInjectionBinding binding, object[] args)
         {
             if (binding.value != null)
             {
-                return createFromValue(binding.value, args);
+                return CreateFromValue(binding.value, args);
             }
-            object value = generateImplicit((binding.key as object[])[0], args);
-            return createFromValue(value, args);
+            object value = GenerateImplicit((binding.key as object[])[0], args);
+            return CreateFromValue(value, args);
         }
 
         /// Call the Activator to attempt instantiation the given object
-        protected object createFromValue(object o, object[] args)
+        protected object CreateFromValue(object o, object[] args)
         {
             Type value = (o is Type) ? o as Type : o.GetType();
             object retv = null;

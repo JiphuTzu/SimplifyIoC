@@ -36,9 +36,7 @@ namespace SimplifyIoC.Dispatchers
     {
         private Dictionary<Delegate, EventCallbackType> callbackTypes;
 
-        public EventBinding() : this(null)
-        {
-        }
+        public EventBinding() : this(null){}
 
         public EventBinding(SimplifyIoC.Framework.Binder.BindingResolver resolver) : base(resolver)
         {

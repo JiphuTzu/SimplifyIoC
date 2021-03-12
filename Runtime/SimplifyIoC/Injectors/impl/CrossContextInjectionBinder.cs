@@ -29,7 +29,7 @@ namespace SimplifyIoC.Injectors
 {
     public class CrossContextInjectionBinder : InjectionBinder, ICrossContextInjectionBinder
     {
-        public IInjectionBinder CrossContextBinder { get; set; }
+        public IInjectionBinder crossContextBinder { get; set; }
 
         public CrossContextInjectionBinder() : base() { }
 
@@ -55,9 +55,9 @@ namespace SimplifyIoC.Injectors
             IInjectionBinding binding = base.GetBinding(key, name) as IInjectionBinding;
             if (binding == null) //Attempt to get this from the cross context. Cross context is always SECOND PRIORITY. Local injections always override
             {
-                if (CrossContextBinder != null)
+                if (crossContextBinder != null)
                 {
-                    binding = CrossContextBinder.GetBinding(key, name) as IInjectionBinding;
+                    binding = crossContextBinder.GetBinding(key, name) as IInjectionBinding;
                 }
             }
             return binding;
@@ -71,7 +71,7 @@ namespace SimplifyIoC.Injectors
                 InjectionBinding injectionBinding = (InjectionBinding)binding;
                 if (injectionBinding.isCrossContext)
                 {
-                    if (CrossContextBinder == null) //We are a crosscontextbinder
+                    if (crossContextBinder == null) //We are a crosscontextbinder
                     {
 
                         base.ResolveBinding(binding, key);
@@ -79,7 +79,7 @@ namespace SimplifyIoC.Injectors
                     else
                     {
                         base.Unbind(key, binding.name); //remove this cross context binding from ONLY the local binder
-                        CrossContextBinder.ResolveBinding(binding, key);
+                        crossContextBinder.ResolveBinding(binding, key);
                     }
                 }
                 else
@@ -91,9 +91,9 @@ namespace SimplifyIoC.Injectors
 
         protected override IInjector GetInjectorForBinding(IInjectionBinding binding)
         {
-            if (binding.isCrossContext && CrossContextBinder != null)
+            if (binding.isCrossContext && crossContextBinder != null)
             {
-                return CrossContextBinder.injector;
+                return crossContextBinder.injector;
             }
             else
             {
@@ -107,9 +107,9 @@ namespace SimplifyIoC.Injectors
 
             if (binding != null &&
                 binding.isCrossContext &&
-                CrossContextBinder != null)
+                crossContextBinder != null)
             {
-                CrossContextBinder.Unbind(key, name);
+                crossContextBinder.Unbind(key, name);
             }
 
             base.Unbind(key, name);

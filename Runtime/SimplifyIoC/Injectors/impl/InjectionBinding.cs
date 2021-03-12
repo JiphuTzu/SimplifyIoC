@@ -29,9 +29,6 @@ namespace SimplifyIoC.Injectors
 {
     public class InjectionBinding : Binding, IInjectionBinding
     {
-        private InjectionBindingType _type = InjectionBindingType.DEFAULT;
-        private bool _toInject = true;
-        private bool _isCrossContext = false;
 
         private ISemiBinding supplyList = new SemiBinding();
 
@@ -43,39 +40,17 @@ namespace SimplifyIoC.Injectors
             supplyList.constraint = BindingConstraintType.MANY;
         }
 
-        public InjectionBindingType type
-        {
-            get
-            {
-                return _type;
-            }
-            set
-            {
-                _type = value;
-            }
-        }
+        public InjectionBindingType type { get; set; } = InjectionBindingType.DEFAULT;
 
-        public bool toInject
-        {
-            get
-            {
-                return _toInject;
-            }
-        }
+        public bool toInject { get; private set; } = true;
 
         public IInjectionBinding ToInject(bool value)
         {
-            _toInject = value;
+            toInject = value;
             return this;
         }
 
-        public bool isCrossContext
-        {
-            get
-            {
-                return _isCrossContext;
-            }
-        }
+        public bool isCrossContext { get; private set; } = false;
 
         public IInjectionBinding ToSingleton()
         {
@@ -149,7 +124,7 @@ namespace SimplifyIoC.Injectors
 
         public IInjectionBinding CrossContext()
         {
-            _isCrossContext = true;
+            isCrossContext = true;
             if (resolver != null)
             {
                 resolver(this);

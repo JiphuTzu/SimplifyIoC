@@ -15,7 +15,7 @@
  */
 
 /**
- * @class strange.extensions.context.impl.ContextView
+ * @class SimplifyIoC.Contexts.ContextView
  * 
  * The Root View of a Context hierarchy.
  * 

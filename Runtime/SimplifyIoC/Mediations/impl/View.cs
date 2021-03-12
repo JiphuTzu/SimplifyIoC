@@ -33,18 +33,7 @@ namespace SimplifyIoC.Mediations
         /// Leave this value true most of the time. If for some reason you want
         /// a view to exist outside a context you can set it to false. The only
         /// difference is whether an error gets generated.
-        private bool _requiresContext = true;
-        public bool requiresContext
-        {
-            get
-            {
-                return _requiresContext;
-            }
-            set
-            {
-                _requiresContext = value;
-            }
-        }
+        public bool requiresContext { get; set; } = true;
 
         /// Determines the type of event the View is bubbling to the Context
         protected enum BubbleType
@@ -62,12 +51,7 @@ namespace SimplifyIoC.Mediations
         /// (1) uncomment the commented-out line immediately below, or
         /// (2) subclass View and override the autoRegisterWithContext method using your own custom (public) field.
         //[SerializeField]
-        protected bool registerWithContext = true;
-        virtual public bool autoRegisterWithContext
-        {
-            get { return registerWithContext; }
-            set { registerWithContext = value; }
-        }
+        virtual public bool autoRegisterWithContext { get; set; } = true;
 
         public bool registeredWithContext { get; set; }
 
@@ -76,7 +60,7 @@ namespace SimplifyIoC.Mediations
         protected virtual void Awake()
         {
             if (autoRegisterWithContext && !registeredWithContext && shouldRegister)
-                bubbleToContext(this, BubbleType.Add, false);
+                BubbleToContext(this, BubbleType.Add, false);
         }
 
         /// A MonoBehaviour Start handler
@@ -85,7 +69,7 @@ namespace SimplifyIoC.Mediations
         protected virtual void Start()
         {
             if (autoRegisterWithContext && !registeredWithContext && shouldRegister)
-                bubbleToContext(this, BubbleType.Add, true);
+                BubbleToContext(this, BubbleType.Add, true);
         }
 
         /// A MonoBehaviour OnDestroy handler
@@ -93,27 +77,27 @@ namespace SimplifyIoC.Mediations
         /// destroyed.
         protected virtual void OnDestroy()
         {
-            bubbleToContext(this, BubbleType.Remove, false);
+            BubbleToContext(this, BubbleType.Remove, false);
         }
 
         /// A MonoBehaviour OnEnable handler
         /// The View will inform the Context that it was enabled
         protected virtual void OnEnable()
         {
-            bubbleToContext(this, BubbleType.Enable, false);
+            BubbleToContext(this, BubbleType.Enable, false);
         }
 
         /// A MonoBehaviour OnDisable handler
         /// The View will inform the Context that it was disabled
         protected virtual void OnDisable()
         {
-            bubbleToContext(this, BubbleType.Disable, false);
+            BubbleToContext(this, BubbleType.Disable, false);
         }
 
         /// Recurses through Transform.parent to find the GameObject to which ContextView is attached
         /// Has a loop limit of 100 levels.
         /// By default, raises an Exception if no Context is found.
-        virtual protected void bubbleToContext(MonoBehaviour view, BubbleType type, bool finalTry)
+        virtual protected void BubbleToContext(MonoBehaviour view, BubbleType type, bool finalTry)
         {
             const int LOOP_MAX = 100;
             int loopLimiter = 0;

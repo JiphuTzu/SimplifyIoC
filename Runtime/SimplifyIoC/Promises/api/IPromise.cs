@@ -97,7 +97,7 @@ namespace SimplifyIoC.Promises
         /// <returns>The count.</returns>
         int ListenerCount();
 
-        BasePromise.PromiseState State { get; }
+        BasePromise.PromiseState state { get; }
     }
     public interface IPromise : IBasePromise
     {

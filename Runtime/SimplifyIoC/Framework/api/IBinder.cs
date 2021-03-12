@@ -107,4 +107,3 @@ namespace SimplifyIoC.Framework
 		void ResolveBinding(IBinding binding, object key);
 	}
 }
-

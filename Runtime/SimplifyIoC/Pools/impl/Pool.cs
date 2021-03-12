@@ -52,8 +52,6 @@ namespace SimplifyIoC.Pools
 		/// A HashSet of the objects checked out of the Pool.
 		protected HashSet<object> instancesInUse = new HashSet<object> ();
 
-		protected int _instanceCount;
-
 		public Pool () : base()
 		{
 			size = 0;
@@ -69,7 +67,7 @@ namespace SimplifyIoC.Pools
 		virtual public IManagedList Add (object value)
 		{
 			failIf(value.GetType () != poolType, "Pool Type mismatch. Pools must consist of a common concrete type.\n\t\tPool type: " + poolType.ToString() + "\n\t\tMismatch type: " + value.GetType ().ToString(), PoolExceptionType.TYPE_MISMATCH);
-			_instanceCount++;
+			instanceCount++;
 			instancesAvailable.Push (value);
 			return this;
 		}
@@ -84,7 +82,7 @@ namespace SimplifyIoC.Pools
 
 		virtual public IManagedList Remove (object value)
 		{
-			_instanceCount--;
+			instanceCount--;
 			removeInstance (value);
 			return this;
 		}
@@ -118,13 +116,7 @@ namespace SimplifyIoC.Pools
 		/// Pool objects must be of the same concrete type. This property enforces that requirement. 
 		public System.Type poolType { get; set; }
 
-		public int instanceCount
-		{
-			get
-			{
-				return _instanceCount;
-			}
-		}
+		public int instanceCount{get;private set;}
 
 		virtual public object GetInstance ()
 		{
@@ -206,7 +198,7 @@ namespace SimplifyIoC.Pools
 		{
 			instancesAvailable.Clear ();
 			instancesInUse = new HashSet<object> ();
-			_instanceCount = 0;
+			instanceCount = 0;
 		}
 
 		virtual public int available

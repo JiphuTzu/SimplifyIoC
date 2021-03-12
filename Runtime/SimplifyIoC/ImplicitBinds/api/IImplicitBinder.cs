@@ -19,14 +19,14 @@ using System.Reflection;
 namespace SimplifyIoC.ImplicitBinds
 {
     public interface IImplicitBinder
-	{
-		/// <summary>
-		/// Search through indicated namespaces and scan for all annotated classes.
-		/// Automatically create bindings.
-		/// </summary>
-		/// <param name="usingNamespaces">Array of namespaces. Compared using StartsWith. </param>
+    {
+        /// <summary>
+        /// Search through indicated namespaces and scan for all annotated classes.
+        /// Automatically create bindings.
+        /// </summary>
+        /// <param name="usingNamespaces">Array of namespaces. Compared using StartsWith. </param>
 
-		void ScanForAnnotatedClasses(params string[] usingNamespaces);
-		Assembly Assembly { get; set; }
-	}
+        void ScanForAnnotatedClasses(params string[] usingNamespaces);
+        Assembly assembly { get; set; }
+    }
 }

@@ -39,68 +39,66 @@ using SimplifyIoC.Pools;
 namespace SimplifyIoC.Commands
 {
     public abstract class Command : ICommand, IPoolable
-	{
-		/// Back reference to the CommandBinder that instantiated this Commmand
-		[Inject]
-		public ICommandBinder commandBinder{ get; set;}
+    {
+        /// Back reference to the CommandBinder that instantiated this Commmand
+        [Inject]
+        public ICommandBinder commandBinder { get; set; }
 
-		/// The InjectionBinder for this Context
-		[Inject]
-		public IInjectionBinder injectionBinder{ get; set; }
+        /// The InjectionBinder for this Context
+        [Inject]
+        public IInjectionBinder injectionBinder { get; set; }
 
-		public object data{ get; set; }
+        public object data { get; set; }
 
-		public bool cancelled{ get; set; }
+        public bool cancelled { get; set; }
 
-		public bool IsClean{ get; set; }
+        public bool isClean { get; set; }
 
-		public int sequenceId{ get; set; }
+        public int sequenceId { get; set; }
+        public bool retain { get; set; }
 
-		public Command ()
-		{
-			//Set to false on construction to ensure that it's not double-injected on first use.
-			//The pool will satisfy all injections on first use. The CommandBinder re-injects
-			//every time the Command is recycled.
-			IsClean = false;
-		}
+        public Command()
+        {
+            //Set to false on construction to ensure that it's not double-injected on first use.
+            //The pool will satisfy all injections on first use. The CommandBinder re-injects
+            //every time the Command is recycled.
+            isClean = false;
+        }
 
-		public abstract void Execute();
+        public abstract void Execute();
 
-		public virtual void Retain()
-		{
-			retain = true;
-		}
+        public virtual void Retain()
+        {
+            retain = true;
+        }
 
-		public virtual void Release()
-		{
-			retain = false;
-			if (commandBinder != null)
-			{
-				commandBinder.ReleaseCommand (this);
-			}
-		}
+        public virtual void Release()
+        {
+            retain = false;
+            if (commandBinder != null)
+            {
+                commandBinder.ReleaseCommand(this);
+            }
+        }
 
-		/// Use/override this method to clean up the Command for recycling
-		virtual public void Restore()
-		{
-			injectionBinder.injector.Uninject (this);
-			IsClean = true;
-		}
+        /// Use/override this method to clean up the Command for recycling
+        virtual public void Restore()
+        {
+            injectionBinder.injector.Uninject(this);
+            isClean = true;
+        }
 
-		public virtual void Fail()
-		{
-			if (commandBinder != null)
-			{
-				commandBinder.Stop (this);
-			}
-		}
+        public virtual void Fail()
+        {
+            if (commandBinder != null)
+            {
+                commandBinder.Stop(this);
+            }
+        }
 
-		public void Cancel()
-		{
-			cancelled = true;
-		}
-
-		public bool retain { get; set; }
-	}
+        public void Cancel()
+        {
+            cancelled = true;
+        }
+    }
 }
-

@@ -46,7 +46,7 @@ namespace SimplifyIoC.Injectors
 {
     public class Injector : IInjector
     {
-        private Dictionary<IInjectionBinding, int> infinityLock;
+        private Dictionary<IInjectionBinding, int> _infinityLock;
         private const int INFINITY_LIMIT = 10;
 
         public Injector()
@@ -60,10 +60,10 @@ namespace SimplifyIoC.Injectors
 
         public object Instantiate(IInjectionBinding binding, bool tryInjectHere)
         {
-            failIf(binder == null, "Attempt to instantiate from Injector without a Binder", InjectionExceptionType.NO_BINDER);
-            failIf(factory == null, "Attempt to inject into Injector without a Factory", InjectionExceptionType.NO_FACTORY);
+            FailIf(binder == null, "Attempt to instantiate from Injector without a Binder", InjectionExceptionType.NO_BINDER);
+            FailIf(factory == null, "Attempt to inject into Injector without a Factory", InjectionExceptionType.NO_FACTORY);
 
-            armorAgainstInfiniteLoops(binding);
+            ArmorAgainstInfiniteLoops(binding);
 
             object retv = null;
             Type reflectionType = null;
@@ -92,13 +92,13 @@ namespace SimplifyIoC.Injectors
                 IReflectedClass reflection = reflector.Get(reflectionType);
 
                 Type[] parameterTypes = reflection.constructorParameters;
-                object[] parameterNames = reflection.ConstructorParameterNames;
+                object[] parameterNames = reflection.constructorParameterNames;
 
                 int aa = parameterTypes.Length;
                 object[] args = new object[aa];
                 for (int a = 0; a < aa; a++)
                 {
-                    args[a] = getValueInjection(parameterTypes[a] as Type, parameterNames[a], reflectionType, null);
+                    args[a] = GetValueInjection(parameterTypes[a] as Type, parameterNames[a], reflectionType, null);
                 }
                 retv = factory.Get(binding, args);
 
@@ -107,7 +107,7 @@ namespace SimplifyIoC.Injectors
                     TryInject(binding, retv);
                 }
             }
-            infinityLock = null; //Clear our infinity lock so the next time we instantiate we don't consider this a circular dependency
+            _infinityLock = null; //Clear our infinity lock so the next time we instantiate we don't consider this a circular dependency
 
             return retv;
         }
@@ -139,9 +139,9 @@ namespace SimplifyIoC.Injectors
 
         public object Inject(object target, bool attemptConstructorInjection)
         {
-            failIf(binder == null, "Attempt to inject into Injector without a Binder", InjectionExceptionType.NO_BINDER);
-            failIf(reflector == null, "Attempt to inject without a reflector", InjectionExceptionType.NO_REFLECTOR);
-            failIf(target == null, "Attempt to inject into null instance", InjectionExceptionType.NULL_TARGET);
+            FailIf(binder == null, "Attempt to inject into Injector without a Binder", InjectionExceptionType.NO_BINDER);
+            FailIf(reflector == null, "Attempt to inject without a reflector", InjectionExceptionType.NO_REFLECTOR);
+            FailIf(target == null, "Attempt to inject into null instance", InjectionExceptionType.NULL_TARGET);
 
             //Some things can't be injected into. Bail out.
             Type t = target.GetType();
@@ -154,18 +154,18 @@ namespace SimplifyIoC.Injectors
 
             if (attemptConstructorInjection)
             {
-                target = performConstructorInjection(target, reflection);
+                target = PerformConstructorInjection(target, reflection);
             }
-            performSetterInjection(target, reflection);
-            postInject(target, reflection);
+            PerformSetterInjection(target, reflection);
+            PostInject(target, reflection);
             return target;
         }
 
         public void Uninject(object target)
         {
-            failIf(binder == null, "Attempt to inject into Injector without a Binder", InjectionExceptionType.NO_BINDER);
-            failIf(reflector == null, "Attempt to inject without a reflector", InjectionExceptionType.NO_REFLECTOR);
-            failIf(target == null, "Attempt to inject into null instance", InjectionExceptionType.NULL_TARGET);
+            FailIf(binder == null, "Attempt to inject into Injector without a Binder", InjectionExceptionType.NO_BINDER);
+            FailIf(reflector == null, "Attempt to inject without a reflector", InjectionExceptionType.NO_REFLECTOR);
+            FailIf(target == null, "Attempt to inject into null instance", InjectionExceptionType.NULL_TARGET);
 
             Type t = target.GetType();
             if (t.IsPrimitive || t == typeof(Decimal) || t == typeof(string))
@@ -175,25 +175,25 @@ namespace SimplifyIoC.Injectors
 
             IReflectedClass reflection = reflector.Get(t);
 
-            performUninjection(target, reflection);
+            PerformUninjection(target, reflection);
         }
 
-        private object performConstructorInjection(object target, IReflectedClass reflection)
+        private object PerformConstructorInjection(object target, IReflectedClass reflection)
         {
-            failIf(target == null, "Attempt to perform constructor injection into a null object", InjectionExceptionType.NULL_TARGET);
-            failIf(reflection == null, "Attempt to perform constructor injection without a reflection", InjectionExceptionType.NULL_REFLECTION);
+            FailIf(target == null, "Attempt to perform constructor injection into a null object", InjectionExceptionType.NULL_TARGET);
+            FailIf(reflection == null, "Attempt to perform constructor injection without a reflection", InjectionExceptionType.NULL_REFLECTION);
 
             ConstructorInfo constructor = reflection.constructor;
-            failIf(constructor == null, "Attempt to construction inject a null constructor", InjectionExceptionType.NULL_CONSTRUCTOR);
+            FailIf(constructor == null, "Attempt to construction inject a null constructor", InjectionExceptionType.NULL_CONSTRUCTOR);
 
             Type[] parameterTypes = reflection.constructorParameters;
-            object[] parameterNames = reflection.ConstructorParameterNames;
+            object[] parameterNames = reflection.constructorParameterNames;
             object[] values = new object[parameterTypes.Length];
 
             int i = 0;
             foreach (Type type in parameterTypes)
             {
-                values[i] = getValueInjection(type, parameterNames[i], target, null);
+                values[i] = GetValueInjection(type, parameterNames[i], target, null);
                 i++;
             }
             if (values.Length == 0)
@@ -205,19 +205,19 @@ namespace SimplifyIoC.Injectors
             return (constructedObj == null) ? target : constructedObj;
         }
 
-        private void performSetterInjection(object target, IReflectedClass reflection)
+        private void PerformSetterInjection(object target, IReflectedClass reflection)
         {
-            failIf(target == null, "Attempt to inject into a null object", InjectionExceptionType.NULL_TARGET);
-            failIf(reflection == null, "Attempt to inject without a reflection", InjectionExceptionType.NULL_REFLECTION);
+            FailIf(target == null, "Attempt to inject into a null object", InjectionExceptionType.NULL_TARGET);
+            FailIf(reflection == null, "Attempt to inject without a reflection", InjectionExceptionType.NULL_REFLECTION);
 
-            foreach (ReflectedAttribute attr in reflection.Setters)
+            foreach (ReflectedAttribute attr in reflection.setters)
             {
-                object value = getValueInjection(attr.type, attr.name, target, attr.propertyInfo);
-                injectValueIntoPoint(value, target, attr.propertyInfo);
+                object value = GetValueInjection(attr.type, attr.name, target, attr.propertyInfo);
+                InjectValueIntoPoint(value, target, attr.propertyInfo);
             }
         }
 
-        private object getValueInjection(Type t, object name, object target, PropertyInfo propertyInfo)
+        private object GetValueInjection(Type t, object name, object target, PropertyInfo propertyInfo)
         {
             IInjectionBinding suppliedBinding = null;
             if (target != null)
@@ -227,7 +227,7 @@ namespace SimplifyIoC.Injectors
 
             IInjectionBinding binding = suppliedBinding ?? binder.GetBinding(t, name);
 
-            failIf(binding == null, "Attempt to Instantiate a null binding", InjectionExceptionType.NULL_BINDING, t, name, target, propertyInfo);
+            FailIf(binding == null, "Attempt to Instantiate a null binding", InjectionExceptionType.NULL_BINDING, t, name, target, propertyInfo);
             if (binding.type == InjectionBindingType.VALUE)
             {
                 if (!binding.toInject)
@@ -256,20 +256,20 @@ namespace SimplifyIoC.Injectors
         }
 
         //Inject the value into the target at the specified injection point
-        private void injectValueIntoPoint(object value, object target, PropertyInfo point)
+        private void InjectValueIntoPoint(object value, object target, PropertyInfo point)
         {
-            failIf(target == null, "Attempt to inject into a null target", InjectionExceptionType.NULL_TARGET);
-            failIf(point == null, "Attempt to inject into a null point", InjectionExceptionType.NULL_INJECTION_POINT);
-            failIf(value == null, "Attempt to inject null into a target object", InjectionExceptionType.NULL_VALUE_INJECTION);
+            FailIf(target == null, "Attempt to inject into a null target", InjectionExceptionType.NULL_TARGET);
+            FailIf(point == null, "Attempt to inject into a null point", InjectionExceptionType.NULL_INJECTION_POINT);
+            FailIf(value == null, "Attempt to inject null into a target object", InjectionExceptionType.NULL_VALUE_INJECTION);
 
             point.SetValue(target, value, null);
         }
 
         //After injection, call any methods labelled with the [PostConstruct] tag
-        private void postInject(object target, IReflectedClass reflection)
+        private void PostInject(object target, IReflectedClass reflection)
         {
-            failIf(target == null, "Attempt to PostConstruct a null target", InjectionExceptionType.NULL_TARGET);
-            failIf(reflection == null, "Attempt to PostConstruct without a reflection", InjectionExceptionType.NULL_REFLECTION);
+            FailIf(target == null, "Attempt to PostConstruct a null target", InjectionExceptionType.NULL_TARGET);
+            FailIf(reflection == null, "Attempt to PostConstruct without a reflection", InjectionExceptionType.NULL_REFLECTION);
 
             MethodInfo[] postConstructors = reflection.postConstructors;
             if (postConstructors != null)
@@ -282,23 +282,23 @@ namespace SimplifyIoC.Injectors
         }
 
         //Note that uninjection can only clean publicly settable points
-        private void performUninjection(object target, IReflectedClass reflection)
+        private void PerformUninjection(object target, IReflectedClass reflection)
         {
-            foreach (ReflectedAttribute attr in reflection.Setters)
+            foreach (ReflectedAttribute attr in reflection.setters)
                 attr.propertyInfo.SetValue(target, null, null);
         }
 
-        private void failIf(bool condition, string message, InjectionExceptionType type)
+        private void FailIf(bool condition, string message, InjectionExceptionType type)
         {
-            failIf(condition, message, type, null, null, null);
+            FailIf(condition, message, type, null, null, null);
         }
 
-        private void failIf(bool condition, string message, InjectionExceptionType type, Type t, object name)
+        private void FailIf(bool condition, string message, InjectionExceptionType type, Type t, object name)
         {
-            failIf(condition, message, type, t, name, null);
+            FailIf(condition, message, type, t, name, null);
         }
 
-        private void failIf(bool condition, string message, InjectionExceptionType type, Type t, object name, object target, PropertyInfo propertyInfo)
+        private void FailIf(bool condition, string message, InjectionExceptionType type, Type t, object name, object target, PropertyInfo propertyInfo)
         {
             if (condition)
             {
@@ -306,11 +306,11 @@ namespace SimplifyIoC.Injectors
                 {
                     message += "\n\t\ttarget property: " + propertyInfo.Name;
                 }
-                failIf(true, message, type, t, name, target);
+                FailIf(true, message, type, t, name, target);
             }
         }
 
-        private void failIf(bool condition, string message, InjectionExceptionType type, Type t, object name, object target)
+        private void FailIf(bool condition, string message, InjectionExceptionType type, Type t, object name, object target)
         {
             if (condition)
             {
@@ -321,22 +321,22 @@ namespace SimplifyIoC.Injectors
             }
         }
 
-        private void armorAgainstInfiniteLoops(IInjectionBinding binding)
+        private void ArmorAgainstInfiniteLoops(IInjectionBinding binding)
         {
             if (binding == null)
             {
                 return;
             }
-            if (infinityLock == null)
+            if (_infinityLock == null)
             {
-                infinityLock = new Dictionary<IInjectionBinding, int>();
+                _infinityLock = new Dictionary<IInjectionBinding, int>();
             }
-            if (infinityLock.ContainsKey(binding) == false)
+            if (_infinityLock.ContainsKey(binding) == false)
             {
-                infinityLock.Add(binding, 0);
+                _infinityLock.Add(binding, 0);
             }
-            infinityLock[binding] = infinityLock[binding] + 1;
-            if (infinityLock[binding] > INFINITY_LIMIT)
+            _infinityLock[binding] = _infinityLock[binding] + 1;
+            if (_infinityLock[binding] > INFINITY_LIMIT)
             {
                 throw new InjectionException("There appears to be a circular dependency. Terminating loop.", InjectionExceptionType.CIRCULAR_DEPENDENCY);
             }
