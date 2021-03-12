@@ -162,7 +162,6 @@ using SimplifyIoC.Dispatchers;
 using SimplifyIoC.ImplicitBinds;
 using SimplifyIoC.Injectors;
 using SimplifyIoC.Mediations;
-using SimplifyIoC.Sequencers;
 using SimplifyIoC.Framework;
 using UnityEngine;
 
@@ -183,14 +182,13 @@ namespace SimplifyIoC.Contexts
 		public IImplicitBinder implicitBinder { get; set; }
 
 		/// A Binder that maps Events to Sequences
-		public ISequencer sequencer{get;set;}
+		// sequencer{get;set;}
 
 
 		/// A list of Views Awake before the Context is fully set up.
 		protected static ISemiBinding viewCache = new SemiBinding();
 		
-		public MVCSContext() : base()
-		{}
+		public MVCSContext() : base(){}
 
 		/// The recommended Constructor
 		/// Just pass in the instance of your ContextView. Everything will begin automatically.
@@ -231,7 +229,7 @@ namespace SimplifyIoC.Contexts
 			//This binding is for the common system bus
 			injectionBinder.Bind<IEventDispatcher>().To<EventDispatcher>().ToSingleton().ToName(ContextKeys.CONTEXT_DISPATCHER);
 			injectionBinder.Bind<IMediationBinder>().To<SignalMediationBinder>().ToSingleton();
-			injectionBinder.Bind<ISequencer>().To<Sequencer>().ToSingleton();
+			//injectionBinder.Bind<ISequencer>().To<Sequencer>().ToSingleton();
 			injectionBinder.Bind<IImplicitBinder>().To<ImplicitBinder>().ToSingleton();
 		}
 		
@@ -247,11 +245,11 @@ namespace SimplifyIoC.Contexts
 			
 			dispatcher = injectionBinder.GetInstance<IEventDispatcher>(ContextKeys.CONTEXT_DISPATCHER);
 			mediationBinder = injectionBinder.GetInstance<IMediationBinder>();
-			sequencer = injectionBinder.GetInstance<ISequencer>();
+			//sequencer = injectionBinder.GetInstance<ISequencer>();
 			implicitBinder = injectionBinder.GetInstance<IImplicitBinder>();
 
 			(dispatcher as ITriggerProvider).AddTriggerable(commandBinder as ITriggerable);
-			(dispatcher as ITriggerProvider).AddTriggerable(sequencer as ITriggerable);
+			//(dispatcher as ITriggerProvider).AddTriggerable(sequencer as ITriggerable);
 		}
 		
 		protected override void postBindings()

@@ -52,9 +52,39 @@ namespace SimplifyIoC.Contexts
         protected void BindCommand<S, C>(bool once = false, bool crossContext = false)
         {
             if (crossContext) BindSignal<S>(true);
-
-            if (!once) commandBinder.Bind<S>().To<C>();
-            else commandBinder.Bind<S>().To<C>().Once();
+            var binding = commandBinder.Bind<S>();
+            binding = binding.To<C>();
+            if (once) binding = binding.Once();
+        }
+        protected void BindCommand<S, C, D>(bool once = false, bool crossContext = false, bool inSequence = false)
+        {
+            if (crossContext) BindSignal<S>(true);
+            var binding = commandBinder.Bind<S>();
+            binding = binding.To<C>();
+            binding = binding.To<D>();
+            if (once) binding = binding.Once();
+            if (inSequence) binding = binding.InSequence();
+        }
+        protected void BindCommand<S, C, D, E>(bool once = false, bool crossContext = false, bool inSequence = false)
+        {
+            if (crossContext) BindSignal<S>(true);
+            var binding = commandBinder.Bind<S>();
+            binding = binding.To<C>();
+            binding = binding.To<D>();
+            binding = binding.To<E>();
+            if (once) binding = binding.Once();
+            if (inSequence) binding = binding.InSequence();
+        }
+        protected void BindCommand<S, C, D, E, F>(bool once = false, bool crossContext = false, bool inSequence = false)
+        {
+            if (crossContext) BindSignal<S>(true);
+            var binding = commandBinder.Bind<S>();
+            binding = binding.To<C>();
+            binding = binding.To<D>();
+            binding = binding.To<E>();
+            binding = binding.To<F>();
+            if (once) binding = binding.Once();
+            if (inSequence) binding = binding.InSequence();
         }
         /// <summary>
         /// View和Mediator绑定
@@ -100,7 +130,7 @@ namespace SimplifyIoC.Contexts
         /// <typeparam name="I">接口类型</typeparam>
         /// <typeparam name="V">值类型</typeparam>
         /// <param name="crossContext">是否跨域</param>
-        protected void BindValue<I,V>(bool crossContext = false)
+        protected void BindValue<I, V>(bool crossContext = false)
         {
             IInjectionBinding binding = injectionBinder.Bind<I>().To<V>().ToSingleton();
             if (crossContext) binding.CrossContext();

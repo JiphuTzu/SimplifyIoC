@@ -35,11 +35,10 @@ namespace UMa.Bootstraps
             }
             protected override void BindCommands()
             {
-                BindCommand<CreateObjectSignal, CreateObjectCommand>();
+                BindCommand<CreateObjectSignal, CreateObjectCommand,AfterCreateCommand>();
             }
             protected override void BindViews()
             {
-                
 				BindView<LifeTimeView,LifeTimeMediator>();
             }
         }
