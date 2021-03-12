@@ -12,4 +12,13 @@ A simplify version of [StrangeIoC](https://github.com/strangeioc/strangeioc).
 ```
 
 ## 版本发布方式
-+ [详细说明]()
++ [详细说明](https://www.jianshu.com/p/153841d65846)
++ 将 "Assets/SimplifyIoC" 目录放到“ upm” 分支
+```
+    git subtree split --prefix=Assets/SimplifyIoC --branch upm
+```
++ 设置tag的版本名并上传
+```
+    git tag 1.0.0 upm
+    git push origin upm --tags
+```
