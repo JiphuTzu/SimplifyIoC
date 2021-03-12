@@ -63,11 +63,12 @@
  */
 
 using System;
+using UnityEngine.Scripting;
 
 [AttributeUsage(AttributeTargets.Property,
         AllowMultiple = false,
         Inherited = true)]
-public class Inject : Attribute
+public class Inject : PreserveAttribute
 {
     public Inject() { }
 
