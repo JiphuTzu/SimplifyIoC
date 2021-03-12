@@ -73,7 +73,6 @@ namespace SimplifyIoC.Commands
 				IBaseSignal signal = (IBaseSignal)key;
 				signal.AddListener(ReactTo); //Do normal bits, then assign the commandlistener to be reactTo
 			}
-
 		}
 
 		override public void OnRemove()
