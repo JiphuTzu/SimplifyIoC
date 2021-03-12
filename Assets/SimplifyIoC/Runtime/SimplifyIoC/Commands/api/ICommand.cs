@@ -72,4 +72,3 @@ namespace SimplifyIoC.Commands
 		int sequenceId{ get; set; }
 	}
 }
-
