@@ -8,7 +8,7 @@ A simplify version of [StrangeIoC](https://github.com/strangeioc/strangeioc).
 ## 使用方法
 在Unity中打开PackageManager。左上角`+`下拉，找到`add package from git URL`，输入以下链接地址，点击`add`即可完成插件的添加。
 ```
-    https://github.com/JiphuTzu/SimplifyIoC.git#1.0.1
+    https://github.com/JiphuTzu/SimplifyIoC.git#upm
 ```
 
 ## 版本发布方式
