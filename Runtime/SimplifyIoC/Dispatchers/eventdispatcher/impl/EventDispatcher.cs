@@ -39,7 +39,9 @@ using System;
 using System.Collections.Generic;
 using SimplifyIoC.Framework;
 using SimplifyIoC.Pools;
+using UnityEngine.Scripting;
 
+[assembly: Preserve]
 namespace SimplifyIoC.Dispatchers
 {
     public class EventDispatcher : Binder, IEventDispatcher, ITriggerProvider, ITriggerable
@@ -387,6 +389,7 @@ namespace SimplifyIoC.Dispatchers
 
     class EventInstanceProvider : IInstanceProvider
     {
+        public EventInstanceProvider() { }
         public T GetInstance<T>()
         {
             object instance = new TmEvent();
