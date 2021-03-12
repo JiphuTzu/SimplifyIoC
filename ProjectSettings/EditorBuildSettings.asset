@@ -6,9 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/SimplifyIoC/Examples/Scenes/CrossContextExample.unity
+    path: Assets/Examples/Scenes/CrossContextExample.unity
     guid: d84737f1a3ab24f50bf59edf0e1cc9cf
   - enabled: 1
-    path: Assets/SimplifyIoC/Examples/Scenes/BasicSignalExample.unity
+    path: Assets/Examples/Scenes/BasicSignalExample.unity
     guid: 2019ba05041424362b846045b6548653
   m_configObjects: {}
