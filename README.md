@@ -13,7 +13,7 @@ A simplify version of [StrangeIoC](https://github.com/strangeioc/strangeioc).
 ```
 
 ## 版本发布方式
-+ [详细说明](https://www.jianshu.com/p/153841d65846)[英文原文](https://www.patreon.com/posts/25070968)
++ [详细说明](https://www.jianshu.com/p/153841d65846)（[英文原文](https://www.patreon.com/posts/25070968)）
 + 将 "Assets/SimplifyIoC" 目录放到“ upm” 分支
 ```
     git subtree split --prefix=Assets/SimplifyIoC --branch upm
