@@ -1,4 +1,6 @@
 using SimplifyIoC.Mediations;
+using UMa.Signals;
+using UnityEngine;
 using UnityEngine.UI;
 //============================================================
 //支持中文，文件使用UTF-8编码
@@ -19,6 +21,13 @@ namespace UMa.Views
         {
             base.Start();
             Show();
+        }
+        [ListensTo(typeof(RecordChangedSignal))]
+        private void OnChanged(bool add)
+        {
+            Debug.Log("record changed... "+add);
+            if (add) Add();
+            else Minus();
         }
 
         public void Add()

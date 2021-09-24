@@ -25,12 +25,24 @@ using System;
 using System.Reflection;
 using SimplifyIoC.Reflectors;
 using SimplifyIoC.Signals;
+using UnityEngine;
 
 namespace SimplifyIoC.Mediations
 {
     public class SignalMediationBinder : MediationBinder
     {
-
+        protected override void InjectViewAndChildren(IView view)
+        {
+            base.InjectViewAndChildren(view);
+            var mono = view as MonoBehaviour;
+            HandleDelegates(view, mono.GetType(), true);
+        }
+        protected override void UnmapView(IView view, IMediationBinding binding)
+        {
+            base.UnmapView(view, binding);
+            var mono = view as MonoBehaviour;
+            HandleDelegates(view, mono.GetType(), false);
+        }
         /// Adds a Mediator to a View
         protected override object CreateMediator(IView view, Type mediatorType)
         {
@@ -58,7 +70,6 @@ namespace SimplifyIoC.Mediations
         protected void HandleDelegates(object mono, Type mediatorType, bool toAdd)
         {
             IReflectedClass reflectedClass = injectionBinder.injector.reflector.Get(mediatorType);
-
             //GetInstance Signals and add listeners
             foreach (var pair in reflectedClass.attrMethods)
             {

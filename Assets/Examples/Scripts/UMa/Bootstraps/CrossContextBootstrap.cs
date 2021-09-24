@@ -44,7 +44,7 @@ namespace UMa.Bootstraps
             protected override void BindViews()
             {
                 BindView<CameraView, CameraMediator>();
-				BindView<RecordView, RecordMediator>();
+				//BindView<RecordView, RecordMediator>();
             }
         }
     }

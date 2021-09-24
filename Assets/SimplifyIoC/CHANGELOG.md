@@ -1,4 +1,8 @@
 ﻿# CHANGELOG
+## 1.0.2
++ 允许View使用ListenTo直接监听信号
+## 1.0.1
++ 修改package.json的编码格式为UTF8，解决windows版本U3D不能解析的问题
 ## 1.0.0
 + 修改命名空间和方法、属性名，更符合Unity3D的习惯
 + 放弃运行时JSON注入
