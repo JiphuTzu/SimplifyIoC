@@ -6,6 +6,8 @@ using UnityEngine;
 using UnityEngine.Scripting;
 
 /*
+ * @author  JiphuTzu
+ * @date    2021/11/4
  * @brief	用于变量和子对象的绑定
  * @usage
  *          public Test:MonoBehaviour
