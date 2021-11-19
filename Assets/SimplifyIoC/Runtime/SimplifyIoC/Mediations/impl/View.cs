@@ -59,6 +59,7 @@ namespace SimplifyIoC.Mediations
         /// The View will attempt to connect to the Context at this moment.
         protected virtual void Awake()
         {
+            this.MapChildren();
             if (autoRegisterWithContext && !registeredWithContext && shouldRegister)
                 BubbleToContext(this, BubbleType.Add, false);
         }
