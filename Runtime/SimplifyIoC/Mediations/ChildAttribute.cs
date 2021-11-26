@@ -166,6 +166,7 @@ public static class ChildAttributeExtension
         var value = field.GetValue(target);
         if (type == 2 || type == 3) return (value as Array).Length > 0;
         if (type == 4 || type == 5) return ((IList) value).Count > 0;
-        return value != null;
+        //Transform或者RectTransform得到的值是"null"
+        return value != null && (""+value) != "null";
     }
 }
