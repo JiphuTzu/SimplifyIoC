@@ -81,7 +81,7 @@ public static class ChildAttributeExtension
             if (HasValue(ft, field, target)) continue;
             //根据路径查找对象
             var t = string.IsNullOrEmpty(attribute.path) 
-                ? attribute.sameAsField?GetChild(target.transform,field.Name.ToLower()) : target.transform 
+                ? (attribute.sameAsField ? GetChild(target.transform,field.Name.ToLower()) : target.transform)
                 : target.transform.Find(attribute.path);
             if (t == null) continue;
 
@@ -132,6 +132,18 @@ public static class ChildAttributeExtension
             }
         }
     }
+    
+    private static Transform GetChild(Transform parent, string name)
+    {
+        if (parent.name.ToLower() == name) return parent;
+        for (int i = 0,count = parent.childCount; i < count; i++)
+        {
+            var child = GetChild(parent.GetChild(i), name);
+            if (child != null) return child;
+        }
+
+        return null;
+    } 
 
     private static readonly Type _TOC = typeof(Component);
     private static readonly Type _TOG = typeof(GameObject);
