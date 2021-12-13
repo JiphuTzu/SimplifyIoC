@@ -31,6 +31,8 @@ public class ChildAttribute : PreserveAttribute
 {
     public string path;
     public bool includeParent;
+    //名字与变量名相同，在path为空的情况下有效
+    public bool sameAsField;
 
     // The class constructor is called when the class instance is created
     public ChildAttribute()
@@ -42,9 +44,9 @@ public class ChildAttribute : PreserveAttribute
         this.path = path;
     }
 
-    public ChildAttribute(bool includeParent)
+    public ChildAttribute(bool sameAsField)
     {
-        this.includeParent = includeParent;
+        this.sameAsField = sameAsField;
     }
 
     public ChildAttribute(string path, bool includeParent)
@@ -78,7 +80,9 @@ public static class ChildAttributeExtension
             //是否已经赋值
             if (HasValue(ft, field, target)) continue;
             //根据路径查找对象
-            var t = string.IsNullOrEmpty(attribute.path) ? target.transform : target.transform.Find(attribute.path);
+            var t = string.IsNullOrEmpty(attribute.path) 
+                ? attribute.sameAsField?GetChild(target.transform,field.Name.ToLower()) : target.transform 
+                : target.transform.Find(attribute.path);
             if (t == null) continue;
 
             //赋值
