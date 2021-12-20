@@ -80,57 +80,55 @@ public static class ChildAttributeExtension
             //是否已经赋值
             if (HasValue(ft, field, target)) continue;
             //根据路径查找对象
-            var t = string.IsNullOrEmpty(attribute.path) 
-                ? (attribute.sameAsField ? GetChild(target.transform,field.Name.ToLower()) : target.transform)
+            var t = string.IsNullOrEmpty(attribute.path)
+                ? (attribute.sameAsField ? GetChild(target.transform, field.Name.ToLower()) : target.transform)
                 : target.transform.Find(attribute.path);
+
             if (t == null) continue;
 
             //赋值
             if (ft == 0) field.SetValue(target, t.gameObject);
             else if (ft == 1) field.SetValue(target, t.GetComponent(field.FieldType));
-            else if (ft == 2 || ft == 4)
-            {
-                var list = new List<GameObject>();
-                if (attribute.includeParent) list.Add(t.gameObject);
-                foreach (Transform c in t)
-                {
-                    list.Add(c.gameObject);
-                }
-
-                if (ft == 2)
-                    field.SetValue(target, list.ToArray());
-                else //if(ft == 4) 
-                    field.SetValue(target, list);
-            }
-            else if (ft == 3 || ft == 5)
-            {
-                var et = ft == 3 ? field.FieldType.GetElementType() : field.FieldType.GetGenericArguments()[0];
-                var list = Activator.CreateInstance(_TOL.MakeGenericType(et));
-                var add = list.GetType().GetMethod("Add");
-                Component element = null;
-                if (attribute.includeParent)
-                {
-                    element = t.GetComponent(et);
-                    if (element != null) add.Invoke(list, new object[] {element});
-                }
-
-                foreach (Transform c in t)
-                {
-                    element = c.GetComponent(et);
-                    if (element != null) add.Invoke(list, new object[] {element});
-                }
-
-                if (ft == 3)
-                {
-                    var toArray = list.GetType().GetMethod("ToArray");
-                    field.SetValue(target, toArray.Invoke(list, new object[] { }));
-                }
-                else // if (ft == 5)
-                {
-                    field.SetValue(target, list);
-                }
-            }
+            else if (ft == 2) field.SetValue(target, GetGameObjects(t, attribute.includeParent).ToArray());
+            else if (ft == 3) field.SetValue(target, GetComponents(t, attribute.includeParent, field.FieldType.GetElementType(), true));
+            else if (ft == 4) field.SetValue(target, GetGameObjects(t, attribute.includeParent));
+            else if (ft == 5) field.SetValue(target, GetComponents(t, attribute.includeParent, field.FieldType.GetGenericArguments()[0]));
         }
+    }
+
+    private static List<GameObject> GetGameObjects(Transform parent, bool includeParent)
+    {
+        var list = new List<GameObject>();
+        if (includeParent) list.Add(parent.gameObject);
+        foreach (Transform child in parent)
+        {
+            list.Add(child.gameObject);
+        }
+
+        return list;
+    }
+
+    private static object GetComponents(Transform parent, bool includeParent, Type type, bool asArray = false)
+    {
+        var list = Activator.CreateInstance(_TOL.MakeGenericType(type));
+        var add = list.GetType().GetMethod("Add");
+        Component element = null;
+        if (includeParent)
+        {
+            element = parent.GetComponent(type);
+            if (element != null) add.Invoke(list, new object[] {element});
+        }
+
+        foreach (Transform child in parent)
+        {
+            element = child.GetComponent(type);
+            if (element != null) add.Invoke(list, new object[] {element});
+        }
+
+        if (!asArray) return list;
+        //
+        var toArray = list.GetType().GetMethod("ToArray");
+        return toArray.Invoke(list, new object[] { });
     }
     
     private static Transform GetChild(Transform parent, string name)
