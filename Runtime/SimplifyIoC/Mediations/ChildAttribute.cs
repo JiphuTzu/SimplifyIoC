@@ -80,9 +80,9 @@ public static class ChildAttributeExtension
             //是否已经赋值
             if (HasValue(ft, field, target)) continue;
             //根据路径查找对象
-            var t = string.IsNullOrEmpty(attribute.path)
-                ? (attribute.sameAsField ? GetChild(target.transform, field.Name.ToLower()) : target.transform)
-                : target.transform.Find(attribute.path);
+            var t = target.transform;
+            if(!string.IsNullOrEmpty(attribute.path)) t = t.Find(attribute.path);
+            else if(attribute.sameAsField) t = GetChild(t, field.Name.ToLower());
 
             if (t == null) continue;
 
@@ -133,6 +133,12 @@ public static class ChildAttributeExtension
     
     private static Transform GetChild(Transform parent, string name)
     {
+        //去掉私有变量前的下划线
+        while (name.StartsWith("_"))
+        {
+            name = name.Substring(1);
+        }
+        
         if (parent.name.ToLower() == name) return parent;
         for (int i = 0,count = parent.childCount; i < count; i++)
         {
