@@ -1,4 +1,6 @@
 ﻿# CHANGELOG
+## 1.0.3
++ 添加Child和BindMethod两个Attribute
 ## 1.0.2
 + 允许View使用ListenTo直接监听信号
 ## 1.0.1
