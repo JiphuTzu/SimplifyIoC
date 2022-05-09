@@ -160,12 +160,12 @@ public static class ChildAttributeExtension
             name = name.Substring(1);
         }
         //不区分大小写
-        return name.ToLower();
+        return name;
     }
 
     private static Transform GetChild(Transform parent, string name)
     {
-        if (parent.name.ToLower() == name) return parent;
+        if (string.Compare(parent.name, name, StringComparison.OrdinalIgnoreCase) == 0) return parent;
         for (int i = 0, count = parent.childCount; i < count; i++)
         {
             var child = GetChild(parent.GetChild(i), name);
