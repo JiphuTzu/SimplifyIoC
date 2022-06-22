@@ -1,13 +1,28 @@
+/*
+ * @file    ChildAttributeExtension.cs
+ * @author  JiphuTzu
+ * @date    2021/11/4
+ * 	
+ * @version  1.0
+ *
+ * @brief	（简要描述）
+ *
+ * @details	公司：Umawerse
+ *			对该文档的详细说明和解释，可以换行
+ * @see     （参见可添加URL地址）
+ */
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.Scripting;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 /*
- * @author  JiphuTzu
- * @date    2021/11/4
  * @brief	用于变量和子对象的绑定
  * @usage
  *          public Test:MonoBehaviour
@@ -21,7 +36,7 @@ using UnityEngine.Scripting;
  *              [Child("content/icons")]
  *              public List<RawImage> images;
  * 
- *              private void Awake(){
+ *              private void Start(){
  *                  this.MapChildren();
  *              }
  *           }
@@ -48,7 +63,7 @@ public class ChildAttribute : PreserveAttribute
     {
         this.sameAsField = sameAsField;
     }
-
+    //用于数组和List
     public ChildAttribute(string path, bool includeParent)
     {
         this.path = path;
@@ -58,20 +73,6 @@ public class ChildAttribute : PreserveAttribute
 
 public static class ChildAttributeExtension
 {
-    private enum ValueType : byte
-    {
-        Unsupported,
-        GameObjectSingle,
-        ComponentSingle,
-        GameObjectArray,
-        ComponentArray,
-        GameObjectList,
-        ComponentList
-    }
-    private static readonly Type _TOC = typeof(Component);
-    private static readonly Type _TOG = typeof(GameObject);
-    private static readonly Type _TOL = typeof(List<>);
-
     /// <summary>
     /// 把带有ChildAttribute的变量与子对象对应。
     /// 支持公有变量和私有变量
@@ -88,85 +89,70 @@ public static class ChildAttributeExtension
             var attribute = field.GetCustomAttribute<ChildAttribute>();
             if (attribute == null) continue;
             //变量类型要是GameObject或者Component的子类
-            var fieldType = field.FieldType;
-            var valueType = GetValueType(fieldType);
-            //Debug.Log($"========={field.Name} == {fieldType}");
-            if (valueType == ValueType.Unsupported) continue;
+            var ft = GetFieldType(field);
+            //Debug.Log($"========={field.Name} == {ft}");
+            if (ft == -1) continue;
             //是否已经赋值
-            if (HasValue(valueType, field, target)) continue;
+            if (HasValue(ft, field, target)) continue;
             //根据路径查找对象
-            var transform = target.transform;
-            if (!string.IsNullOrEmpty(attribute.path)) transform = transform.Find(attribute.path);
-            else if (attribute.sameAsField) transform = GetChild(transform, FormatName(field.Name));
-
-            if (transform == null) continue;
+            var t = string.IsNullOrEmpty(attribute.path) 
+                ? (attribute.sameAsField ? GetChild(target.transform,field.Name.ToLower()) : target.transform)
+                : target.transform.Find(attribute.path);
+            
+            if (t == null) continue;
 
             //赋值
-            if (valueType == ValueType.GameObjectSingle) 
-                field.SetValue(target, transform.gameObject);
-            else if (valueType == ValueType.ComponentSingle) 
-                field.SetValue(target, transform.GetComponent(fieldType));
-            else if (valueType == ValueType.GameObjectArray)
-                field.SetValue(target, GetGameObjects(transform, attribute.includeParent).ToArray());
-            else if (valueType == ValueType.ComponentArray)
-                field.SetValue(target, GetComponents(transform, attribute.includeParent, fieldType.GetElementType(), true));
-            else if (valueType == ValueType.GameObjectList)
-                field.SetValue(target, GetGameObjects(transform, attribute.includeParent));
-            else if (valueType == ValueType.ComponentList)
-                field.SetValue(target, GetComponents(transform, attribute.includeParent, fieldType.GetGenericArguments()[0]));
+            if (ft == 0) field.SetValue(target, t.gameObject);
+            else if (ft == 1) field.SetValue(target, t.GetComponent(field.FieldType));
+            else if (ft == 2 || ft == 4)
+            {
+                var list = new List<GameObject>();
+                if (attribute.includeParent) list.Add(t.gameObject);
+                foreach (Transform c in t)
+                {
+                    list.Add(c.gameObject);
+                }
+
+                if (ft == 2)
+                    field.SetValue(target, list.ToArray());
+                else //if(ft == 4) 
+                    field.SetValue(target, list);
+            }
+            else if (ft == 3 || ft == 5)
+            {
+                var et = ft == 3 ? field.FieldType.GetElementType() : field.FieldType.GetGenericArguments()[0];
+                var list = Activator.CreateInstance(_TOL.MakeGenericType(et));
+                var add = list.GetType().GetMethod("Add");
+                Component element = null;
+                if (attribute.includeParent)
+                {
+                    element = t.GetComponent(et);
+                    if (element != null) add.Invoke(list, new object[] {element});
+                }
+
+                foreach (Transform c in t)
+                {
+                    element = c.GetComponent(et);
+                    if (element != null) add.Invoke(list, new object[] {element});
+                }
+
+                if (ft == 3)
+                {
+                    var toArray = list.GetType().GetMethod("ToArray");
+                    field.SetValue(target, toArray.Invoke(list, new object[] { }));
+                }
+                else // if (ft == 5)
+                {
+                    field.SetValue(target, list);
+                }
+            }
         }
     }
-
-    private static List<GameObject> GetGameObjects(Transform parent, bool includeParent)
-    {
-        var list = new List<GameObject>();
-        if (includeParent) list.Add(parent.gameObject);
-        foreach (Transform child in parent)
-        {
-            list.Add(child.gameObject);
-        }
-
-        return list;
-    }
-
-    private static object GetComponents(Transform parent, bool includeParent, Type elementType, bool asArray = false)
-    {
-        var list = Activator.CreateInstance(_TOL.MakeGenericType(elementType));
-        var add = list.GetType().GetMethod("Add");
-        Component element = null;
-        if (includeParent)
-        {
-            element = parent.GetComponent(elementType);
-            if (element != null) add.Invoke(list, new object[] {element});
-        }
-
-        foreach (Transform child in parent)
-        {
-            element = child.GetComponent(elementType);
-            if (element != null) add.Invoke(list, new object[] {element});
-        }
-
-        if (!asArray) return list;
-        //
-        var toArray = list.GetType().GetMethod("ToArray");
-        return toArray.Invoke(list, new object[] { });
-    }
-
-    private static string FormatName(string name)
-    {
-        //去掉私有变量前的下划线
-        while (name.StartsWith("_"))
-        {
-            name = name.Substring(1);
-        }
-        //不区分大小写
-        return name.ToLower();
-    }
-
+    
     private static Transform GetChild(Transform parent, string name)
     {
         if (parent.name.ToLower() == name) return parent;
-        for (int i = 0, count = parent.childCount; i < count; i++)
+        for (int i = 0,count = parent.childCount; i < count; i++)
         {
             var child = GetChild(parent.GetChild(i), name);
             if (child != null) return child;
@@ -174,44 +160,65 @@ public static class ChildAttributeExtension
 
         return null;
     }
-    
-    private static ValueType GetValueType(Type fieldType)
+
+    private static readonly Type _TOC = typeof(Component);
+    private static readonly Type _TOG = typeof(GameObject);
+    private static readonly Type _TOL = typeof(List<>);
+
+    private static int GetFieldType(FieldInfo field)
     {
-        //Single
-        if (fieldType == _TOG) return ValueType.GameObjectSingle;
-        if (fieldType.IsSubclassOf(_TOC)) return ValueType.ComponentSingle;
-        
-        if (fieldType.HasElementType)
+        var fieldType = field.FieldType;
+        //Debug.Log($"{fieldType.Name} has element type: {fieldType.HasElementType}");
+        if (!fieldType.HasElementType)
         {
-            //Array
-            fieldType = fieldType.GetElementType();
-            if (fieldType == _TOG) return ValueType.GameObjectArray;
-            if (fieldType.IsSubclassOf(_TOC)) return ValueType.ComponentArray;
+            if (fieldType == _TOG) return 0;
+            if (fieldType.IsSubclassOf(_TOC)) return 1;
+
+            if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == _TOL)
+            {
+                fieldType = fieldType.GetGenericArguments()[0];
+                if (fieldType == _TOG) return 4;
+                if (fieldType.IsSubclassOf(_TOC)) return 5;
+            }
         }
-        else if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == _TOL)
+        else
         {
-            //List
-            fieldType = fieldType.GetGenericArguments()[0];
-            if (fieldType == _TOG) return ValueType.GameObjectList;
-            if (fieldType.IsSubclassOf(_TOC)) return ValueType.ComponentList;
+            //数组
+            fieldType = fieldType.GetElementType();
+            if (fieldType == _TOG) return 2;
+            if (fieldType.IsSubclassOf(_TOC)) return 3;
         }
 
-        return ValueType.Unsupported;
+        return -1;
     }
 
-    private static bool HasValue(ValueType type, FieldInfo field, MonoBehaviour target)
+    private static bool HasValue(int type, FieldInfo field, MonoBehaviour target)
     {
         //GameObject数组
         var value = field.GetValue(target);
-        //TODO：当类型为Transform或者RectTransform时，value的值会是"null"
-        if (value == null || "" + value == "null") return false;
-
-        if (type == ValueType.GameObjectArray || type == ValueType.ComponentArray)
-            return (value as Array).Length > 0;
-
-        if (type == ValueType.GameObjectList || type == ValueType.ComponentList)
-            return ((IList) value).Count > 0;
+        if (type == 2 || type == 3) return (value as Array).Length > 0;
+        if (type == 4 || type == 5) return ((IList) value).Count > 0;
         
-        return true;
+        //TODO：当类型为Transform或者RectTransform时，value的值会是"null"
+        return value != null && ""+value != "null";
     }
+#if UNITY_EDITOR
+    [InitializeOnLoadMethod]
+    private static void InitializeOnApplicationLoad()
+    {
+        OnSelectionChanged();
+        Selection.selectionChanged += OnSelectionChanged;
+    }
+
+    private static void OnSelectionChanged()
+    {
+        var selected = Selection.activeGameObject;
+        if (selected == null) return;
+        var monos = selected.GetComponentsInChildren<MonoBehaviour>();
+        foreach (var mono in monos)
+        {
+            mono.MapChildren();
+        }
+    }
+#endif
 }
