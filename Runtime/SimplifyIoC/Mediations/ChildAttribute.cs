@@ -217,7 +217,7 @@ public static class ChildAttributeExtension
         var monos = selected.GetComponentsInChildren<MonoBehaviour>();
         foreach (var mono in monos)
         {
-            mono.MapChildren();
+            if(mono!=null) mono.MapChildren();
         }
     }
 #endif
