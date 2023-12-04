@@ -48,6 +48,8 @@ ExportedObj/
 *.mdb
 *.opendb
 *.VC.db
+*.DotSettings
+*.dwlt
 
 # Unity3D generated meta files
 *.pidb.meta
@@ -56,6 +58,7 @@ ExportedObj/
 
 # Unity3D generated file on crash reports
 sysinfo.txt
+boot.config
 
 # Builds
 *.apk
