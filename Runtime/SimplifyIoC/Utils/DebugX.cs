@@ -3,9 +3,10 @@
  * PlayerSettings>OtherSettings>ScriptingDefineSymbols中添加：
  * DEBUG_X
  */
+#if DEBUG_X
 namespace SimplifyIoC.Utils
 {
-#if DEBUG_X
+
     using System;
     using System.Collections;
     using System.Collections.Generic;
@@ -59,6 +60,11 @@ namespace SimplifyIoC.Utils
             //等到更新之后才能得到真实高度
             yield return new WaitForEndOfFrame();
             _lines = (int)(_text.rectTransform.rect.height / (_text.fontSize*1.2f));
+        }
+
+        private void OnDestroy()
+        {
+            Debug.unityLogger.logHandler = _defaultHandler;
         }
 
         private void OnLogVisible()
@@ -128,5 +134,5 @@ namespace SimplifyIoC.Utils
             tgo.SetActive(false);
         }
     }
-#endif
 }
+#endif
