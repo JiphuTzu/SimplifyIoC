@@ -24,6 +24,7 @@
  */
 
 using SimplifyIoC.Contexts;
+using SimplifyIoC.Utils;
 using UnityEngine;
 
 namespace SimplifyIoC.Mediations

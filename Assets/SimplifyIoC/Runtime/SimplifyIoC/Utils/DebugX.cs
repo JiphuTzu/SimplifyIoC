@@ -46,6 +46,7 @@ namespace SimplifyIoC.Utils
             
             var scaler = GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.matchWidthOrHeight = 1;
             //
             CreateDebugButton();
 
@@ -70,6 +71,8 @@ namespace SimplifyIoC.Utils
         private void OnLogVisible()
         {
             _text.gameObject.SetActive(!_text.gameObject.activeSelf);
+            if(_text.gameObject.activeSelf)
+                _text.text = _AUTHOR + string.Join("\n",_logs);
         }
 
         public void LogFormat(LogType logType, Object context, string format, params object[] args)
@@ -126,8 +129,13 @@ namespace SimplifyIoC.Utils
             //left,bottom
             trt.offsetMin = new Vector2(10,10);
             _text = tgo.GetComponent<Text>();
+#if UNITY_2022_1_OR_NEWER
             _text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+#else
+            _text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+#endif
             _text.fontSize = 12;
+            _text.color = new Color(1, 1, 1, 0.3f);
             _text.alignment = TextAnchor.UpperLeft;
             _text.raycastTarget = false;
             _text.text = _AUTHOR;

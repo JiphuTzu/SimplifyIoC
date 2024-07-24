@@ -1,4 +1,8 @@
 ﻿# CHANGELOG
+## 1.0.5
++ 修复MapChildren时报错
++ 添加BindEvent和BindToEvent两个Attribute
++ 修改命名空间
 ## 1.0.3
 + 添加Child和BindMethod两个Attribute
 ## 1.0.2
