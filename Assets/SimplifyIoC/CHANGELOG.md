@@ -1,4 +1,8 @@
 ﻿# CHANGELOG
+## 1.0.6
++ BindEventAttribute添加对property的支持
++ BindEvent添加对所有UnityEventBase的支持
++ 自定义BindEvent的使用对象
 ## 1.0.5
 + 修复MapChildren时报错
 + 添加BindEvent和BindToEvent两个Attribute
