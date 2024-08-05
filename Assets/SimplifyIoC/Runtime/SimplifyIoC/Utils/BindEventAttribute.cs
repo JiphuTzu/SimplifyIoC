@@ -70,7 +70,9 @@ namespace SimplifyIoC.Utils
                 if (attribute == null
                     || string.IsNullOrWhiteSpace(attribute.eventName)
                     || string.IsNullOrWhiteSpace(attribute.fieldName)) continue;
-                var ue = GetEvent(type.GetField(attribute.fieldName)?.GetValue(target), attribute.eventName);
+                var obj = type.GetField(attribute.fieldName)?.GetValue(target) 
+                             ?? type.GetProperty(attribute.fieldName)?.GetValue(target);
+                var ue = GetEvent(obj, attribute.eventName);
                 if (ue == null) continue;
                 AddListener(ue, target, method);
             }
