@@ -42,15 +42,24 @@ namespace SimplifyIoC.Utils
             this.fieldName = fieldName;
         }
     }
+
+    [Flags]
+    public enum BindUsage : byte
+    {
+        FIELD = 1 << 0,
+        PROPERTY = 1 << 1,
+        METHOD = 1 << 2
+    }
     public static class BindEventExtension
     {
-        public static void BindEvents(this MonoBehaviour target)
+        public static void BindEvents(this Component target,BindUsage usage = BindUsage.FIELD | BindUsage.PROPERTY | BindUsage.METHOD)
         {
-            BindFields(target);
-            BindMethods(target);
+            if((usage & BindUsage.FIELD) == BindUsage.FIELD) BindFields(target);
+            if((usage & BindUsage.PROPERTY) == BindUsage.PROPERTY) BindProperties(target);
+            if((usage & BindUsage.METHOD) == BindUsage.METHOD) BindMethods(target);
         }
 
-        private static void BindMethods(MonoBehaviour target)
+        private static void BindMethods(Component target)
         {
             var type = target.GetType();
             var methods = type.GetMethods(BindingFlags.Instance
@@ -58,17 +67,16 @@ namespace SimplifyIoC.Utils
             foreach (var method in methods)
             {
                 var attribute = method.GetCustomAttribute<BindToEventAttribute>();
-                if(attribute == null 
-                   || string.IsNullOrWhiteSpace(attribute.eventName)
-                   || string.IsNullOrWhiteSpace(attribute.fieldName)) continue;
+                if (attribute == null
+                    || string.IsNullOrWhiteSpace(attribute.eventName)
+                    || string.IsNullOrWhiteSpace(attribute.fieldName)) continue;
                 var ue = GetEvent(type.GetField(attribute.fieldName)?.GetValue(target), attribute.eventName);
                 if (ue == null) continue;
-                var delegateMethod = method.CreateDelegate(typeof(UnityAction),target);
-                ue.AddListener((UnityAction)delegateMethod);
+                AddListener(ue, target, method);
             }
         }
 
-        private static void BindFields(MonoBehaviour target)
+        private static void BindFields(Component target)
         {
             var type = target.GetType();
             var fields = type.GetFields(BindingFlags.Instance
@@ -82,25 +90,53 @@ namespace SimplifyIoC.Utils
                 var methodInfo = type.GetMethod(mn,
                     BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase);
                 if (methodInfo == null) continue;
-                var ue = GetEvent(field.GetValue(target),attribute.eventName);
+                var ue = GetEvent(field.GetValue(target), attribute.eventName);
                 if (ue == null) continue;
-                var delegateMethod = methodInfo.CreateDelegate(typeof(UnityAction),target);
-                ue.AddListener((UnityAction)delegateMethod);
+                AddListener(ue, target, methodInfo);
             }
         }
 
-        private static UnityEvent GetEvent(object target, string name)
+        private static void BindProperties(Component target)
         {
-            if(target == null) return null;
             var type = target.GetType();
-            var fieldInfo = type.GetField(name,BindingFlags.Instance | BindingFlags.Public);
+            var fields = type.GetProperties(BindingFlags.Instance
+                                            | BindingFlags.Public | BindingFlags.NonPublic);
+            foreach (var field in fields)
+            {
+                var attribute = field.GetCustomAttribute<BindEventAttribute>();
+                if (attribute == null || string.IsNullOrWhiteSpace(attribute.eventName)) continue;
+                var mn = attribute.methodName;
+                if (string.IsNullOrWhiteSpace(mn)) mn = $"on{field.Name}";
+                var methodInfo = type.GetMethod(mn,
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase);
+                if (methodInfo == null) continue;
+                var ue = GetEvent(field.GetValue(target), attribute.eventName);
+                if (ue == null) continue;
+                AddListener(ue, target, methodInfo);
+            }
+        }
+
+        private static void AddListener(UnityEventBase ue, Component target, MethodInfo method)
+        {
+            var type = ue.GetType();
+            var ual = type.GetMethod("AddListener", BindingFlags.Instance | BindingFlags.NonPublic);
+            ual?.Invoke(ue, new object[] { target, method });
+        }
+
+        private static UnityEventBase GetEvent(object target, string name)
+        {
+            if (target == null) return null;
+            var type = target.GetType();
+            var fieldInfo = type.GetField(name, BindingFlags.Instance | BindingFlags.Public);
             if (fieldInfo != null)
             {
-                if (fieldInfo.GetValue(target) is UnityEvent ue)
+                if (fieldInfo.GetValue(target) is UnityEventBase ue)
                     return ue;
-            }else{
+            }
+            else
+            {
                 var propInfo = type.GetProperty(name, BindingFlags.Instance | BindingFlags.Public);
-                if(propInfo!=null && propInfo.GetValue(target) is UnityEvent ue)
+                if (propInfo != null && propInfo.GetValue(target) is UnityEventBase ue)
                     return ue;
             }
 
