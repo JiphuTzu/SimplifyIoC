@@ -2,7 +2,7 @@
  * @file    ChildAttributeExtension.cs
  * @author  JiphuTzu
  * @date    2021/11/4
- * 	
+ *
  * @version  1.0
  *
  * @brief	（简要描述）
@@ -18,37 +18,38 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
 using UnityEngine.Scripting;
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
+
 namespace SimplifyIoC.Utils
 {
     /*
- * @brief	用于变量和子对象的绑定
- * @usage
- *          public Test:MonoBehaviour
- *          {
- *              [Child]
- *              public Image image;
- *              [Child("submit")]
- *              public Button submit;
- *              [Child("content/items")]
- *              private GameObject[] _items;
- *              [Child("content/icons")]
- *              public List<RawImage> images;
- * 
- *              private void Start(){
- *                  this.MapChildren();
- *              }
- *           }
- */
+     * @brief	用于变量和子对象的绑定
+     * @usage
+     *          public Test:MonoBehaviour
+     *          {
+     *              [Child]
+     *              public Image image;
+     *              [Child("submit")]
+     *              public Button submit;
+     *              [Child("content/items")]
+     *              private GameObject[] _items;
+     *              [Child("content/icons")]
+     *              public List<RawImage> images;
+     *
+     *              private void Start(){
+     *                  this.AddAttributeParser(this.GetChildParser())
+     *                      .ParseAttributes();
+     *              }
+     *           }
+     */
     [AttributeUsage(AttributeTargets.Field)]
     public class ChildAttribute : PreserveAttribute
     {
-        public string path;
-        public bool includeParent;
+        public readonly string path;
+
+        public readonly bool includeParent;
+
         //名字与变量名相同，在path为空的情况下有效
-        public bool sameAsField;
+        public readonly bool sameAsField;
 
         // The class constructor is called when the class instance is created
         public ChildAttribute()
@@ -64,6 +65,7 @@ namespace SimplifyIoC.Utils
         {
             this.sameAsField = sameAsField;
         }
+
         //用于数组和List
         public ChildAttribute(string path, bool includeParent)
         {
@@ -79,81 +81,83 @@ namespace SimplifyIoC.Utils
         /// 支持公有变量和私有变量
         /// </summary>
         /// <param name="target"></param>
-        public static void MapChildren(this MonoBehaviour target)
+        [Obsolete("use this.AddAttributeParser(this.GetChildParser()).ParseAttributes() instead")]
+        public static void MapChildren(this Component target)
         {
-            var type = target.GetType();
-            var fields = type.GetFields(BindingFlags.Instance
-                                        | BindingFlags.Public | BindingFlags.NonPublic);
-            foreach (var field in fields)
+            target.AddAttributeParser(target.GetChildParser()).ParseAttributes();
+        }
+
+        public static Action<T, ChildAttribute, FieldInfo, Type> GetChildParser<T>(this T target) where T : Component
+        {
+            return ParseChild<object>;
+        }
+
+        private static void ParseChild<T>(T target, ChildAttribute attribute, FieldInfo field, Type targetType)
+        {
+            if(!(target is Component com)) return;
+            //变量类型要是GameObject或者Component的子类
+            var ft = GetFieldType(field);
+            //Debug.Log($"========={field.Name} == {ft}");
+            if (ft == -1) return;
+            //是否已经赋值
+            if (HasValue(ft, field, target)) return;
+            //根据路径查找对象
+            var t = string.IsNullOrEmpty(attribute.path)
+                ? (attribute.sameAsField ? GetChild(com.transform, field.Name.ToLower()) : com.transform)
+                : com.transform.Find(attribute.path);
+
+            if (t == null) return;
+
+            //赋值
+            if (ft == 0) field.SetValue(target, t.gameObject);
+            else if (ft == 1) field.SetValue(target, t.GetComponent(field.FieldType));
+            else if (ft is 2 or 4)
             {
-                //查找变量是否带有ChildAttribute
-                var attribute = field.GetCustomAttribute<ChildAttribute>();
-                if (attribute == null) continue;
-                //变量类型要是GameObject或者Component的子类
-                var ft = GetFieldType(field);
-                //Debug.Log($"========={field.Name} == {ft}");
-                if (ft == -1) continue;
-                //是否已经赋值
-                if (HasValue(ft, field, target)) continue;
-                //根据路径查找对象
-                var t = string.IsNullOrEmpty(attribute.path) 
-                    ? (attribute.sameAsField ? GetChild(target.transform,field.Name.ToLower()) : target.transform)
-                    : target.transform.Find(attribute.path);
-            
-                if (t == null) continue;
-
-                //赋值
-                if (ft == 0) field.SetValue(target, t.gameObject);
-                else if (ft == 1) field.SetValue(target, t.GetComponent(field.FieldType));
-                else if (ft == 2 || ft == 4)
+                var list = new List<GameObject>();
+                if (attribute.includeParent) list.Add(t.gameObject);
+                foreach (Transform c in t)
                 {
-                    var list = new List<GameObject>();
-                    if (attribute.includeParent) list.Add(t.gameObject);
-                    foreach (Transform c in t)
-                    {
-                        list.Add(c.gameObject);
-                    }
-
-                    if (ft == 2)
-                        field.SetValue(target, list.ToArray());
-                    else //if(ft == 4) 
-                        field.SetValue(target, list);
+                    list.Add(c.gameObject);
                 }
-                else if (ft == 3 || ft == 5)
+
+                if (ft == 2)
+                    field.SetValue(target, list.ToArray());
+                else //if(ft == 4) 
+                    field.SetValue(target, list);
+            }
+            else if (ft is 3 or 5)
+            {
+                var et = ft == 3 ? field.FieldType.GetElementType() : field.FieldType.GetGenericArguments()[0];
+                var list = Activator.CreateInstance(_TOL.MakeGenericType(et));
+                var add = list.GetType().GetMethod("Add");
+                if (attribute.includeParent)
                 {
-                    var et = ft == 3 ? field.FieldType.GetElementType() : field.FieldType.GetGenericArguments()[0];
-                    var list = Activator.CreateInstance(_TOL.MakeGenericType(et));
-                    var add = list.GetType().GetMethod("Add");
-                    Component element = null;
-                    if (attribute.includeParent)
-                    {
-                        element = t.GetComponent(et);
-                        if (element != null) add.Invoke(list, new object[] {element});
-                    }
+                    var element = t.GetComponent(et);
+                    if (element != null) add.Invoke(list, new object[] { element });
+                }
 
-                    foreach (Transform c in t)
-                    {
-                        element = c.GetComponent(et);
-                        if (element != null) add.Invoke(list, new object[] {element});
-                    }
+                foreach (Transform c in t)
+                {
+                    var element = c.GetComponent(et);
+                    if (element != null) add.Invoke(list, new object[] { element });
+                }
 
-                    if (ft == 3)
-                    {
-                        var toArray = list.GetType().GetMethod("ToArray");
-                        field.SetValue(target, toArray.Invoke(list, new object[] { }));
-                    }
-                    else // if (ft == 5)
-                    {
-                        field.SetValue(target, list);
-                    }
+                if (ft == 3)
+                {
+                    var toArray = list.GetType().GetMethod("ToArray");
+                    field.SetValue(target, toArray.Invoke(list, new object[] { }));
+                }
+                else // if (ft == 5)
+                {
+                    field.SetValue(target, list);
                 }
             }
         }
-    
+
         private static Transform GetChild(Transform parent, string name)
         {
             if (parent.name.ToLower() == name) return parent;
-            for (int i = 0,count = parent.childCount; i < count; i++)
+            for (int i = 0, count = parent.childCount; i < count; i++)
             {
                 var child = GetChild(parent.GetChild(i), name);
                 if (child != null) return child;
@@ -193,32 +197,35 @@ namespace SimplifyIoC.Utils
             return -1;
         }
 
-        private static bool HasValue(int type, FieldInfo field, MonoBehaviour target)
+        private static bool HasValue(int type, FieldInfo field, object target)
         {
             //GameObject数组
             var value = field.GetValue(target);
-            if (type == 2 || type == 3) return (value as Array).Length > 0;
-            if (type == 4 || type == 5) return ((IList) value).Count > 0;
-        
+            if (type is 2 or 3) return (value as Array).Length > 0;
+            if (type is 4 or 5) return ((IList)value).Count > 0;
+
             //TODO：当类型为Transform或者RectTransform时，value的值会是"null"
-            return value != null && ""+value != "null";
+            return value != null && "" + value != "null";
         }
 #if UNITY_EDITOR
-        [InitializeOnLoadMethod]
+        [UnityEditor.InitializeOnLoadMethod]
         private static void InitializeOnApplicationLoad()
         {
             OnSelectionChanged();
-            Selection.selectionChanged += OnSelectionChanged;
+            UnityEditor.Selection.selectionChanged += OnSelectionChanged;
         }
 
         private static void OnSelectionChanged()
         {
-            var selected = Selection.activeGameObject;
+            if(UnityEditor.EditorApplication.isPlaying) return;
+            var selected = UnityEditor.Selection.activeGameObject;
             if (selected == null) return;
-            var monos = selected.GetComponentsInChildren<MonoBehaviour>();
-            foreach (var mono in monos)
+            var behaviours = selected.GetComponentsInChildren<MonoBehaviour>();
+            foreach (var behaviour in behaviours)
             {
-                if(mono!=null) mono.MapChildren();
+                if (behaviour == null) continue;
+                behaviour.AddAttributeParser(behaviour.GetChildParser())
+                    .ParseAttributes();
             }
         }
 #endif

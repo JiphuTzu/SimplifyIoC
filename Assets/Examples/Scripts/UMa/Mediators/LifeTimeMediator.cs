@@ -1,4 +1,5 @@
 using SimplifyIoC.Mediations;
+using SimplifyIoC.Utils;
 using UMa.Signals;
 using UMa.Views;
 //============================================================
@@ -19,9 +20,12 @@ namespace UMa.Mediators
         public override void OnRegister()
         {
             base.OnRegister();
+            this.AddAttributeParser(this.GetEventMethodParser())
+	            .ParseAttributes();
 			rcs.Dispatch(true);
-			view.OnDead.AddListener(OnDead);
+			//view.OnDead.AddListener(OnDead);
         }
+        [BindEvent("onDead",nameof(view))]
 		protected void OnDead(){
 			rcs.Dispatch(false);
 			Destroy(gameObject);

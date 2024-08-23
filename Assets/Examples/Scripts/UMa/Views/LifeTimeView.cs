@@ -13,7 +13,7 @@ namespace UMa.Views
 {
     public class LifeTimeView : View {
 		public float lifeTime = 2;
-		public UnityEvent OnDead;
+		public UnityEvent onDead;
 		private float _startTime;
         protected override void Start()
         {
@@ -22,7 +22,7 @@ namespace UMa.Views
         }
 		private void Update(){
 			if(Time.time-_startTime>lifeTime){
-				OnDead.Invoke();
+				onDead.Invoke();
 			}
 		}
 	}

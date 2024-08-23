@@ -1,4 +1,5 @@
 using SimplifyIoC.Mediations;
+using SimplifyIoC.Utils;
 using UMa.Signals;
 using UMa.Views;
 using UnityEngine;
@@ -21,8 +22,10 @@ namespace UMa.Mediators
         public override void OnRegister()
         {
             base.OnRegister();
-            view.OnClicked.AddListener(OnFloorClicked);
+            this.AddAttributeParser(this.GetEventMethodParser())
+                .ParseAttributes();
         }
+        [BindEvent("onClick",nameof(view))]
         private void OnFloorClicked(Vector3 pos)
         {
             cos.Dispatch(pos);
