@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @class SimplifyIoC.Mediations.View
  * 
  * Parent class for all your Views. Extends MonoBehaviour.
@@ -24,13 +24,16 @@
  */
 
 using SimplifyIoC.Contexts;
-using SimplifyIoC.Utils;
+using SimplifyIoC.Injectors;
+using SimplifyIoC.Signals;
 using UnityEngine;
 
 namespace SimplifyIoC.Mediations
 {
-    public class View : MonoBehaviour, IView
+    public abstract class View : MonoBehaviour, IView
     {
+        [Inject]
+        public IInjectionBinder injectionBinder { get; set; }
         /// Leave this value true most of the time. If for some reason you want
         /// a view to exist outside a context you can set it to false. The only
         /// difference is whether an error gets generated.
@@ -52,7 +55,7 @@ namespace SimplifyIoC.Mediations
         /// (1) uncomment the commented-out line immediately below, or
         /// (2) subclass View and override the autoRegisterWithContext method using your own custom (public) field.
         //[SerializeField]
-        virtual public bool autoRegisterWithContext { get; set; } = true;
+        public virtual bool autoRegisterWithContext { get; set; } = true;
 
         public bool registeredWithContext { get; set; }
 
@@ -60,9 +63,23 @@ namespace SimplifyIoC.Mediations
         /// The View will attempt to connect to the Context at this moment.
         protected virtual void Awake()
         {
-            this.MapChildren();
+            InitAttributes();
             if (autoRegisterWithContext && !registeredWithContext && shouldRegister)
                 BubbleToContext(this, BubbleType.Add, false);
+        }
+
+        protected virtual void InitAttributes()
+        {
+            // this.AddAttributeParser(this.GetEventFieldParser())
+            //     .AddAttributeParser(this.GetEventPropertyParser())
+            //     .AddAttributeParser(this.GetEventMethodParser())
+            //     .AddAttributeParser(this.GetMainThreadParser())
+            //     .ParseAttributes();
+        }
+
+        protected T Get<T>() where T : BaseSignal
+        {
+            return injectionBinder.GetInstance<T>();
         }
 
         /// A MonoBehaviour Start handler
@@ -99,47 +116,36 @@ namespace SimplifyIoC.Mediations
         /// Recurses through Transform.parent to find the GameObject to which ContextView is attached
         /// Has a loop limit of 100 levels.
         /// By default, raises an Exception if no Context is found.
-        virtual protected void BubbleToContext(MonoBehaviour view, BubbleType type, bool finalTry)
+        protected void BubbleToContext(MonoBehaviour view, BubbleType type, bool finalTry)
         {
             const int LOOP_MAX = 100;
-            int loopLimiter = 0;
-            Transform trans = view.gameObject.transform;
+            var loopLimiter = 0;
+            var trans = view.gameObject.transform;
             while (trans.parent != null && loopLimiter < LOOP_MAX)
             {
                 loopLimiter++;
                 trans = trans.parent;
-                if (trans.gameObject.GetComponent<ContextView>() != null)
+                var contextView = trans.gameObject.GetComponent<ContextView>();
+                if (contextView != null && contextView.context != null)
                 {
-                    ContextView contextView = trans.gameObject.GetComponent<ContextView>() as ContextView;
-                    if (contextView.context != null)
+                    var context = contextView.context;
+                    switch (type)
                     {
-                        IContext context = contextView.context;
-                        bool success = true;
-
-                        switch (type)
-                        {
-                            case BubbleType.Add:
-                                context.AddView(view);
-                                registeredWithContext = true;
-                                break;
-                            case BubbleType.Remove:
-                                context.RemoveView(view);
-                                break;
-                            case BubbleType.Enable:
-                                context.EnableView(view);
-                                break;
-                            case BubbleType.Disable:
-                                context.DisableView(view);
-                                break;
-                            default:
-                                success = false;
-                                break;
-                        }
-
-                        if (success)
-                        {
+                        case BubbleType.Add:
+                            context.AddView(view);
+                            registeredWithContext = true;
+                            break;
+                        case BubbleType.Remove:
+                            context.RemoveView(view);
+                            break;
+                        case BubbleType.Enable:
+                            context.EnableView(view);
+                            break;
+                        case BubbleType.Disable:
+                            context.DisableView(view);
+                            break;
+                        default:
                             return;
-                        }
                     }
                 }
             }
@@ -154,14 +160,14 @@ namespace SimplifyIoC.Mediations
                 }
 
                 string msg = (loopLimiter == LOOP_MAX) ?
-                    msg = "A view couldn't find a context. Loop limit reached." :
-                        msg = "A view was added with no context. Views must be added into the hierarchy of their ContextView lest all hell break loose.";
-                msg += "\nView: " + view.ToString();
+                    "A view couldn't find a context. Loop limit reached." :
+                        "A view was added with no context. Views must be added into the hierarchy of their ContextView lest all hell break loose.";
+                msg += "\nView: " + view;
                 throw new MediationException(msg,
                     MediationExceptionType.NO_CONTEXT);
             }
         }
 
-        public bool shouldRegister { get { return enabled && gameObject.activeInHierarchy; } }
+        public bool shouldRegister => enabled && gameObject.activeInHierarchy;
     }
 }

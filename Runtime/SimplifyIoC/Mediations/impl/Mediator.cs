@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @class SimplifyIoC.Mediations.Mediator
  * 
  * Base class for all Mediators.
@@ -23,45 +23,47 @@
  */
 
 using SimplifyIoC.Contexts;
+using SimplifyIoC.Injectors;
 using UnityEngine;
 
 namespace SimplifyIoC.Mediations
 {
     public class Mediator : MonoBehaviour, IMediator
     {
-
+	    [Inject]
+	    public IInjectionBinder injectionBinder { get; set; }
         [Inject(ContextKeys.CONTEXT_VIEW)]
         public GameObject contextView { get; set; }
 
-        public Mediator() { }
+        //public Mediator() { }
 
         /**
 		 * Fires directly after creation and before injection
 		 */
-        virtual public void PreRegister() { }
+        public virtual void PreRegister() { }
 
         /**
-		 * Fires after all injections satisifed.
+		 * Fires after all injections satisfied.
 		 *
 		 * Override and place your initialization code here.
 		 */
-        virtual public void OnRegister() { }
+        public virtual void OnRegister() { }
 
         /**
 		 * Fires on removal of view.
 		 *
 		 * Override and place your cleanup code here
 		 */
-        virtual public void OnRemove() { }
+        public virtual void OnRemove() { }
 
         /**
 		 * Fires on enabling of view.
 		 */
-        virtual public void OnEnabled() { }
+        public virtual void OnEnabled() { }
 
         /**
 		 * Fires on disabling of view.
 		 */
-        virtual public void OnDisabled() { }
+        public virtual void OnDisabled() { }
     }
 }

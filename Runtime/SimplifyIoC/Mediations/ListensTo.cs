@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @class ListensTo
  * 
  * The `[ListensTo]` attribute provides a shortcut for adding
@@ -38,11 +38,10 @@
 
 
 using System;
+using UnityEngine.Scripting;
 
-[AttributeUsage(AttributeTargets.Method,
-		AllowMultiple = false,
-		Inherited = true)]
-public class ListensTo : Attribute
+[AttributeUsage(AttributeTargets.Method)]
+public class ListensTo : PreserveAttribute
 {
 	public ListensTo(){}
 

@@ -50,6 +50,7 @@ namespace SimplifyIoC.Utils
     {
         public readonly object[] names;
         public int order = 0;
+        internal MethodInfo method;
 
         /// <summary>
         /// 绑定方法到指定名称，一个方法可以同时绑定到多个名称，也可以多个方法绑定到一个名称
@@ -63,50 +64,45 @@ namespace SimplifyIoC.Utils
 
     public static class BindMethodExtension
     {
-        private static Dictionary<MonoBehaviour, Dictionary<object, List<MethodInfo>>> _methods =
-            new Dictionary<MonoBehaviour, Dictionary<object, List<MethodInfo>>>();
-
-        public static void BindMethods(this MonoBehaviour target)
+        private static readonly Dictionary<object, Dictionary<object, List<BindMethodAttribute>>> _methods = new();
+        [Obsolete("use target.AddAttributeParser(this.GetBindMethodParser()).ParseAttributes() instead")]
+        public static void BindMethods(this object target)
         {
-            if (_methods.ContainsKey(target)) return;
-            var methods = new Dictionary<object, List<MethodInfo>>();
-            var type = target.GetType();
-            var methodInfos = type.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic);
-            foreach (var methodInfo in methodInfos)
-            {
-                var attribute = methodInfo.GetCustomAttribute<BindMethodAttribute>();
-                if (attribute == null) continue;
-                var names = attribute.names;
-                if (names.Length == 0) names = new object[] {methodInfo.Name};
-                for (int i = 0; i < names.Length; i++)
-                {
-                    var name = names[i];
-                    if (name == default || string.IsNullOrEmpty(name.ToString()))
-                        continue;
-                    //
-                    var sn = name.ToString().ToLower();
-                    if (methods.ContainsKey(sn)) methods[sn].Add(methodInfo);
-                    else methods.Add(sn, new List<MethodInfo> {methodInfo});
-                }
-            }
+            target.AddAttributeParser(target.GetBindMethodParser())
+                .ParseAttributes();
+        }
 
-            //按照order排序
-            foreach (var pair in methods)
-            {
-                pair.Value.Sort((a, b) =>
-                {
-                    var aa = a.GetCustomAttribute<BindMethodAttribute>();
-                    var ba = b.GetCustomAttribute<BindMethodAttribute>();
-                    return aa.order.CompareTo(ba.order);
-                });
-            }
-
+        public static Action<T,BindMethodAttribute, MethodInfo, Type> GetBindMethodParser<T>(this T target)
+        {
+            if (_methods.ContainsKey(target)) return null;
+            var methods = new Dictionary<object, List<BindMethodAttribute>>();
             _methods.Add(target, methods);
+            return MethodParser;
+        }
+
+        private static void MethodParser<T>(T target, BindMethodAttribute attribute, MethodInfo method, Type
+            targetType)
+        {
+            var methods = _methods[target];
+
+            var names = attribute.names;
+            if (names.Length == 0) names = new object[] { method.Name };
+            for (int i = 0; i < names.Length; i++)
+            {
+                var name = names[i];
+                if (name == default || string.IsNullOrEmpty(name.ToString()))
+                    continue;
+                //
+                attribute.method = method;
+                //var sn = name.ToString().ToLower();
+                if (methods.ContainsKey(name)) methods[name].Add(attribute);
+                else methods.Add(name, new List<BindMethodAttribute> { attribute });
+            }
         }
     
-        public static void UnbindMethods(this MonoBehaviour target)
+        public static void UnbindMethods(this object target)
         {
-            var keys = new MonoBehaviour[_methods.Count];
+            var keys = new object[_methods.Count];
             _methods.Keys.CopyTo(keys, 0);
             var count = 0;
             //清除传入的指定对象或者key为空的对象
@@ -117,52 +113,52 @@ namespace SimplifyIoC.Utils
                 _methods.Remove(key);
                 count++;
             }
-            Debug.Log($"unbind methods for {count} target(s) and {_methods.Count} left");
+            //Debug.Log($"unbind methods for {count} target(s) and {_methods.Count} left");
         }
     
 
-        public static void InvokeBind(this MonoBehaviour target, object name, params object[] parameters)
+        public static void InvokeBind(this object target, object name, params object[] parameters)
         {
             if (target == null) return;
-            target.BindMethods();
-            Debug.Log($"Invoke Bind {name}");
-            if (!_methods.ContainsKey(target))
+            //target.AddAttributeParser(target.GetBindMethodParser()).ParseAttributes();
+            //Debug.Log($"Invoke Bind {name}");
+            if (!_methods.TryGetValue(target, out var attributeMap))
             {
                 Debug.Log($"{target} has no method bound to {name}()");
                 return;
             }
 
-            var targetMethods = _methods[target];
-            var sn = name.ToString().ToLower();
-            if (targetMethods == null || !targetMethods.ContainsKey(sn))
+            if (attributeMap == null || !attributeMap.TryGetValue(name,out var targetAttributes))
             {
                 Debug.Log($"{target} has no method bound to {name}()");
                 return;
             }
 
-            var methods = targetMethods[sn].ToArray();
-            foreach (var method in methods)
+            targetAttributes.Sort((a, b) => a.order.CompareTo(a.order));
+            var attributes = targetAttributes.ToArray();
+            
+            foreach (var attribute in attributes)
             {
                 try
                 {
-                    method.Invoke(target, parameters);
+                    attribute.method.Invoke(target, parameters);
                 }
                 catch (Exception e)
                 {
-                    Debug.Log($"invoke bind method {name} -> {method.Name}() error :: {e.Message}");
+                    Debug.Log($"invoke bind method {name} -> {attribute.method.Name}() error :: {e.Message}");
                 }
             }
         }
 
-        private static void ClearBinds(Dictionary<object, List<MethodInfo>> targetMethods)
+        private static void ClearBinds(Dictionary<object, List<BindMethodAttribute>> attributeMap)
         {
-            if (targetMethods == null) return;
-            foreach (var pair in targetMethods)
+            if (attributeMap == null) return;
+            foreach (var pair in attributeMap)
             {
                 pair.Value?.Clear();
             }
 
-            targetMethods.Clear();
+            attributeMap.Clear();
         }
     }
 }
