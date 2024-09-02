@@ -1,7 +1,7 @@
 ﻿# CHANGELOG
 ## 1.0.7
-+ BindEvent添加对私有变量的支持
-+ BindToEvent修改为BindEvent，参数改为targetName
++ BindEvent添加对私有变量的支持，参数改为可选的targetNames，支持多对象或方法绑定
++ BindToEvent修改为BindEvent
 + 使用target.AddAttributeParser(this.GetXxxParser()).ParseAttributes()统一处理Attribute
 + Mediator和View添加Get<T>() where T:BaseSignal方法，省去Inject环节，直接使用。
 ## 1.0.6
