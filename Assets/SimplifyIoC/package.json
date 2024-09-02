@@ -1,8 +1,8 @@
 {
     "name": "com.uma.simplifyioc",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "displayName": "SimplifyIoC",
-    "description": "A simplify version of StrangeIoC.",
+    "description": "A simplify version of StrangeIoC.\n1.0.7\n+ BindEvent添加对私有变量的支持\n+ BindToEvent修改为BindEvent，参数改为targetName\n+ 使用target.AddAttributeParser(this.GetXxxParser()).ParseAttributes()统一处理Attribute\n+ Mediator和View添加Get<T>() where T:BaseSignal方法，省去Inject环节，直接使用。\n\n 1.0.6\n+ BindEventAttribute添加对property的支持\n+ BindEvent添加对所有UnityEventBase的支持\n+ 自定义BindEvent的使用对象",
     "unity": "2019.3",
     "keywords": [
       "mvc",
