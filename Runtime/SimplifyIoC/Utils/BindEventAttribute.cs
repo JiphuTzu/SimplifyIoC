@@ -10,17 +10,17 @@ namespace SimplifyIoC.Utils
     public class BindEventAttribute : PreserveAttribute
     {
         public readonly string eventName;
-        public readonly string targetName;
+        public readonly string[] targetNames;
 
         /// <summary>
         /// bind field event to some method
         /// </summary>
         /// <param name="eventName">The event name to bind</param>
-        /// <param name="targetName">The target field/property/method name to bind. If null，will bind the method named "on"+filedName</param>
-        public BindEventAttribute(string eventName, string targetName = null)
+        /// <param name="targetNames">The target field/property/method names to bind. If []，will bind the method named "on"+filedName</param>
+        public BindEventAttribute(string eventName, params string[] targetNames)
         {
             this.eventName = eventName;
-            this.targetName = targetName;
+            this.targetNames = targetNames;
         }
     }
 
@@ -73,41 +73,51 @@ namespace SimplifyIoC.Utils
             Type targetType)
         {
             if (string.IsNullOrWhiteSpace(attribute.eventName)
-                || string.IsNullOrWhiteSpace(attribute.targetName)) return;
+                || attribute.targetNames.Length == 0) return;
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
                                        BindingFlags.IgnoreCase;
-            var obj = targetType.GetField(attribute.targetName, flags)?.GetValue(target)
-                      ?? targetType.GetProperty(attribute.targetName, flags)?.GetValue(target);
-            var ue = GetEvent(obj, attribute.eventName);
-            if (ue == null) return;
-            AddListener(ue, target, method);
+            foreach (var targetName in attribute.targetNames)
+            {
+                var obj = targetType.GetField(targetName, flags)?.GetValue(target)
+                          ?? targetType.GetProperty(targetName, flags)?.GetValue(target);
+                var ue = GetEvent(obj, attribute.eventName);
+                if (ue != null) AddListener(ue, target, method);
+            }
+            
         }
 
         private static void FieldParser<T>(T target, BindEventAttribute attribute, FieldInfo field, Type targetType)
         {
             if (string.IsNullOrWhiteSpace(attribute.eventName)) return;
-            var mn = attribute.targetName;
-            if (string.IsNullOrWhiteSpace(mn)) mn = $"on{field.Name}";
-            var methodInfo = targetType.GetMethod(mn,
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase);
-            if (methodInfo == null) return;
-            var ue = GetEvent(field.GetValue(target), attribute.eventName);
-            if (ue == null) return;
-            AddListener(ue, target, methodInfo);
+            var targetNames = attribute.targetNames;
+            if (targetNames.Length == 0) targetNames = new []{$"on{field.Name}"};
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
+                                       BindingFlags.IgnoreCase;
+            foreach (var targetName in targetNames)
+            {
+                var methodInfo = targetType.GetMethod(targetName, flags);
+                if (methodInfo == null) continue;
+                var ue = GetEvent(field.GetValue(target), attribute.eventName);
+                if (ue != null) AddListener(ue, target, methodInfo);
+            }
+            
         }
 
         private static void PropertyParser<T>(T target, BindEventAttribute attribute, PropertyInfo property,
             Type targetType)
         {
             if (string.IsNullOrWhiteSpace(attribute.eventName)) return;
-            var mn = attribute.targetName;
-            if (string.IsNullOrWhiteSpace(mn)) mn = $"on{property.Name}";
-            var methodInfo = targetType.GetMethod(mn,
-                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase);
-            if (methodInfo == null) return;
-            var ue = GetEvent(property.GetValue(target), attribute.eventName);
-            if (ue == null) return;
-            AddListener(ue, target, methodInfo);
+            var targetNames = attribute.targetNames;
+            if (targetNames.Length == 0) targetNames = new []{$"on{property.Name}"};
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
+                                       BindingFlags.IgnoreCase;
+            foreach (var targetName in targetNames)
+            {
+                var methodInfo = targetType.GetMethod(targetName, flags);
+                if (methodInfo == null) continue;
+                var ue = GetEvent(property.GetValue(target), attribute.eventName);
+                if (ue != null) AddListener(ue, target, methodInfo);
+            }
         }
 
         private static void AddListener(UnityEventBase ue, object target, MethodInfo method)
