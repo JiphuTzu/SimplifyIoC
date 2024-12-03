@@ -1,33 +1,27 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using UnityEngine;
 
 namespace SimplifyIoC.Utils
 {
     public static class ReflectionExtension
     {
-        private struct Parser
+        public static ReflectedTarget<TTarget> AddAttributeParser<TTarget, TAttribute>(this TTarget target,
+            Action<TTarget, TAttribute, MethodInfo, Type> parser) where TTarget:Component where TAttribute : Attribute
         {
-            public Type attributeType;
-            public MethodInfo parser;
-        }
-
-        private static object _target;
-        private static readonly List<Parser> _METHOD_PARSERS = new();
-        private static readonly List<Parser> _FIELD_PARSERS = new();
-        private static readonly List<Parser> _PROPERTY_PARSERS = new();
-
-        public static TTarget AddAttributeParser<TTarget, TAttribute>(this TTarget target,
-            Action<TTarget, TAttribute, MethodInfo, Type> parser) where TAttribute : Attribute
-        {
-            if (parser == null) return target;
-            if (_target != (target as object))
+            var rt = new ReflectedTarget<TTarget>(target);
+            rt.methodParsers.Add(new Parser()
             {
-                _target.Clear();
-                _target = target;
-            }
-
-            _METHOD_PARSERS.Add(new Parser()
+                attributeType = typeof(TAttribute),
+                parser = parser.Method
+            });
+            return rt;
+        }
+        public static ReflectedTarget<TTarget> AddAttributeParser<TTarget, TAttribute>(this ReflectedTarget<TTarget> target,
+            Action<TTarget, TAttribute, MethodInfo, Type> parser) where TTarget:Component where TAttribute : Attribute
+        {
+            target.methodParsers.Add(new Parser()
             {
                 attributeType = typeof(TAttribute),
                 parser = parser.Method
@@ -35,17 +29,21 @@ namespace SimplifyIoC.Utils
             return target;
         }
 
-        public static TTarget AddAttributeParser<TTarget, TAttribute>(this TTarget target,
-            Action<TTarget, TAttribute, FieldInfo, Type> parser) where TAttribute : Attribute
+        public static ReflectedTarget<TTarget> AddAttributeParser<TTarget, TAttribute>(this TTarget target,
+            Action<TTarget, TAttribute, FieldInfo, Type> parser) where TTarget:Component where TAttribute : Attribute
         {
-            if(parser == null) return target;
-            if (_target != (target as object))
+            var rt = new ReflectedTarget<TTarget>(target);
+            rt.fieldParsers.Add(new Parser()
             {
-                _target = target;
-                target.Clear();
-            }
-
-            _FIELD_PARSERS.Add(new Parser()
+                attributeType = typeof(TAttribute),
+                parser = parser.Method
+            });
+            return rt;
+        }
+        public static ReflectedTarget<TTarget> AddAttributeParser<TTarget, TAttribute>(this ReflectedTarget<TTarget> target,
+            Action<TTarget, TAttribute, FieldInfo, Type> parser) where TTarget:Component where TAttribute : Attribute
+        {
+            target.fieldParsers.Add(new Parser()
             {
                 attributeType = typeof(TAttribute),
                 parser = parser.Method
@@ -53,17 +51,21 @@ namespace SimplifyIoC.Utils
             return target;
         }
 
-        public static TTarget AddAttributeParser<TTarget, TAttribute>(this TTarget target,
-            Action<TTarget, TAttribute, PropertyInfo, Type> parser) where TAttribute : Attribute
+        public static ReflectedTarget<TTarget> AddAttributeParser<TTarget, TAttribute>(this TTarget target,
+            Action<TTarget, TAttribute, PropertyInfo, Type> parser) where TTarget:Component where TAttribute : Attribute
         {
-            if(parser == null) return target;
-            if (_target != (target as object))
+            var rt = new ReflectedTarget<TTarget>(target);
+            rt.propertyParsers.Add(new Parser()
             {
-                _target = target;
-                target.Clear();
-            }
-
-            _PROPERTY_PARSERS.Add(new Parser()
+                attributeType = typeof(TAttribute),
+                parser = parser.Method
+            });
+            return rt;
+        }
+        public static ReflectedTarget<TTarget> AddAttributeParser<TTarget, TAttribute>(this ReflectedTarget<TTarget> target,
+            Action<TTarget, TAttribute, PropertyInfo, Type> parser) where TTarget:Component where TAttribute : Attribute
+        {
+            target.propertyParsers.Add(new Parser()
             {
                 attributeType = typeof(TAttribute),
                 parser = parser.Method
@@ -71,75 +73,90 @@ namespace SimplifyIoC.Utils
             return target;
         }
         //BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase
-        public static void ParseAttributes<TTarget>(this TTarget target,BindingFlags flags = BindingFlags.Instance 
-            | BindingFlags.Public | BindingFlags.IgnoreCase)
+        public static void ParseAttributes<TTarget>(this ReflectedTarget<TTarget> target,BindingFlags flags = BindingFlags.Instance 
+            | BindingFlags.Public | BindingFlags.IgnoreCase) where TTarget:Component
         {
-            if (_target != (target as object)) return;
-            var type = target.GetType();
-            target.ParseFields(type, flags)
-                .ParseProperties(type, flags)
-                .ParseMethods(type, flags)
+            target.ParseFields(flags)
+                .ParseProperties(flags)
+                .ParseMethods(flags)
                 .Clear();
         }
 
-        private static TTarget ParseMethods<TTarget>(this TTarget target, Type targetType, BindingFlags flags)
+        public static ReflectedTarget<TTarget> ParseMethods<TTarget>(this ReflectedTarget<TTarget> target, BindingFlags flags)  where TTarget:Component
         {
-            if (_METHOD_PARSERS.Count == 0) return target;
-            var methods = targetType.GetMethods(flags);
+            if (target.methodParsers.Count == 0) return target;
+            var methods = target.targetType.GetMethods(flags);
             foreach (var method in methods)
             {
-                foreach (var attributeParser in _METHOD_PARSERS)
+                foreach (var attributeParser in target.methodParsers)
                 {
                     var attribute = method.GetCustomAttribute(attributeParser.attributeType, true);
                     if(attribute == null) continue;
-                    attributeParser.parser.Invoke(target,new object[]{target, attribute, method, targetType});
+                    attributeParser.parser.Invoke(target,new object[]{target.target, attribute, method, target.targetType});
                 }
             }
 
             return target;
         }
 
-        private static TTarget ParseFields<TTarget>(this TTarget target, Type targetType, BindingFlags flags)
+        public static ReflectedTarget<TTarget> ParseFields<TTarget>(this ReflectedTarget<TTarget> target, BindingFlags flags)  where TTarget:Component
         {
-            if (_FIELD_PARSERS.Count == 0) return target;
-            var fields = targetType.GetFields(flags);
+            if (target.fieldParsers.Count == 0) return target;
+            var fields = target.targetType.GetFields(flags);
             foreach (var field in fields)
             {
-                foreach (var attributeParser in _FIELD_PARSERS)
+                foreach (var attributeParser in target.fieldParsers)
                 {
                     var attribute = field.GetCustomAttribute(attributeParser.attributeType, true);
                     if(attribute == null) continue;
-                    attributeParser.parser.Invoke(target,new object[]{target, attribute, field, targetType});
+                    attributeParser.parser.Invoke(target,new object[]{target.target, attribute, field, target.targetType});
                 }
             }
-
+            
             return target;
         }
 
-        private static TTarget ParseProperties<TTarget>(this TTarget target, Type targetType, BindingFlags flags)
+        public static ReflectedTarget<TTarget> ParseProperties<TTarget>(this ReflectedTarget<TTarget> target, BindingFlags flags)  where TTarget:Component
         {
-            if (_PROPERTY_PARSERS.Count == 0) return target;
-            var properties = targetType.GetProperties(flags);
+            if (target.propertyParsers.Count == 0) return target;
+            var properties = target.targetType.GetProperties(flags);
             foreach (var property in properties)
             {
-                foreach (var attributeParser in _PROPERTY_PARSERS)
+                foreach (var attributeParser in target.propertyParsers)
                 {
                     var attribute = property.GetCustomAttribute(attributeParser.attributeType, true);
                     if(attribute == null) continue;
-                    attributeParser.parser.Invoke(target, new object[]{target, attribute, property, targetType});
+                    attributeParser.parser.Invoke(target, new object[]{target.target, attribute, property, target.targetType});
                 }
             }
 
             return target;
         }
+    }
+    public struct Parser
+    {
+        public Type attributeType;
+        public MethodInfo parser;
+    }
 
-        private static void Clear(this object target)
+    public class ReflectedTarget<T> where T :Component
+    {
+        public readonly T target;
+        public readonly Type targetType;
+        public readonly List<Parser> methodParsers = new();
+        public readonly List<Parser> fieldParsers = new();
+        public readonly List<Parser> propertyParsers = new();
+        public ReflectedTarget(T target)
         {
-            if(_target == null || _target != target) return;
-            _METHOD_PARSERS.Clear();
-            _FIELD_PARSERS.Clear();
-            _PROPERTY_PARSERS.Clear();
-            _target = null;
+            this.target = target;
+            targetType = target.GetType();
+        }
+
+        public void Clear()
+        {
+            methodParsers.Clear();
+            fieldParsers.Clear();
+            propertyParsers.Clear();
         }
     }
 }

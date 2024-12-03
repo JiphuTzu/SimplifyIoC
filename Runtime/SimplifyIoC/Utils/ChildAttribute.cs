@@ -84,17 +84,16 @@ namespace SimplifyIoC.Utils
         [Obsolete("use this.AddAttributeParser(this.GetChildParser()).ParseAttributes() instead")]
         public static void MapChildren(this Component target)
         {
-            target.AddAttributeParser(target.GetChildParser()).ParseAttributes();
+            target.AddAttributeParser(target.GetChildParser()).ParseFields(BindingFlags.Instance|BindingFlags.Public);
         }
 
         public static Action<T, ChildAttribute, FieldInfo, Type> GetChildParser<T>(this T target) where T : Component
         {
-            return ParseChild<object>;
+            return ParseChild<T>;
         }
 
-        private static void ParseChild<T>(T target, ChildAttribute attribute, FieldInfo field, Type targetType)
+        private static void ParseChild<T>(T target, ChildAttribute attribute, FieldInfo field, Type targetType) where T : Component
         {
-            if(!(target is Component com)) return;
             //变量类型要是GameObject或者Component的子类
             var ft = GetFieldType(field);
             //Debug.Log($"========={field.Name} == {ft}");
@@ -103,8 +102,8 @@ namespace SimplifyIoC.Utils
             if (HasValue(ft, field, target)) return;
             //根据路径查找对象
             var t = string.IsNullOrEmpty(attribute.path)
-                ? (attribute.sameAsField ? GetChild(com.transform, field.Name.ToLower()) : com.transform)
-                : com.transform.Find(attribute.path);
+                ? (attribute.sameAsField ? GetChild(target.transform, field.Name.ToLower()) : target.transform)
+                : target.transform.Find(attribute.path);
 
             if (t == null) return;
 
@@ -221,11 +220,12 @@ namespace SimplifyIoC.Utils
             var selected = UnityEditor.Selection.activeGameObject;
             if (selected == null) return;
             var behaviours = selected.GetComponentsInChildren<MonoBehaviour>();
+            var flags = BindingFlags.Instance | BindingFlags.Public;
             foreach (var behaviour in behaviours)
             {
                 if (behaviour == null) continue;
                 behaviour.AddAttributeParser(behaviour.GetChildParser())
-                    .ParseAttributes();
+                    .ParseFields(flags);
             }
         }
 #endif
