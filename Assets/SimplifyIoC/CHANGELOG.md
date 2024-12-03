@@ -1,4 +1,7 @@
 ﻿# CHANGELOG
+## 1.0.8
++ 修复ChildAttribute的不可用问题
++ 调整AddAttributeParser方法
 ## 1.0.7
 + BindEvent添加对私有变量的支持，参数改为可选的targetNames，支持多对象或方法绑定
 + BindToEvent修改为BindEvent

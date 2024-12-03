@@ -1,4 +1,5 @@
 using SimplifyIoC.Mediations;
+using SimplifyIoC.Utils;
 using UMa.Signals;
 using UnityEngine.UI;
 //============================================================
@@ -13,6 +14,7 @@ namespace UMa.Views
 {
     public class RecordView : View
     {
+        [Child]
         public Text record;
         private int _total;
         private int _current;
