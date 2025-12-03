@@ -1,6 +1,6 @@
 using SimplifyIoC.Commands;
-using SimplifyIoC.Injectors;
 using SimplifyIoC.Signals;
+
 //============================================================
 //@author	JiphuTzu
 //@create	2019/11/13
@@ -17,8 +17,10 @@ namespace SimplifyIoC.Contexts
     {
         protected B bootstrap { get; private set; }
 
-        public SimplifyContext(B view) : base(view, ContextStartupFlags.MANUAL_LAUNCH) { }
-        public override IContext SetContextView(object view)
+        public SimplifyContext(B view) : base(view, ContextStartupFlags.MANUAL_LAUNCH)
+        {
+        }
+        public override IContext SetContextView(IContextView view)
         {
             bootstrap = view as B;
             return base.SetContextView(view);
@@ -121,7 +123,7 @@ namespace SimplifyIoC.Contexts
         /// <param name="crossContext">是否跨域</param>
         protected void BindValue<V>(bool crossContext = false)
         {
-            IInjectionBinding binding = injectionBinder.Bind<V>().ToSingleton();
+            var binding = injectionBinder.Bind<V>().ToSingleton();
             if (crossContext) binding.CrossContext();
         }
         /// <summary>
@@ -132,7 +134,7 @@ namespace SimplifyIoC.Contexts
         /// <param name="crossContext">是否跨域</param>
         protected void BindValue<I, V>(bool crossContext = false)
         {
-            IInjectionBinding binding = injectionBinder.Bind<I>().To<V>().ToSingleton();
+            var binding = injectionBinder.Bind<I>().To<V>().ToSingleton();
             if (crossContext) binding.CrossContext();
         }
         /// <summary>
@@ -144,7 +146,7 @@ namespace SimplifyIoC.Contexts
         /// <param name="crossContext">是否跨域</param>
         protected void BindValue<V>(V value, string name = null, bool crossContext = false)
         {
-            IInjectionBinding binding = injectionBinder.Bind<V>().ToValue(value);
+            var binding = injectionBinder.Bind<V>().ToValue(value);
             if (!string.IsNullOrEmpty(name)) binding.ToName(name);
             if (crossContext) binding.CrossContext();
         }

@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @interface SimplifyIoC.Framework.IManagedList
  * 
  * A common interface for the constituents parts of a Binding, which at present

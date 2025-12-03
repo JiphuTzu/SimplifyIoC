@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @interface SimplifyIoC.Contexts.ICrossContextCapable
  * 
  * API for allowing Contexts to register across the Context border.

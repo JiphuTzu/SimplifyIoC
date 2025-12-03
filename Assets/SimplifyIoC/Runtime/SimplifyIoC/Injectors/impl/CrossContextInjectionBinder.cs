@@ -52,7 +52,7 @@ namespace SimplifyIoC.Injectors
 
         public override IInjectionBinding GetBinding(object key, object name)
         {
-            IInjectionBinding binding = base.GetBinding(key, name) as IInjectionBinding;
+            var binding = base.GetBinding(key, name) as IInjectionBinding;
             if (binding == null) //Attempt to get this from the cross context. Cross context is always SECOND PRIORITY. Local injections always override
             {
                 if (crossContextBinder != null)
@@ -63,12 +63,12 @@ namespace SimplifyIoC.Injectors
             return binding;
         }
 
-        override public void ResolveBinding(IBinding binding, object key)
+        public override void ResolveBinding(IBinding binding, object key)
         {
             //Decide whether to resolve locally or not
             if (binding is IInjectionBinding)
             {
-                InjectionBinding injectionBinding = (InjectionBinding)binding;
+                var injectionBinding = (InjectionBinding)binding;
                 if (injectionBinding.isCrossContext)
                 {
                     if (crossContextBinder == null) //We are a crosscontextbinder
@@ -103,7 +103,7 @@ namespace SimplifyIoC.Injectors
 
         public override void Unbind(object key, object name)
         {
-            IInjectionBinding binding = GetBinding(key, name);
+            var binding = GetBinding(key, name);
 
             if (binding != null &&
                 binding.isCrossContext &&

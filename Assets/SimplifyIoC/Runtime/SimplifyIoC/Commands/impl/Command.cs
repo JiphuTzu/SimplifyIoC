@@ -82,7 +82,7 @@ namespace SimplifyIoC.Commands
         }
 
         /// Use/override this method to clean up the Command for recycling
-        virtual public void Restore()
+        public virtual void Restore()
         {
             injectionBinder.injector.Uninject(this);
             isClean = true;

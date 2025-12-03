@@ -16,35 +16,78 @@
 
 
 
-/**
-* @class SimplifyIoC.Contexts.Context
-* 
-* A Context is the entry point to the binding framework.
-* 
-* Extend this class to create the binding context suitable 
-* for your application.
-* 
-* In a typical Unity3D setup, extend MVCSContext and instantiate 
-* your extension from the ContextView.
-*/
+/*
+ * @class SimplifyIoC.Contexts.Context
+ * 
+ * A Context is the entry point to the binding framework.
+ * 
+ * Extend this class to create the binding context suitable 
+ * for your application.
+ * 
+ * In a typical Unity3D setup, extend MVCSContext and instantiate 
+ * your extension from the ContextView.
+ */
+
+using SimplifyIoC.Dispatchers;
 using SimplifyIoC.Framework;
+using SimplifyIoC.Injectors;
+
 namespace SimplifyIoC.Contexts
 {
-    public class Context : Binder, IContext
+    
+    public class Context : Binder, IContext, ICrossContextCapable
     {
         /// The top of the View hierarchy.
         /// In MVCSContext, this is your top-level GameObject
-        public object contextView { get; set; }
+        protected IContextView contextView { get; set; }
 
         /// In a multi-Context app, this represents the first Context to instantiate.
         public static IContext firstContext;
 
         /// If false, the `Launch()` method won't fire.
-        public bool autoStartup;
+        private bool _autoStartup;
+        
+
+        /// A Binder that handles dependency injection binding and instantiation
+        public ICrossContextInjectionBinder injectionBinder { get; set;} = new CrossContextInjectionBinder();
+        
+        // A specific instance of EventDispatcher that communicates 
+        // across multiple contexts. An event sent across this 
+        // dispatcher will be re-dispatched by the various context-wide 
+        // dispatchers. So a dispatch to other contexts is simply 
+        // 
+        // `crossContextDispatcher.Dispatch(MY_EVENT, payload)`;
+        // 
+        // Other contexts don't need to listen to the cross-context dispatcher
+        // as such, just map the necessary event to your local context
+        // dispatcher and you'll receive it.
+        protected IEventDispatcher _crossContextDispatcher;
+        public virtual IDispatcher crossContextDispatcher
+        {
+            get => _crossContextDispatcher;
+            set => _crossContextDispatcher = value as IEventDispatcher;
+        }
+        // private ICrossContextInjectionBinder _injectionBinder;
+        private IBinder _crossContextBridge;
+        public virtual IBinder crossContextBridge
+        {
+            get
+            {
+                if (_crossContextBridge == null)
+                {
+                    _crossContextBridge = injectionBinder.GetInstance<CrossContextBridge> ();
+                }
+                return _crossContextBridge;
+            }
+            set
+            {
+                _crossContextDispatcher = value as IEventDispatcher;
+            }
+        }
 
         public Context() { }
 
-        public Context(object view, ContextStartupFlags flags)
+        public Context(IContextView view, ContextStartupFlags flags = ContextStartupFlags.AUTOMATIC)
         {
             //If firstContext was unloaded, the contextView will be null. Assign the new context as firstContext.
             if (firstContext == null || firstContext.GetContextView() == null)
@@ -57,69 +100,113 @@ namespace SimplifyIoC.Contexts
             }
             SetContextView(view);
             AddCoreComponents();
-            this.autoStartup = (flags & ContextStartupFlags.MANUAL_LAUNCH) != ContextStartupFlags.MANUAL_LAUNCH;
+            _autoStartup = (flags & ContextStartupFlags.MANUAL_LAUNCH) != ContextStartupFlags.MANUAL_LAUNCH;
             if ((flags & ContextStartupFlags.MANUAL_MAPPING) != ContextStartupFlags.MANUAL_MAPPING)
             {
                 Start();
             }
         }
 
-        public Context(object view) : this(view, ContextStartupFlags.AUTOMATIC) { }
-
-        public Context(object view, bool autoMapping)
-            : this(view, (autoMapping) ? ContextStartupFlags.MANUAL_MAPPING : ContextStartupFlags.MANUAL_LAUNCH | ContextStartupFlags.MANUAL_MAPPING)
+        public Context(IContextView view, bool autoMapping)
+            : this(view, autoMapping ? ContextStartupFlags.MANUAL_MAPPING : ContextStartupFlags.MANUAL_LAUNCH | ContextStartupFlags.MANUAL_MAPPING)
         {
         }
 
         /// Override to add componentry. Or just extend MVCSContext.
-        virtual protected void AddCoreComponents() { }
+        protected virtual void AddCoreComponents()
+        {
+            if (injectionBinder.crossContextBinder == null)  //Only null if it could not find a parent context / firstContext
+            {
+                injectionBinder.crossContextBinder = new CrossContextInjectionBinder();
+            }
+
+            if (firstContext == this)
+            {
+                injectionBinder.Bind<IEventDispatcher>().To<EventDispatcher>().ToSingleton().ToName(ContextKeys.CROSS_CONTEXT_DISPATCHER).CrossContext();
+                injectionBinder.Bind<CrossContextBridge> ().ToSingleton ().CrossContext();
+            }
+        }
 
         /// Override to instantiate componentry. Or just extend MVCSContext.
-        virtual protected void InstantiateCoreComponents() { }
+        protected virtual void InstantiateCoreComponents()
+        {
+            var dispatcherBinding = injectionBinder.GetBinding<IEventDispatcher> (ContextKeys.CONTEXT_DISPATCHER);
+
+            if (dispatcherBinding != null) {
+                var dispatcher = injectionBinder.GetInstance<IEventDispatcher> (ContextKeys.CONTEXT_DISPATCHER);
+
+                if (dispatcher != null) {
+                    crossContextDispatcher = injectionBinder.GetInstance<IEventDispatcher> (ContextKeys.CROSS_CONTEXT_DISPATCHER);
+                    (crossContextDispatcher as ITriggerProvider).AddTriggerable (dispatcher as ITriggerable);
+                    (dispatcher as ITriggerProvider).AddTriggerable (crossContextBridge as ITriggerable);
+                }
+            }
+        }
 
         /// Set the object that represents the top of the Context hierarchy.
         /// In MVCSContext, this would be a GameObject.
-        virtual public IContext SetContextView(object view)
+        public virtual IContext SetContextView(IContextView view)
         {
             contextView = view;
             return this;
         }
 
-        virtual public object GetContextView()
+        public virtual IContextView GetContextView()
         {
             return contextView;
         }
 
         /// Call this from your Root to set everything in action.
-        virtual public IContext Start()
+        public virtual IContext Start()
         {
             InstantiateCoreComponents();
             MapBindings();
             PostBindings();
-            if (autoStartup)
+            if (_autoStartup)
                 Launch();
             return this;
         }
 
         /// The final method to fire after mappings.
         /// If autoStartup is false, you need to call this manually.
-        virtual public void Launch() { }
+        public virtual void Launch() { }
 
         /// Override to map project-specific bindings
-        virtual protected void MapBindings() { }
+        protected virtual void MapBindings() { }
 
         /// Override to do things after binding but before app launch
-        virtual protected void PostBindings() { }
+        protected virtual void PostBindings() { }
 
         /// Add another Context to this one.
-        virtual public IContext AddContext(IContext context)
+        public virtual IContext AddContext(IContext context)
         {
+            if (context is ICrossContextCapable)
+            {
+                AssignCrossContext((ICrossContextCapable)context);
+            }
             return this;
+        }
+        public virtual void AssignCrossContext(ICrossContextCapable childContext)
+        {
+            childContext.crossContextDispatcher = crossContextDispatcher;
+            childContext.injectionBinder.crossContextBinder = injectionBinder.crossContextBinder;
+        }
+        public virtual void RemoveCrossContext(ICrossContextCapable childContext)
+        {
+            if (childContext.crossContextDispatcher != null)
+            {
+                ((childContext.crossContextDispatcher) as ITriggerProvider)?.RemoveTriggerable(childContext.GetComponent<IEventDispatcher>(ContextKeys.CONTEXT_DISPATCHER) as ITriggerable);
+                childContext.crossContextDispatcher = null;
+            }
         }
 
         /// Remove a context from this one.
-        virtual public IContext RemoveContext(IContext context)
+        public virtual IContext RemoveContext(IContext context)
         {
+            if (context is ICrossContextCapable)
+            {
+                RemoveCrossContext((ICrossContextCapable)context);
+            }
             //If we're removing firstContext, set firstContext to null
             if (context == firstContext)
             {
@@ -133,38 +220,38 @@ namespace SimplifyIoC.Contexts
         }
 
         /// Retrieve a component from this Context by generic type
-        virtual public object GetComponent<T>()
+        public virtual object GetComponent<T>()
         {
             return null;
         }
 
 
         /// Retrieve a component from this Context by generic type and name
-        virtual public object GetComponent<T>(object name)
+        public virtual object GetComponent<T>(object name)
         {
             return null;
         }
 
         /// Register a View with this Context
-        virtual public void AddView(object view)
+        public virtual void AddView(object view)
         {
             //Override in subclasses
         }
 
         /// Remove a View from this Context
-        virtual public void RemoveView(object view)
+        public virtual void RemoveView(object view)
         {
             //Override in subclasses
         }
 
         /// Enable a View from this Context
-        virtual public void EnableView(object view)
+        public virtual void EnableView(object view)
         {
             //Override in subclasses
         }
 
         /// Disable a View from this Context
-        virtual public void DisableView(object view)
+        public virtual void DisableView(object view)
         {
             //Override in subclasses
         }

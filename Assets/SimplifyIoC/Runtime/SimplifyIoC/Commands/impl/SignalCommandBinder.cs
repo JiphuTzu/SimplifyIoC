@@ -64,22 +64,22 @@ namespace SimplifyIoC.Commands
 {
     public class SignalCommandBinder : CommandBinder
     {
-        override public void ResolveBinding(IBinding binding, object key)
+        public override void ResolveBinding(IBinding binding, object key)
         {
             base.ResolveBinding(binding, key);
 
             if (bindings.ContainsKey(key)) //If this key already exists, don't bind this again
             {
-                IBaseSignal signal = (IBaseSignal)key;
+                var signal = (IBaseSignal)key;
                 signal.AddListener(ReactTo); //Do normal bits, then assign the commandlistener to be reactTo
             }
         }
 
-        override public void OnRemove()
+        public override void OnRemove()
         {
-            foreach (object key in bindings.Keys)
+            foreach (var key in bindings.Keys)
             {
-                IBaseSignal signal = (IBaseSignal)key;
+                var signal = (IBaseSignal)key;
                 if (signal != null)
                 {
                     signal.RemoveListener(ReactTo);
@@ -89,8 +89,8 @@ namespace SimplifyIoC.Commands
 
         protected override ICommand InvokeCommand(Type cmd, ICommandBinding binding, object data, int depth)
         {
-            IBaseSignal signal = (IBaseSignal)binding.key;
-            ICommand command = CreateCommandForSignal(cmd, data, signal.GetTypes()); //Special signal-only command creation
+            var signal = (IBaseSignal)binding.key;
+            var command = CreateCommandForSignal(cmd, data, signal.GetTypes()); //Special signal-only command creation
             command.sequenceId = depth;
             TrackCommand(command, binding);
             ExecuteCommand(command);
@@ -102,20 +102,20 @@ namespace SimplifyIoC.Commands
         {
             if (data != null)
             {
-                object[] signalData = (object[])data;
+                var signalData = (object[])data;
 
                 //Iterate each signal type, in order. 
                 //Iterate values and find a match
                 //If we cannot find a match, throw an error
-                HashSet<Type> injectedTypes = new HashSet<Type>();
-                List<object> values = new List<object>(signalData);
+                var injectedTypes = new HashSet<Type>();
+                var values = new List<object>(signalData);
 
-                foreach (Type type in signalTypes)
+                foreach (var type in signalTypes)
                 {
                     if (!injectedTypes.Contains(type)) // Do not allow more than one injection of the same Type
                     {
-                        bool foundValue = false;
-                        foreach (object value in values)
+                        var foundValue = false;
+                        foreach (var value in values)
                         {
                             if (value != null)
                             {
@@ -146,29 +146,29 @@ namespace SimplifyIoC.Commands
                     }
                 }
             }
-            ICommand command = GetCommand(cmd);
+            var command = GetCommand(cmd);
             command.data = data;
 
-            foreach (Type typeToRemove in signalTypes) //clean up these bindings
+            foreach (var typeToRemove in signalTypes) //clean up these bindings
                 injectionBinder.Unbind(typeToRemove);
             return command;
         }
 
-        override public ICommandBinding Bind<T>()
+        public override ICommandBinding Bind<T>()
         {
-            IInjectionBinding binding = injectionBinder.GetBinding<T>();
+            var binding = injectionBinder.GetBinding<T>();
             if (binding == null) //If this isn't injected yet, inject a new one as a singleton
             {
                 injectionBinder.Bind<T>().ToSingleton();
             }
 
-            T signal = (T)injectionBinder.GetInstance<T>();
+            var signal = (T)injectionBinder.GetInstance<T>();
             return base.Bind(signal);
         }
 
-        override public ICommandBinding Bind(object value)
+        public override ICommandBinding Bind(object value)
         {
-            IInjectionBinding binding = injectionBinder.GetBinding(value);
+            var binding = injectionBinder.GetBinding(value);
             IBaseSignal signal = null;
 
             if (value is Type)
@@ -187,21 +187,21 @@ namespace SimplifyIoC.Commands
         /// <exception cref="InjectionException">If there is no binding for this type.</exception>
         public override void Unbind<T>()
         {
-            ICommandBinding binding = GetBinding<T>();
+            var binding = GetBinding<T>();
             if (binding != null)
             {
-                T signal = (T)injectionBinder.GetInstance<T>();
+                var signal = (T)injectionBinder.GetInstance<T>();
                 Unbind(signal, null);
             }
         }
 
         /// <summary>Unbind by Signal Instance</summary>
         /// <param name="key">Instance of IBaseSignal</param>
-        override public void Unbind(object key, object name)
+        public override void Unbind(object key, object name)
         {
             if (bindings.ContainsKey(key))
             {
-                IBaseSignal signal = (IBaseSignal)key;
+                var signal = (IBaseSignal)key;
                 signal.RemoveListener(ReactTo);
             }
             base.Unbind(key, name);
@@ -210,7 +210,7 @@ namespace SimplifyIoC.Commands
         public override ICommandBinding GetBinding<T>()
         {
             //This should be a signal, see Bind<T> above
-            T signal = (T)injectionBinder.GetInstance<T>();
+            var signal = (T)injectionBinder.GetInstance<T>();
             return base.GetBinding(signal) as ICommandBinding;
         }
     }

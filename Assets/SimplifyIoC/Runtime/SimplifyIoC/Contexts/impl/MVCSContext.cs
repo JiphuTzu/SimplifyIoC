@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @class SimplifyIoC.Contexts.MVCSContext
  * 
  * The recommended Context for getting the most out of StrangeIoC.
@@ -159,7 +159,6 @@
 
 using SimplifyIoC.Commands;
 using SimplifyIoC.Dispatchers;
-using SimplifyIoC.ImplicitBinds;
 using SimplifyIoC.Injectors;
 using SimplifyIoC.Mediations;
 using SimplifyIoC.Framework;
@@ -167,7 +166,7 @@ using UnityEngine;
 
 namespace SimplifyIoC.Contexts
 {
-    public class MVCSContext : CrossContext
+    public class MVCSContext : Context
     {
         /// A Binder that maps Signals to Commands
         public ICommandBinder commandBinder { get; set; }
@@ -193,21 +192,20 @@ namespace SimplifyIoC.Contexts
         /// The recommended Constructor
         /// Just pass in the instance of your ContextView. Everything will begin automatically.
         /// Other constructors offer the option of interrupting startup at useful moments.
-        public MVCSContext(MonoBehaviour view) : base(view) { }
 
-        public MVCSContext(MonoBehaviour view, ContextStartupFlags flags) : base(view, flags) { }
+        public MVCSContext(IContextView view, ContextStartupFlags flags = ContextStartupFlags.AUTOMATIC) : base(view, flags) { }
 
-        public MVCSContext(MonoBehaviour view, bool autoMapping) : base(view, autoMapping) { }
+        public MVCSContext(IContextView view, bool autoMapping) : base(view, autoMapping) { }
 
-        override public IContext SetContextView(object view)
-        {
-            contextView = (view as MonoBehaviour).gameObject;
-            if (contextView == null)
-            {
-                throw new ContextException("MVCSContext requires a ContextView of type MonoBehaviour", ContextExceptionType.NO_CONTEXT_VIEW);
-            }
-            return this;
-        }
+        // public override IContext SetContextView(object view)
+        // {
+        //     contextView = (view as MonoBehaviour).gameObject;
+        //     if (contextView == null)
+        //     {
+        //         throw new ContextException("MVCSContext requires a ContextView of type MonoBehaviour", ContextExceptionType.NO_CONTEXT_VIEW);
+        //     }
+        //     return this;
+        // }
 
         /// Map the relationships between the Binders.
         /// Although you can override this method, it is recommended
@@ -234,7 +232,7 @@ namespace SimplifyIoC.Contexts
             {
                 throw new ContextException("MVCSContext requires a ContextView of type MonoBehaviour", ContextExceptionType.NO_CONTEXT_VIEW);
             }
-            injectionBinder.Bind<GameObject>().ToValue(contextView).ToName(ContextKeys.CONTEXT_VIEW);
+            injectionBinder.Bind<ContextView>().ToValue(contextView).ToName(ContextKeys.CONTEXT_VIEW);
             commandBinder = injectionBinder.GetInstance<ICommandBinder>();
 
             dispatcher = injectionBinder.GetInstance<IEventDispatcher>(ContextKeys.CONTEXT_DISPATCHER);
@@ -251,12 +249,12 @@ namespace SimplifyIoC.Contexts
             //It's possible for views to fire their Awake before bindings. This catches any early risers and attaches their Mediators.
             mediateViewCache();
             //Ensure that all Views underneath the ContextView are triggered
-            mediationBinder.Trigger(MediationEvent.AWAKE, (contextView as GameObject).GetComponent<ContextView>());
+            mediationBinder.Trigger(MediationEvent.AWAKE, contextView);
         }
 
-        /// Fires ContextEvent.START
-        /// Whatever Command/Sequence you want to happen first should 
-        /// be mapped to this event.
+        // Fires ContextEvent.START
+        // Whatever Command/Sequence you want to happen first should 
+        // be mapped to this event.
         // public override void Launch()
         // {
         // 	dispatcher.Dispatch(ContextEvent.START);
@@ -266,7 +264,7 @@ namespace SimplifyIoC.Contexts
         /// Always bear in mind that doing this risks adding
         /// dependencies that must be cleaned up when Contexts
         /// are removed.
-        override public object GetComponent<T>()
+        public override object GetComponent<T>()
         {
             return GetComponent<T>(null);
         }
@@ -275,9 +273,9 @@ namespace SimplifyIoC.Contexts
         /// Always bear in mind that doing this risks adding
         /// dependencies that must be cleaned up when Contexts
         /// are removed.
-        override public object GetComponent<T>(object name)
+        public override object GetComponent<T>(object name)
         {
-            IInjectionBinding binding = injectionBinder.GetBinding<T>(name);
+            var binding = injectionBinder.GetBinding<T>(name);
             if (binding != null)
             {
                 return injectionBinder.GetInstance<T>(name);
@@ -285,7 +283,7 @@ namespace SimplifyIoC.Contexts
             return null;
         }
 
-        override public void AddView(object view)
+        public override void AddView(object view)
         {
             if (mediationBinder != null)
             {
@@ -297,17 +295,17 @@ namespace SimplifyIoC.Contexts
             }
         }
 
-        override public void RemoveView(object view)
+        public override void RemoveView(object view)
         {
             mediationBinder.Trigger(MediationEvent.DESTROYED, view as IView);
         }
 
-        override public void EnableView(object view)
+        public override void EnableView(object view)
         {
             mediationBinder.Trigger(MediationEvent.ENABLED, view as IView);
         }
 
-        override public void DisableView(object view)
+        public override void DisableView(object view)
         {
             mediationBinder.Trigger(MediationEvent.DISABLED, view as IView);
         }
@@ -318,7 +316,7 @@ namespace SimplifyIoC.Contexts
         /// View to be Awake before this Context has finished initing.
         /// `cacheView()` maintains a list of such 'early-risers'
         /// until the Context is ready to mediate them.
-        virtual protected void cacheView(MonoBehaviour view)
+        protected virtual void cacheView(MonoBehaviour view)
         {
             if (viewCache.constraint.Equals(BindingConstraintType.ONE))
             {
@@ -328,18 +326,18 @@ namespace SimplifyIoC.Contexts
         }
 
         /// Provide mediation for early-riser Views
-        virtual protected void mediateViewCache()
+        protected virtual void mediateViewCache()
         {
             if (mediationBinder == null)
                 throw new ContextException("MVCSContext cannot mediate views without a mediationBinder", ContextExceptionType.NO_MEDIATION_BINDER);
 
-            object[] values = viewCache.value as object[];
+            var values = viewCache.value as object[];
             if (values == null)
             {
                 return;
             }
-            int aa = values.Length;
-            for (int a = 0; a < aa; a++)
+            var aa = values.Length;
+            for (var a = 0; a < aa; a++)
             {
                 mediationBinder.Trigger(MediationEvent.AWAKE, values[a] as IView);
             }

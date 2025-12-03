@@ -76,15 +76,15 @@ namespace SimplifyIoC.Injectors
         public IInjectionBinding SetValue(object o)
         {
 
-            Type objType = o.GetType();
+            var objType = o.GetType();
 
-            object[] keys = key as object[];
-            int aa = keys.Length;
+            var keys = key as object[];
+            var aa = keys.Length;
             //Check that value is legal for the provided keys
-            for (int a = 0; a < aa; a++)
+            for (var a = 0; a < aa; a++)
             {
-                object aKey = keys[a];
-                Type keyType = (aKey is Type) ? aKey as Type : aKey.GetType();
+                var aKey = keys[a];
+                var keyType = (aKey is Type) ? aKey as Type : aKey.GetType();
                 if (keyType.IsAssignableFrom(objType) == false && (HasGenericAssignableFrom(keyType, objType) == false))
                 {
                     throw new InjectionException("Injection cannot bind a value that does not extend or implement the binding type.", InjectionExceptionType.ILLEGAL_BINDING_VALUE);
@@ -116,7 +116,7 @@ namespace SimplifyIoC.Injectors
             if (givenType.IsGenericType && givenType.GetGenericTypeDefinition() == genericType)
                 return true;
 
-            Type baseType = givenType.BaseType;
+            var baseType = givenType.BaseType;
             if (baseType == null) return false;
 
             return IsGenericTypeAssignable(baseType, genericType);
@@ -167,42 +167,42 @@ namespace SimplifyIoC.Injectors
             return supplyList.value as object[];
         }
 
-        new public IInjectionBinding Bind<T>()
+        public new IInjectionBinding Bind<T>()
         {
             return base.Bind<T>() as IInjectionBinding;
         }
 
-        new public IInjectionBinding Bind(object key)
+        public new IInjectionBinding Bind(object key)
         {
             return base.Bind(key) as IInjectionBinding;
         }
 
-        new public IInjectionBinding To<T>()
+        public new IInjectionBinding To<T>()
         {
             return base.To<T>() as IInjectionBinding;
         }
 
-        new public IInjectionBinding To(object o)
+        public new IInjectionBinding To(object o)
         {
             return base.To(o) as IInjectionBinding;
         }
 
-        new public IInjectionBinding ToName<T>()
+        public new IInjectionBinding ToName<T>()
         {
             return base.ToName<T>() as IInjectionBinding;
         }
 
-        new public IInjectionBinding ToName(object o)
+        public new IInjectionBinding ToName(object o)
         {
             return base.ToName(o) as IInjectionBinding;
         }
 
-        new public IInjectionBinding Named<T>()
+        public new IInjectionBinding Named<T>()
         {
             return base.Named<T>() as IInjectionBinding;
         }
 
-        new public IInjectionBinding Named(object o)
+        public new IInjectionBinding Named(object o)
         {
             return base.Named(o) as IInjectionBinding;
         }

@@ -49,10 +49,10 @@ namespace SimplifyIoC.Framework
             {
                 if (uniqueValues)
                 {
-                    int aa = objectValue.Length;
-                    for (int a = 0; a < aa; a++)
+                    var aa = objectValue.Length;
+                    for (var a = 0; a < aa; a++)
                     {
-                        object val = objectValue[a];
+                        var val = objectValue[a];
                         if (val.Equals(o))
                         {
                             return this;
@@ -60,8 +60,8 @@ namespace SimplifyIoC.Framework
                     }
                 }
 
-                object[] tempList = objectValue;
-                int len = tempList.Length;
+                var tempList = objectValue;
+                var len = tempList.Length;
                 objectValue = new object[len + 1];
                 tempList.CopyTo(objectValue, 0);
             }
@@ -72,7 +72,7 @@ namespace SimplifyIoC.Framework
 
         public IManagedList Add(object[] list)
         {
-            foreach (object item in list)
+            foreach (var item in list)
                 Add(item);
 
             return this;
@@ -85,10 +85,10 @@ namespace SimplifyIoC.Framework
                 objectValue = null;
                 return this;
             }
-            int aa = objectValue.Length;
-            for (int a = 0; a < aa; a++)
+            var aa = objectValue.Length;
+            for (var a = 0; a < aa; a++)
             {
-                object currVal = objectValue[a];
+                var currVal = objectValue[a];
                 if (o.Equals(currVal))
                 {
                     SpliceValueAt(a);
@@ -100,12 +100,12 @@ namespace SimplifyIoC.Framework
 
         public IManagedList Remove(object[] list)
         {
-            foreach (object item in list)
+            foreach (var item in list)
                 Remove(item);
 
             return this;
         }
-        virtual public object value
+        public virtual object value
         {
             get
             {
@@ -122,10 +122,10 @@ namespace SimplifyIoC.Framework
         /// Remove the value at index splicePos
         protected void SpliceValueAt(int splicePos)
         {
-            object[] newList = new object[objectValue.Length - 1];
-            int mod = 0;
-            int aa = objectValue.Length;
-            for (int a = 0; a < aa; a++)
+            var newList = new object[objectValue.Length - 1];
+            var mod = 0;
+            var aa = objectValue.Length;
+            for (var a = 0; a < aa; a++)
             {
                 if (a == splicePos)
                 {

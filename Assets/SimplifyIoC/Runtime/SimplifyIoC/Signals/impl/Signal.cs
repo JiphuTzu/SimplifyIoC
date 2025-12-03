@@ -156,7 +156,7 @@ namespace SimplifyIoC.Signals
         }
         public override List<Type> GetTypes()
         {
-            List<Type> retv = new List<Type>();
+            var retv = new List<Type>();
             retv.Add(typeof(T));
             return retv;
         }
@@ -216,7 +216,7 @@ namespace SimplifyIoC.Signals
         }
         public override List<Type> GetTypes()
         {
-            List<Type> retv = new List<Type>();
+            var retv = new List<Type>();
             retv.Add(typeof(T));
             retv.Add(typeof(U));
             return retv;
@@ -276,7 +276,7 @@ namespace SimplifyIoC.Signals
         }
         public override List<Type> GetTypes()
         {
-            List<Type> retv = new List<Type>();
+            var retv = new List<Type>();
             retv.Add(typeof(T));
             retv.Add(typeof(U));
             retv.Add(typeof(V));
@@ -336,7 +336,7 @@ namespace SimplifyIoC.Signals
         }
         public override List<Type> GetTypes()
         {
-            List<Type> retv = new List<Type>();
+            var retv = new List<Type>();
             retv.Add(typeof(T));
             retv.Add(typeof(U));
             retv.Add(typeof(V));

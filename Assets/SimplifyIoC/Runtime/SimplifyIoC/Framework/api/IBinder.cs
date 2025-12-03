@@ -15,7 +15,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @interface SimplifyIoC.Framework.IBinder
  * 
  * Collection class for bindings.
@@ -92,9 +92,6 @@ namespace SimplifyIoC.Framework
 
 		/// For consumed bindings, provide a secure whitelist of legal bindings
 		void WhitelistBindings(List<object> list);
-
-		/// Provide the Binder with JSON data to perform dynamic runtime binding
-		//svoid ConsumeBindings(string jsonString);
 
 		/// <summary>
 		/// Places individual Bindings into the bindings Dictionary as part of the resolving process

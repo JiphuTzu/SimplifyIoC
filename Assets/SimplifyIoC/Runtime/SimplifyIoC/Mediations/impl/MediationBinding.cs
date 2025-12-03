@@ -56,10 +56,10 @@ namespace SimplifyIoC.Mediations
 
         IMediationBinding IMediationBinding.ToAbstraction(Type t)
         {
-            Type abstractionType = t;
+            var abstractionType = t;
             if (key != null)
             {
-                Type keyType = key as Type;
+                var keyType = key as Type;
                 if (abstractionType.IsAssignableFrom(keyType) == false)
                     throw new MediationException("The View " + key.ToString() + " has been bound to the abstraction " + t.ToString() + " which the View neither extends nor implements. ", MediationExceptionType.VIEW_NOT_ASSIGNABLE);
             }
@@ -75,22 +75,22 @@ namespace SimplifyIoC.Mediations
             }
         }
 
-        new public IMediationBinding Bind<T>()
+        public new IMediationBinding Bind<T>()
         {
             return base.Bind<T>() as IMediationBinding;
         }
 
-        new public IMediationBinding Bind(object key)
+        public new IMediationBinding Bind(object key)
         {
             return base.Bind(key) as IMediationBinding;
         }
 
-        new public IMediationBinding To<T>()
+        public new IMediationBinding To<T>()
         {
             return base.To<T>() as IMediationBinding;
         }
 
-        new public IMediationBinding To(object o)
+        public new IMediationBinding To(object o)
         {
             return base.To(o) as IMediationBinding;
         }

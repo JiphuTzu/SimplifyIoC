@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @interface SimplifyIoC.Contexts.IContext
  * 
  * A Context is the entry point to the binding framework.
@@ -25,6 +25,7 @@
  */
 
 using SimplifyIoC.Framework;
+using UnityEngine;
 
 namespace SimplifyIoC.Contexts
 {
@@ -55,8 +56,7 @@ namespace SimplifyIoC.Contexts
 		void DisableView(object view);
 
 		/// Get the ContextView
-		object GetContextView();
-
+		IContextView GetContextView();
 	}
 }
 

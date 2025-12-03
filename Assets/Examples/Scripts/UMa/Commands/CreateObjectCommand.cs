@@ -14,7 +14,7 @@ namespace UMa.Commands
     public class CreateObjectCommand : Command
     {
 		[Inject(ContextKeys.CONTEXT_VIEW)]
-		public GameObject root{get;set;}
+		public ContextView root{get;set;}
         [Inject]
         public GameObject[] objects { get; set; }
         [Inject]

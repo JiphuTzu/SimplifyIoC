@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @interface SimplifyIoC.Framework.ISemiBinding
  * 
  * A managed list of values.

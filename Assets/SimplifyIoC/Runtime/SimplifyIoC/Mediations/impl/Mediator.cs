@@ -33,7 +33,7 @@ namespace SimplifyIoC.Mediations
 	    [Inject]
 	    public IInjectionBinder injectionBinder { get; set; }
         [Inject(ContextKeys.CONTEXT_VIEW)]
-        public GameObject contextView { get; set; }
+        public ContextView contextView { get; set; }
 
         //public Mediator() { }
 

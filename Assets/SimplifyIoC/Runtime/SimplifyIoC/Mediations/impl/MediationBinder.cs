@@ -36,30 +36,30 @@ namespace SimplifyIoC.Mediations
 
         protected override IView[] GetViews(IView view)
         {
-            MonoBehaviour mono = view as MonoBehaviour;
-            Component[] components = mono.GetComponentsInChildren(typeof(IView), true);
-            IView[] views = components.Cast<IView>().ToArray();
+            var mono = view as MonoBehaviour;
+            var components = mono.GetComponentsInChildren(typeof(IView), true);
+            var views = components.Cast<IView>().ToArray();
             return views;
         }
 
         protected override bool HasMediator(IView view, Type mediatorType)
         {
-            MonoBehaviour mono = view as MonoBehaviour;
+            var mono = view as MonoBehaviour;
             return mono.GetComponent(mediatorType) != null;
         }
 
         /// Create a new Mediator object based on the mediatorType on the provided view
         protected override object CreateMediator(IView view, Type mediatorType)
         {
-            MonoBehaviour mono = view as MonoBehaviour;
+            var mono = view as MonoBehaviour;
             return mono.gameObject.AddComponent(mediatorType);
         }
 
         /// Destroy the Mediator on the provided view object based on the mediatorType
         protected override IMediator DestroyMediator(IView view, Type mediatorType)
         {
-            MonoBehaviour mono = view as MonoBehaviour;
-            IMediator mediator = mono.GetComponent(mediatorType) as IMediator;
+            var mono = view as MonoBehaviour;
+            var mediator = mono.GetComponent(mediatorType) as IMediator;
             if (mediator != null)
                 mediator.OnRemove();
             return mediator;
@@ -67,8 +67,8 @@ namespace SimplifyIoC.Mediations
 
         protected override object EnableMediator(IView view, Type mediatorType)
         {
-            MonoBehaviour mono = view as MonoBehaviour;
-            IMediator mediator = mono.GetComponent(mediatorType) as IMediator;
+            var mono = view as MonoBehaviour;
+            var mediator = mono.GetComponent(mediatorType) as IMediator;
             if (mediator != null)
                 mediator.OnEnabled();
 
@@ -77,8 +77,8 @@ namespace SimplifyIoC.Mediations
 
         protected override object DisableMediator(IView view, Type mediatorType)
         {
-            MonoBehaviour mono = view as MonoBehaviour;
-            IMediator mediator = mono.GetComponent(mediatorType) as IMediator;
+            var mono = view as MonoBehaviour;
+            var mediator = mono.GetComponent(mediatorType) as IMediator;
             if (mediator != null)
                 mediator.OnDisabled();
 

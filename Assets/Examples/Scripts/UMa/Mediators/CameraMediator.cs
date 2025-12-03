@@ -26,7 +26,7 @@ namespace UMa.Mediators
                 .ParseAttributes();
         }
         [BindEvent("onClick",nameof(view))]
-        private void OnFloorClicked(Vector3 pos)
+        public void OnFloorClicked(Vector3 pos)
         {
             cos.Dispatch(pos);
         }

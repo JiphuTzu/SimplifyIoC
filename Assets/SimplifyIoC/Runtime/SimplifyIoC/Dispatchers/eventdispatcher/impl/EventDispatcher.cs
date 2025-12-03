@@ -14,7 +14,7 @@
  *        limitations under the License.
  */
 
-/**
+/*
 * @class SimplifyIoC.Dispatchers.EventDispatcher
 * 
 * A Dispatcher that uses IEvent to send messages.
@@ -39,6 +39,7 @@ using System;
 using System.Collections.Generic;
 using SimplifyIoC.Framework;
 using SimplifyIoC.Pools;
+using UnityEngine;
 using UnityEngine.Scripting;
 
 [assembly: Preserve]
@@ -63,12 +64,12 @@ namespace SimplifyIoC.Dispatchers
             }
         }
 
-        override public IBinding GetRawBinding()
+        public override IBinding GetRawBinding()
         {
             return new EventBinding(Resolver);
         }
 
-        new public IEventBinding Bind(object key)
+        public new IEventBinding Bind(object key)
         {
             return base.Bind(key) as IEventBinding;
         }
@@ -80,18 +81,19 @@ namespace SimplifyIoC.Dispatchers
 
         public void Dispatch(object eventType, object data)
         {
+            Debug.Log($"Dispatching {eventType} with data {data}");
             //Scrub the data to make eventType and data conform if possible
-            IEvent evt = ConformDataToEvent(eventType, data);
+            var evt = ConformDataToEvent(eventType, data);
             if (evt is IPoolable)
             {
                 (evt as IPoolable).Retain();
             }
 
-            bool continueDispatch = true;
+            var continueDispatch = true;
             if (triggerClients != null)
             {
                 isTriggeringClients = true;
-                foreach (ITriggerable trigger in triggerClients)
+                foreach (var trigger in triggerClients)
                 {
                     try
                     {
@@ -121,28 +123,28 @@ namespace SimplifyIoC.Dispatchers
                 return;
             }
 
-            IEventBinding binding = GetBinding(evt.type) as IEventBinding;
+            var binding = GetBinding(evt.type) as IEventBinding;
             if (binding == null)
             {
                 InternalReleaseEvent(evt);
                 return;
             }
 
-            object[] callbacks = (binding.value as object[]).Clone() as object[];
+            var callbacks = (binding.value as object[]).Clone() as object[];
             if (callbacks == null)
             {
                 InternalReleaseEvent(evt);
                 return;
             }
-            for (int a = 0; a < callbacks.Length; a++)
+            for (var a = 0; a < callbacks.Length; a++)
             {
-                object callback = callbacks[a];
+                var callback = callbacks[a];
                 if (callback == null)
                     continue;
 
                 callbacks[a] = null;
 
-                object[] currentCallbacks = binding.value as object[];
+                var currentCallbacks = binding.value as object[];
                 if (Array.IndexOf(currentCallbacks, callback) == -1)
                     continue;
 
@@ -159,7 +161,7 @@ namespace SimplifyIoC.Dispatchers
             InternalReleaseEvent(evt);
         }
 
-        virtual protected IEvent ConformDataToEvent(object eventType, object data)
+        protected virtual IEvent ConformDataToEvent(object eventType, object data)
         {
             IEvent retv = null;
             if (eventType == null)
@@ -189,7 +191,7 @@ namespace SimplifyIoC.Dispatchers
             return retv;
         }
 
-        virtual protected IEvent CreateEvent(object eventType, object data)
+        protected virtual IEvent CreateEvent(object eventType, object data)
         {
             IEvent retv = eventPool.GetInstance();
             retv.type = eventType;
@@ -199,7 +201,7 @@ namespace SimplifyIoC.Dispatchers
 
         }
 
-        virtual protected void InvokeEventCallback(object data, EventCallback callback)
+        protected virtual void InvokeEventCallback(object data, EventCallback callback)
         {
             try
             {
@@ -207,16 +209,16 @@ namespace SimplifyIoC.Dispatchers
             }
             catch (InvalidCastException)
             {
-                object tgt = callback.Target;
-                string methodName = (callback as Delegate).Method.Name;
-                string message = "An EventCallback is attempting an illegal cast. One possible reason is not typing the payload to IEvent in your callback. Another is illegal casting of the data.\nTarget class: " + tgt + " method: " + methodName;
+                var tgt = callback.Target;
+                var methodName = (callback as Delegate).Method.Name;
+                var message = "An EventCallback is attempting an illegal cast. One possible reason is not typing the payload to IEvent in your callback. Another is illegal casting of the data.\nTarget class: " + tgt + " method: " + methodName;
                 throw new EventDispatcherException(message, EventDispatcherExceptionType.TARGET_INVOCATION);
             }
         }
 
         public void AddListener(object evt, EventCallback callback)
         {
-            IBinding binding = GetBinding(evt);
+            var binding = GetBinding(evt);
             if (binding == null)
             {
                 Bind(evt).To(callback);
@@ -229,7 +231,7 @@ namespace SimplifyIoC.Dispatchers
 
         public void AddListener(object evt, EmptyCallback callback)
         {
-            IBinding binding = GetBinding(evt);
+            var binding = GetBinding(evt);
             if (binding == null)
             {
                 Bind(evt).To(callback);
@@ -242,19 +244,19 @@ namespace SimplifyIoC.Dispatchers
 
         public void RemoveListener(object evt, EventCallback callback)
         {
-            IBinding binding = GetBinding(evt);
+            var binding = GetBinding(evt);
             RemoveValue(binding, callback);
         }
 
         public void RemoveListener(object evt, EmptyCallback callback)
         {
-            IBinding binding = GetBinding(evt);
+            var binding = GetBinding(evt);
             RemoveValue(binding, callback);
         }
 
         public bool HasListener(object evt, EventCallback callback)
         {
-            IEventBinding binding = GetBinding(evt) as IEventBinding;
+            var binding = GetBinding(evt) as IEventBinding;
             if (binding == null)
             {
                 return false;
@@ -264,7 +266,7 @@ namespace SimplifyIoC.Dispatchers
 
         public bool HasListener(object evt, EmptyCallback callback)
         {
-            IEventBinding binding = GetBinding(evt) as IEventBinding;
+            var binding = GetBinding(evt) as IEventBinding;
             if (binding == null)
             {
                 return false;
@@ -337,7 +339,7 @@ namespace SimplifyIoC.Dispatchers
             {
                 return;
             }
-            foreach (ITriggerable target in triggerClientRemovals)
+            foreach (var target in triggerClientRemovals)
             {
                 if (triggerClients.Contains(target))
                 {
@@ -354,8 +356,9 @@ namespace SimplifyIoC.Dispatchers
 
         public bool Trigger(object key, object data)
         {
-            bool allow = ((data is IEvent && System.Object.ReferenceEquals((data as IEvent).target, this) == false) ||
-                (key is IEvent && System.Object.ReferenceEquals((data as IEvent).target, this) == false));
+            Debug.Log($"Trigger {key} with data {data}");
+            var allow = ((data is IEvent && ReferenceEquals((data as IEvent).target, this) == false) ||
+                         (key is IEvent && ReferenceEquals((data as IEvent).target, this) == false));
 
             if (allow)
                 Dispatch(key, data);
@@ -393,7 +396,7 @@ namespace SimplifyIoC.Dispatchers
         public T GetInstance<T>()
         {
             object instance = new TmEvent();
-            T retv = (T)instance;
+            var retv = (T)instance;
             return retv;
         }
 
