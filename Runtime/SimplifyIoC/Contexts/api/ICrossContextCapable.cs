@@ -26,7 +26,6 @@
  * @see SimplifyIoC.Injectors.IInjectionBinding
  */
 
-using SimplifyIoC.Dispatchers;
 using SimplifyIoC.Injectors;
 
 namespace SimplifyIoC.Contexts
@@ -50,8 +49,8 @@ namespace SimplifyIoC.Contexts
 		/// All cross-context capable contexts must implement an injectionBinder
 		ICrossContextInjectionBinder injectionBinder { get; set; }
 
-		/// Set and get the shared system bus for communicating across contexts
-		IDispatcher crossContextDispatcher { get; set; }
+		// Set and get the shared system bus for communicating across contexts
+		//IDispatcher crossContextDispatcher { get; set; }
 
 	}
 }

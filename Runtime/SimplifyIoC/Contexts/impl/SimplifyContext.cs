@@ -13,7 +13,7 @@ using SimplifyIoC.Signals;
 //============================================================
 namespace SimplifyIoC.Contexts
 {
-    public abstract class SimplifyContext<B, T> : MVCSContext where B : SimplifyBootstrap where T : Command
+    public abstract class SimplifyContext<B, T> : Context where B : SimplifyBootstrap where T : Command
     {
         protected B bootstrap { get; private set; }
 

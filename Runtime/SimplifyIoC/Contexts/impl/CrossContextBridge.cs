@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @class SimplifyIoC.Contexts.CrossContextBridge
  * 
  * A relay for events mapped across multiple Contexts.
@@ -38,16 +38,13 @@
  * relay that Event to other Contexts.
  */
 
-using SimplifyIoC.Dispatchers;
 using SimplifyIoC.Framework;
 using System.Collections.Generic;
 
 namespace SimplifyIoC.Contexts
 {
-    public class CrossContextBridge : Binder, ITriggerable
+    public class CrossContextBridge : Binder
 	{
-		[Inject(ContextKeys.CROSS_CONTEXT_DISPATCHER)]
-		public IEventDispatcher crossContextDispatcher{ get; set;}
 
 		/// Prevents the currently dispatching Event from cycling back on itself
 		protected HashSet<object> eventsInProgress = new HashSet<object>();
@@ -61,26 +58,5 @@ namespace SimplifyIoC.Contexts
 			Resolver (binding);
 			return binding;
 		}
-
-		#region ITriggerable implementation
-
-		public bool Trigger<T> (object data)
-		{
-			return Trigger (typeof(T), data);
-		}
-
-		public bool Trigger (object key, object data)
-		{
-			var binding = GetBinding (key, null);
-			if (binding != null && !eventsInProgress.Contains(key))
-			{
-				eventsInProgress.Add (key);
-				crossContextDispatcher.Dispatch (key, data);
-				eventsInProgress.Remove (key);
-			}
-			return true;
-		}
-
-		#endregion
 	}
 }

@@ -28,9 +28,11 @@
  * your extension from the ContextView.
  */
 
-using SimplifyIoC.Dispatchers;
+using SimplifyIoC.Commands;
 using SimplifyIoC.Framework;
 using SimplifyIoC.Injectors;
+using SimplifyIoC.Mediations;
+using UnityEngine;
 
 namespace SimplifyIoC.Contexts
 {
@@ -45,7 +47,7 @@ namespace SimplifyIoC.Contexts
         public static IContext firstContext;
 
         /// If false, the `Launch()` method won't fire.
-        private bool _autoStartup;
+        private readonly bool _autoStartup;
         
 
         /// A Binder that handles dependency injection binding and instantiation
@@ -61,29 +63,35 @@ namespace SimplifyIoC.Contexts
         // Other contexts don't need to listen to the cross-context dispatcher
         // as such, just map the necessary event to your local context
         // dispatcher and you'll receive it.
-        protected IEventDispatcher _crossContextDispatcher;
-        public virtual IDispatcher crossContextDispatcher
-        {
-            get => _crossContextDispatcher;
-            set => _crossContextDispatcher = value as IEventDispatcher;
-        }
+        // protected IEventDispatcher _crossContextDispatcher;
+        // public virtual IDispatcher crossContextDispatcher
+        // {
+        //     get => _crossContextDispatcher;
+        //     set => _crossContextDispatcher = value as IEventDispatcher;
+        // }
         // private ICrossContextInjectionBinder _injectionBinder;
-        private IBinder _crossContextBridge;
-        public virtual IBinder crossContextBridge
-        {
-            get
-            {
-                if (_crossContextBridge == null)
-                {
-                    _crossContextBridge = injectionBinder.GetInstance<CrossContextBridge> ();
-                }
-                return _crossContextBridge;
-            }
-            set
-            {
-                _crossContextDispatcher = value as IEventDispatcher;
-            }
-        }
+        // private IBinder _crossContextBridge;
+        // public virtual IBinder crossContextBridge
+        // {
+        //     get
+        //     {
+        //         if (_crossContextBridge == null)
+        //         {
+        //             _crossContextBridge = injectionBinder.GetInstance<CrossContextBridge> ();
+        //         }
+        //         return _crossContextBridge;
+        //     }
+        //     set
+        //     {
+        //         //_crossContextDispatcher = value as IEventDispatcher;
+        //     }
+        // }
+        /// A Binder that maps Signals to Commands
+        public ICommandBinder commandBinder { get; set; }
+        /// A Binder that maps Views to Mediators
+        public IMediationBinder mediationBinder { get; set; }
+        /// A list of Views Awake before the Context is fully set up.
+        protected static ISemiBinding viewCache = new SemiBinding();
 
         public Context() { }
 
@@ -115,32 +123,24 @@ namespace SimplifyIoC.Contexts
         /// Override to add componentry. Or just extend MVCSContext.
         protected virtual void AddCoreComponents()
         {
-            if (injectionBinder.crossContextBinder == null)  //Only null if it could not find a parent context / firstContext
-            {
-                injectionBinder.crossContextBinder = new CrossContextInjectionBinder();
-            }
+            //Only null if it could not find a parent context / firstContext
+            injectionBinder.crossContextBinder ??= new CrossContextInjectionBinder();
 
             if (firstContext == this)
-            {
-                injectionBinder.Bind<IEventDispatcher>().To<EventDispatcher>().ToSingleton().ToName(ContextKeys.CROSS_CONTEXT_DISPATCHER).CrossContext();
-                injectionBinder.Bind<CrossContextBridge> ().ToSingleton ().CrossContext();
-            }
+                injectionBinder.Bind<CrossContextBridge>().ToSingleton ().CrossContext();
+            
+            injectionBinder.Bind<IInstanceProvider>().Bind<IInjectionBinder>().ToValue(injectionBinder);
+            injectionBinder.Bind<IContext>().ToValue(this).ToName(ContextKeys.CONTEXT);
+            injectionBinder.Bind<ICommandBinder>().To<SignalCommandBinder>().ToSingleton();
+            injectionBinder.Bind<IMediationBinder>().To<SignalMediationBinder>().ToSingleton();
         }
 
         /// Override to instantiate componentry. Or just extend MVCSContext.
         protected virtual void InstantiateCoreComponents()
         {
-            var dispatcherBinding = injectionBinder.GetBinding<IEventDispatcher> (ContextKeys.CONTEXT_DISPATCHER);
-
-            if (dispatcherBinding != null) {
-                var dispatcher = injectionBinder.GetInstance<IEventDispatcher> (ContextKeys.CONTEXT_DISPATCHER);
-
-                if (dispatcher != null) {
-                    crossContextDispatcher = injectionBinder.GetInstance<IEventDispatcher> (ContextKeys.CROSS_CONTEXT_DISPATCHER);
-                    (crossContextDispatcher as ITriggerProvider).AddTriggerable (dispatcher as ITriggerable);
-                    (dispatcher as ITriggerProvider).AddTriggerable (crossContextBridge as ITriggerable);
-                }
-            }
+            injectionBinder.Bind<ContextView>().ToValue(contextView).ToName(ContextKeys.CONTEXT_VIEW);
+            commandBinder = injectionBinder.GetInstance<ICommandBinder>();
+            mediationBinder = injectionBinder.GetInstance<IMediationBinder>();
         }
 
         /// Set the object that represents the top of the Context hierarchy.
@@ -175,37 +175,44 @@ namespace SimplifyIoC.Contexts
         protected virtual void MapBindings() { }
 
         /// Override to do things after binding but before app launch
-        protected virtual void PostBindings() { }
+        protected virtual void PostBindings()
+        {
+            //It's possible for views to fire their Awake before bindings. This catches any early risers and attaches their Mediators.
+            MediateViewCache();
+            //Ensure that all Views underneath the ContextView are triggered
+            mediationBinder.Trigger(MediationEvent.AWAKE, contextView);
+        }
 
         /// Add another Context to this one.
         public virtual IContext AddContext(IContext context)
         {
-            if (context is ICrossContextCapable)
+            if (context is ICrossContextCapable capable)
             {
-                AssignCrossContext((ICrossContextCapable)context);
+                AssignCrossContext(capable);
             }
             return this;
         }
         public virtual void AssignCrossContext(ICrossContextCapable childContext)
         {
-            childContext.crossContextDispatcher = crossContextDispatcher;
+            //childContext.crossContextDispatcher = crossContextDispatcher;
             childContext.injectionBinder.crossContextBinder = injectionBinder.crossContextBinder;
         }
         public virtual void RemoveCrossContext(ICrossContextCapable childContext)
         {
-            if (childContext.crossContextDispatcher != null)
-            {
-                ((childContext.crossContextDispatcher) as ITriggerProvider)?.RemoveTriggerable(childContext.GetComponent<IEventDispatcher>(ContextKeys.CONTEXT_DISPATCHER) as ITriggerable);
-                childContext.crossContextDispatcher = null;
-            }
+            // if (childContext.crossContextDispatcher != null)
+            // {
+            //     ((childContext.crossContextDispatcher) as ITriggerProvider)?.RemoveTriggerable(childContext.GetComponent<IEventDispatcher>(ContextKeys.CONTEXT_DISPATCHER) as ITriggerable);
+            //     childContext.crossContextDispatcher = null;
+            // }
+            childContext.injectionBinder.crossContextBinder = null;
         }
 
         /// Remove a context from this one.
         public virtual IContext RemoveContext(IContext context)
         {
-            if (context is ICrossContextCapable)
+            if (context is ICrossContextCapable capable)
             {
-                RemoveCrossContext((ICrossContextCapable)context);
+                RemoveCrossContext(capable);
             }
             //If we're removing firstContext, set firstContext to null
             if (context == firstContext)
@@ -222,38 +229,88 @@ namespace SimplifyIoC.Contexts
         /// Retrieve a component from this Context by generic type
         public virtual object GetComponent<T>()
         {
-            return null;
+            return GetComponent<T>(null);
         }
 
 
         /// Retrieve a component from this Context by generic type and name
         public virtual object GetComponent<T>(object name)
         {
+            var binding = injectionBinder.GetBinding<T>(name);
+            if (binding != null)
+            {
+                return injectionBinder.GetInstance<T>(name);
+            }
             return null;
         }
 
         /// Register a View with this Context
         public virtual void AddView(object view)
         {
-            //Override in subclasses
+            if (mediationBinder != null)
+            {
+                mediationBinder.Trigger(MediationEvent.AWAKE, view as IView);
+            }
+            else
+            {
+                CacheView(view as MonoBehaviour);
+            }
         }
 
         /// Remove a View from this Context
         public virtual void RemoveView(object view)
         {
-            //Override in subclasses
+            mediationBinder.Trigger(MediationEvent.DESTROYED, view as IView);
         }
 
         /// Enable a View from this Context
         public virtual void EnableView(object view)
         {
-            //Override in subclasses
+            mediationBinder.Trigger(MediationEvent.ENABLED, view as IView);
         }
 
         /// Disable a View from this Context
         public virtual void DisableView(object view)
         {
-            //Override in subclasses
+            mediationBinder.Trigger(MediationEvent.DISABLED, view as IView);
+        }
+
+        public override void OnRemove()
+        {
+            base.OnRemove();
+            commandBinder.OnRemove();
+        }
+
+        protected virtual void MediateViewCache()
+        {
+            if (mediationBinder == null)
+                throw new ContextException("MVCSContext cannot mediate views without a mediationBinder", ContextExceptionType.NO_MEDIATION_BINDER);
+
+            var values = viewCache.value as object[];
+            if (values == null)
+            {
+                return;
+            }
+            var aa = values.Length;
+            for (var a = 0; a < aa; a++)
+            {
+                mediationBinder.Trigger(MediationEvent.AWAKE, values[a] as IView);
+            }
+            viewCache = new SemiBinding();
+        }
+        /// Caches early-riser Views.
+        /// 
+        /// If a View is on stage at startup, it's possible for that
+        /// View to be Awake before this Context has finished initing.
+        /// `cacheView()` maintains a list of such 'early-risers'
+        /// until the Context is ready to mediate them.
+        protected virtual void CacheView(MonoBehaviour view)
+        {
+            if (viewCache.constraint.Equals(BindingConstraintType.ONE))
+            {
+                viewCache.constraint = BindingConstraintType.MANY;
+            }
+            viewCache.Add(view);
         }
     }
 }

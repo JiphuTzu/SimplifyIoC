@@ -54,13 +54,12 @@
 using System;
 using System.Collections.Generic;
 using SimplifyIoC.Framework;
-using SimplifyIoC.Dispatchers;
 using SimplifyIoC.Injectors;
 using SimplifyIoC.Pools;
 
 namespace SimplifyIoC.Commands
 {
-    public class CommandBinder : Binder, ICommandBinder, IPooledCommandBinder, ITriggerable
+    public class CommandBinder : Binder, ICommandBinder, IPooledCommandBinder
     {
         [Inject]
         public IInjectionBinder injectionBinder { get; set; }
@@ -343,17 +342,6 @@ namespace SimplifyIoC.Commands
                 command.Cancel();
                 activeSequences.Remove(command);
             }
-        }
-
-        public bool Trigger<T>(object data)
-        {
-            return Trigger(typeof(T), data);
-        }
-
-        public bool Trigger(object key, object data)
-        {
-            ReactTo(key, data);
-            return true;
         }
 
         public new virtual ICommandBinding Bind<T>()

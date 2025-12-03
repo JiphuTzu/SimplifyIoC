@@ -15,7 +15,7 @@
  */
 
 
-/**
+/*
 * @class SimplifyIoC.Promises.Promise
 *
 * @see SimplifyIoC.Promises.IPromise
