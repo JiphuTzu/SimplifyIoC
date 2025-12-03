@@ -20,7 +20,8 @@ namespace SimplifyIoC.Contexts
         public SimplifyContext(B view) : base(view, ContextStartupFlags.MANUAL_LAUNCH)
         {
         }
-        public override void SetContextView(ContextView view)
+
+        protected override void SetContextView(ContextView view)
         {
             bootstrap = view as B;
             base.SetContextView(view);
