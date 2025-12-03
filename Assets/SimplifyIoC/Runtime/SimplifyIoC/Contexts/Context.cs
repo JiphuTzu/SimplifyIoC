@@ -161,8 +161,8 @@ namespace SimplifyIoC.Contexts
             
             injectionBinder.Bind<IInstanceProvider>().Bind<IInjectionBinder>().ToValue(injectionBinder);
             injectionBinder.Bind<Context>().ToValue(this).ToName(ContextKeys.CONTEXT);
-            injectionBinder.Bind<ICommandBinder>().To<SignalCommandBinder>().ToSingleton();
-            injectionBinder.Bind<IMediationBinder>().To<SignalMediationBinder>().ToSingleton();
+            injectionBinder.Bind<ICommandBinder>().To<CommandBinder>().ToSingleton();
+            injectionBinder.Bind<IMediationBinder>().To<MediationBinder>().ToSingleton();
         }
 
         /// Override to instantiate componentry. Or just extend MVCSContext.
