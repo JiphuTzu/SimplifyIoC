@@ -26,7 +26,7 @@ namespace UMa.Mediators
 			//view.OnDead.AddListener(OnDead);
         }
         [BindEvent("onDead",nameof(view))]
-		protected void OnDead(){
+		public void OnDead(){
 			rcs.Dispatch(false);
 			Destroy(gameObject);
 		}
