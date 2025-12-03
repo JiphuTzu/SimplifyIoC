@@ -117,7 +117,7 @@ namespace SimplifyIoC.Mediations
         /// Recurses through Transform.parent to find the GameObject to which ContextView is attached
         /// Has a loop limit of 100 levels.
         /// By default, raises an Exception if no Context is found.
-        protected void BubbleToContext(MonoBehaviour view, BubbleType type, bool finalTry)
+        protected void BubbleToContext(View view, BubbleType type, bool finalTry)
         {
             const int LOOP_MAX = 100;
             var loopLimiter = 0;
