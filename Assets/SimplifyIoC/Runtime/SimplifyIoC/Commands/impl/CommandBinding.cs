@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
 * @class SimplifyIoC.Commands.CommandBinding
 * 
 * The Binding for CommandBinder.
