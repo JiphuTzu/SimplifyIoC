@@ -74,7 +74,7 @@ namespace SimplifyIoC.Injectors
             }
             else if (binding.value == null)
             {
-                object[] tl = binding.key as object[];
+                var tl = binding.key as object[];
                 reflectionType = tl[0] as Type;
                 if (reflectionType.IsPrimitive || reflectionType == typeof(Decimal) || reflectionType == typeof(string))
                 {
@@ -89,14 +89,14 @@ namespace SimplifyIoC.Injectors
             if (retv == null) //If we don't have an existing value, go ahead and create one.
             {
 
-                IReflectedClass reflection = reflector.Get(reflectionType);
+                var reflection = reflector.Get(reflectionType);
 
-                Type[] parameterTypes = reflection.constructorParameters;
-                object[] parameterNames = reflection.constructorParameterNames;
+                var parameterTypes = reflection.constructorParameters;
+                var parameterNames = reflection.constructorParameterNames;
 
-                int aa = parameterTypes.Length;
-                object[] args = new object[aa];
-                for (int a = 0; a < aa; a++)
+                var aa = parameterTypes.Length;
+                var args = new object[aa];
+                for (var a = 0; a < aa; a++)
                 {
                     args[a] = GetValueInjection(parameterTypes[a] as Type, parameterNames[a], reflectionType, null);
                 }
@@ -144,13 +144,13 @@ namespace SimplifyIoC.Injectors
             FailIf(target == null, "Attempt to inject into null instance", InjectionExceptionType.NULL_TARGET);
 
             //Some things can't be injected into. Bail out.
-            Type t = target.GetType();
+            var t = target.GetType();
             if (t.IsPrimitive || t == typeof(Decimal) || t == typeof(string))
             {
                 return target;
             }
 
-            IReflectedClass reflection = reflector.Get(t);
+            var reflection = reflector.Get(t);
 
             if (attemptConstructorInjection)
             {
@@ -167,13 +167,13 @@ namespace SimplifyIoC.Injectors
             FailIf(reflector == null, "Attempt to inject without a reflector", InjectionExceptionType.NO_REFLECTOR);
             FailIf(target == null, "Attempt to inject into null instance", InjectionExceptionType.NULL_TARGET);
 
-            Type t = target.GetType();
+            var t = target.GetType();
             if (t.IsPrimitive || t == typeof(Decimal) || t == typeof(string))
             {
                 return;
             }
 
-            IReflectedClass reflection = reflector.Get(t);
+            var reflection = reflector.Get(t);
 
             PerformUninjection(target, reflection);
         }
@@ -183,15 +183,15 @@ namespace SimplifyIoC.Injectors
             FailIf(target == null, "Attempt to perform constructor injection into a null object", InjectionExceptionType.NULL_TARGET);
             FailIf(reflection == null, "Attempt to perform constructor injection without a reflection", InjectionExceptionType.NULL_REFLECTION);
 
-            ConstructorInfo constructor = reflection.constructor;
+            var constructor = reflection.constructor;
             FailIf(constructor == null, "Attempt to construction inject a null constructor", InjectionExceptionType.NULL_CONSTRUCTOR);
 
-            Type[] parameterTypes = reflection.constructorParameters;
-            object[] parameterNames = reflection.constructorParameterNames;
-            object[] values = new object[parameterTypes.Length];
+            var parameterTypes = reflection.constructorParameters;
+            var parameterNames = reflection.constructorParameterNames;
+            var values = new object[parameterTypes.Length];
 
-            int i = 0;
-            foreach (Type type in parameterTypes)
+            var i = 0;
+            foreach (var type in parameterTypes)
             {
                 values[i] = GetValueInjection(type, parameterNames[i], target, null);
                 i++;
@@ -201,7 +201,7 @@ namespace SimplifyIoC.Injectors
                 return target;
             }
 
-            object constructedObj = constructor.Invoke(values);
+            var constructedObj = constructor.Invoke(values);
             return (constructedObj == null) ? target : constructedObj;
         }
 
@@ -210,9 +210,9 @@ namespace SimplifyIoC.Injectors
             FailIf(target == null, "Attempt to inject into a null object", InjectionExceptionType.NULL_TARGET);
             FailIf(reflection == null, "Attempt to inject without a reflection", InjectionExceptionType.NULL_REFLECTION);
 
-            foreach (ReflectedAttribute attr in reflection.setters)
+            foreach (var attr in reflection.setters)
             {
-                object value = GetValueInjection(attr.type, attr.name, target, attr.propertyInfo);
+                var value = GetValueInjection(attr.type, attr.name, target, attr.propertyInfo);
                 InjectValueIntoPoint(value, target, attr.propertyInfo);
             }
         }
@@ -225,7 +225,7 @@ namespace SimplifyIoC.Injectors
                 suppliedBinding = binder.GetSupplier(t, target is Type ? target as Type : target.GetType());
             }
 
-            IInjectionBinding binding = suppliedBinding ?? binder.GetBinding(t, name);
+            var binding = suppliedBinding ?? binder.GetBinding(t, name);
 
             FailIf(binding == null, "Attempt to Instantiate a null binding", InjectionExceptionType.NULL_BINDING, t, name, target, propertyInfo);
             if (binding.type == InjectionBindingType.VALUE)
@@ -236,7 +236,7 @@ namespace SimplifyIoC.Injectors
                 }
                 else
                 {
-                    object retv = Inject(binding.value, false);
+                    var retv = Inject(binding.value, false);
                     binding.ToInject(false);
                     return retv;
                 }
@@ -271,10 +271,10 @@ namespace SimplifyIoC.Injectors
             FailIf(target == null, "Attempt to PostConstruct a null target", InjectionExceptionType.NULL_TARGET);
             FailIf(reflection == null, "Attempt to PostConstruct without a reflection", InjectionExceptionType.NULL_REFLECTION);
 
-            MethodInfo[] postConstructors = reflection.postConstructors;
+            var postConstructors = reflection.postConstructors;
             if (postConstructors != null)
             {
-                foreach (MethodInfo method in postConstructors)
+                foreach (var method in postConstructors)
                 {
                     method.Invoke(target, null);
                 }
@@ -284,7 +284,7 @@ namespace SimplifyIoC.Injectors
         //Note that uninjection can only clean publicly settable points
         private void PerformUninjection(object target, IReflectedClass reflection)
         {
-            foreach (ReflectedAttribute attr in reflection.setters)
+            foreach (var attr in reflection.setters)
                 attr.propertyInfo.SetValue(target, null, null);
         }
 

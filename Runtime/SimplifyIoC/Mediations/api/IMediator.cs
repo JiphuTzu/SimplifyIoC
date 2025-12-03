@@ -23,6 +23,7 @@
  * @see SimplifyIoC.Mediations.IMediationBinder
  */
 
+using SimplifyIoC.Contexts;
 using UnityEngine;
 
 namespace SimplifyIoC.Mediations
@@ -30,7 +31,7 @@ namespace SimplifyIoC.Mediations
     public interface IMediator
     {
         /// Get/set the GameObject that represents the top-most item in this Context
-        GameObject contextView { get; set; }
+        ContextView contextView { get; set; }
 
         /// This method fires immediately after instantiation, but before injection.
         /// Override to handle anything that needs to happen prior to injection.

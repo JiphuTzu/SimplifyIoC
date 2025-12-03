@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @class SimplifyIoC.Contexts.ContextView
  * 
  * The Root View of a Context hierarchy.
@@ -40,8 +40,6 @@ namespace SimplifyIoC.Contexts
     public class ContextView : MonoBehaviour, IContextView
 	{
 		public IContext context{get;set;}
-		
-		public ContextView (){}
 
 		/// <summary>
 		/// When a ContextView is Destroyed, automatically removes the associated Context.
@@ -59,7 +57,7 @@ namespace SimplifyIoC.Contexts
 		public bool registeredWithContext {get;set;}
 
 		public bool autoRegisterWithContext{ get; set; }
-		public bool shouldRegister { get { return true; }}
+		public bool shouldRegister => true;
 
 		#endregion
 	}

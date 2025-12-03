@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @interface SimplifyIoC.Framework.IBinding
  * 
  * Binds a key SemiBinding to a vlaue Semibinding.

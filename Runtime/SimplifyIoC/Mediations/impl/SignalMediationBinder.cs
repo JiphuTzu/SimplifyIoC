@@ -46,7 +46,7 @@ namespace SimplifyIoC.Mediations
         /// Adds a Mediator to a View
         protected override object CreateMediator(IView view, Type mediatorType)
         {
-            object mediator = base.CreateMediator(view, mediatorType);
+            var mediator = base.CreateMediator(view, mediatorType);
             if (mediator is IMediator)
             {
                 HandleDelegates(mediator, mediatorType, true);
@@ -57,7 +57,7 @@ namespace SimplifyIoC.Mediations
         /// Manage Delegates, then remove the Mediator from a View
         protected override IMediator DestroyMediator(IView view, Type mediatorType)
         {
-            IMediator mediator = base.DestroyMediator(view, mediatorType);
+            var mediator = base.DestroyMediator(view, mediatorType);
             if (mediator != null)
             {
                 HandleDelegates(mediator, mediatorType, false);
@@ -69,14 +69,14 @@ namespace SimplifyIoC.Mediations
         /// Determine whether to add or remove ListensTo delegates
         protected void HandleDelegates(object mono, Type mediatorType, bool toAdd)
         {
-            IReflectedClass reflectedClass = injectionBinder.injector.reflector.Get(mediatorType);
+            var reflectedClass = injectionBinder.injector.reflector.Get(mediatorType);
             //GetInstance Signals and add listeners
             foreach (var pair in reflectedClass.attrMethods)
             {
                 if (pair.Value is ListensTo)
                 {
-                    ListensTo attr = (ListensTo)pair.Value;
-                    ISignal signal = (ISignal)injectionBinder.GetInstance(attr.type);
+                    var attr = (ListensTo)pair.Value;
+                    var signal = (ISignal)injectionBinder.GetInstance(attr.type);
                     if (toAdd)
                         AssignDelegate(mono, signal, pair.Key);
                     else
@@ -90,7 +90,7 @@ namespace SimplifyIoC.Mediations
         {
             if (signal.GetType().BaseType.IsGenericType) //e.g. Signal<T>, Signal<T,U> etc.
             {
-                Delegate toRemove = Delegate.CreateDelegate(signal.listener.GetType(), mediator, method);
+                var toRemove = Delegate.CreateDelegate(signal.listener.GetType(), mediator, method);
                 signal.listener = Delegate.Remove(signal.listener, toRemove);
             }
             else

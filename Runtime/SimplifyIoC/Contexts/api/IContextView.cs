@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @interface SimplifyIoC.Contexts.IContextView
  * 
  * The ContextView is the entry point to the application.

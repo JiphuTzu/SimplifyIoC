@@ -120,23 +120,23 @@ namespace SimplifyIoC.Framework
             }
         }
 
-        virtual public IBinding Bind<T>()
+        public virtual IBinding Bind<T>()
         {
             return Bind(typeof(T));
         }
 
-        virtual public IBinding Bind(object o)
+        public virtual IBinding Bind(object o)
         {
             _key.Add(o);
             return this;
         }
 
-        virtual public IBinding To<T>()
+        public virtual IBinding To<T>()
         {
             return To(typeof(T));
         }
 
-        virtual public IBinding To(object o)
+        public virtual IBinding To(object o)
         {
             _value.Add(o);
             if (resolver != null)
@@ -144,46 +144,46 @@ namespace SimplifyIoC.Framework
             return this;
         }
 
-        virtual public IBinding ToName<T>()
+        public virtual IBinding ToName<T>()
         {
             return ToName(typeof(T));
         }
 
-        virtual public IBinding ToName(object o)
+        public virtual IBinding ToName(object o)
         {
-            object toName = (o == null) ? BindingConst.NULLOID : o;
+            var toName = (o == null) ? BindingConst.NULLOID : o;
             _name.Add(toName);
             if (resolver != null)
                 resolver(this);
             return this;
         }
 
-        virtual public IBinding Named<T>()
+        public virtual IBinding Named<T>()
         {
             return Named(typeof(T));
         }
 
-        virtual public IBinding Named(object o)
+        public virtual IBinding Named(object o)
         {
             return _name.value == o ? this : null;
         }
 
-        virtual public void RemoveKey(object o)
+        public virtual void RemoveKey(object o)
         {
             _key.Remove(o);
         }
 
-        virtual public void RemoveValue(object o)
+        public virtual void RemoveValue(object o)
         {
             _value.Remove(o);
         }
 
-        virtual public void RemoveName(object o)
+        public virtual void RemoveName(object o)
         {
             _name.Remove(o);
         }
 
-        virtual public IBinding Weak()
+        public virtual IBinding Weak()
         {
             _isWeak = true;
             return this;

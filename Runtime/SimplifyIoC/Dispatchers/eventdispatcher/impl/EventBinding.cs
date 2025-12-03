@@ -63,7 +63,7 @@ namespace SimplifyIoC.Dispatchers
             return EventCallbackType.NOT_FOUND;
         }
 
-        new public IEventBinding Bind(object key)
+        public new IEventBinding Bind(object key)
         {
             return base.Bind(key) as IEventBinding;
         }
@@ -82,14 +82,14 @@ namespace SimplifyIoC.Dispatchers
             return this;
         }
 
-        new public IEventBinding To(object value)
+        public new IEventBinding To(object value)
         {
             base.To(value);
             storeMethodType(value as Delegate);
             return this;
         }
 
-        override public void RemoveValue(object value)
+        public override void RemoveValue(object value)
         {
             base.RemoveValue(value);
             callbackTypes.Remove(value as Delegate);
@@ -101,8 +101,8 @@ namespace SimplifyIoC.Dispatchers
             {
                 throw new DispatcherException("EventDispatcher can't map something that isn't a delegate'", DispatcherExceptionType.ILLEGAL_CALLBACK_HANDLER);
             }
-            MethodInfo methodInfo = value.Method;
-            int argsLen = methodInfo.GetParameters().Length;
+            var methodInfo = value.Method;
+            var argsLen = methodInfo.GetParameters().Length;
             switch (argsLen)
             {
                 case 0:

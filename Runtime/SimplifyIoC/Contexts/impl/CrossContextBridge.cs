@@ -54,10 +54,9 @@ namespace SimplifyIoC.Contexts
 
 		public CrossContextBridge (){}
 
-		override public IBinding Bind(object key)
+		public override IBinding Bind(object key)
 		{
-			IBinding binding;
-			binding = GetRawBinding ();
+			var binding = GetRawBinding ();
 			binding.Bind(key);
 			Resolver (binding);
 			return binding;
@@ -72,7 +71,7 @@ namespace SimplifyIoC.Contexts
 
 		public bool Trigger (object key, object data)
 		{
-			IBinding binding = GetBinding (key, null);
+			var binding = GetBinding (key, null);
 			if (binding != null && !eventsInProgress.Contains(key))
 			{
 				eventsInProgress.Add (key);

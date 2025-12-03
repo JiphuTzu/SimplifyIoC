@@ -34,7 +34,7 @@ namespace SimplifyIoC.Pools
 			poolType = typeof(T);
 		}
 
-		new public T GetInstance()
+		public new T GetInstance()
 		{
 			return (T)base.GetInstance ();
 		}
@@ -64,7 +64,7 @@ namespace SimplifyIoC.Pools
 
 		#region IManagedList implementation
 
-		virtual public IManagedList Add (object value)
+		public virtual IManagedList Add (object value)
 		{
 			failIf(value.GetType () != poolType, "Pool Type mismatch. Pools must consist of a common concrete type.\n\t\tPool type: " + poolType.ToString() + "\n\t\tMismatch type: " + value.GetType ().ToString(), PoolExceptionType.TYPE_MISMATCH);
 			instanceCount++;
@@ -72,30 +72,30 @@ namespace SimplifyIoC.Pools
 			return this;
 		}
 
-		virtual public IManagedList Add (object[] list)
+		public virtual IManagedList Add (object[] list)
 		{
-			foreach (object item in list)
+			foreach (var item in list)
 				Add (item);
 
 			return this;
 		}
 
-		virtual public IManagedList Remove (object value)
+		public virtual IManagedList Remove (object value)
 		{
 			instanceCount--;
 			removeInstance (value);
 			return this;
 		}
 
-		virtual public IManagedList Remove (object[] list)
+		public virtual IManagedList Remove (object[] list)
 		{
-			foreach (object item in list)
+			foreach (var item in list)
 				Remove (item);
 
 			return this;
 		}
 
-		virtual public object value 
+		public virtual object value 
 		{
 			get 
 			{
@@ -105,8 +105,8 @@ namespace SimplifyIoC.Pools
 		#endregion
 
 		#region ISemiBinding region
-		virtual public bool uniqueValues{get;set;}
-		virtual public Enum constraint { get; set; }
+		public virtual bool uniqueValues{get;set;}
+		public virtual Enum constraint { get; set; }
 
 		#endregion
 
@@ -118,17 +118,17 @@ namespace SimplifyIoC.Pools
 
 		public int instanceCount{get;private set;}
 
-		virtual public object GetInstance ()
+		public virtual object GetInstance ()
 		{
 			// Is an instance available?
 			if (instancesAvailable.Count > 0)
 			{
-				object retv = instancesAvailable.Pop ();
+				var retv = instancesAvailable.Pop ();
 				instancesInUse.Add (retv);
 				return retv;
 			}
 
-			int instancesToCreate = 0;
+			var instancesToCreate = 0;
 
 			//New fixed-size pool. Populate.
 			if (size > 0)
@@ -169,9 +169,9 @@ namespace SimplifyIoC.Pools
 			{
 				failIf (instanceProvider == null, "A Pool of type: " + poolType + " has no instance provider.", PoolExceptionType.NO_INSTANCE_PROVIDER);
 
-				for (int a = 0; a < instancesToCreate; a++)
+				for (var a = 0; a < instancesToCreate; a++)
 				{
-					object newInstance = instanceProvider.GetInstance (poolType);
+					var newInstance = instanceProvider.GetInstance (poolType);
 					Add (newInstance);
 				}
 				return GetInstance ();
@@ -181,7 +181,7 @@ namespace SimplifyIoC.Pools
 			return null;
 		}
 
-		virtual public void ReturnInstance (object value)
+		public virtual void ReturnInstance (object value)
 		{
 			if (instancesInUse.Contains (value))
 			{
@@ -194,14 +194,14 @@ namespace SimplifyIoC.Pools
 			}
 		}
 
-		virtual public void Clean()
+		public virtual void Clean()
 		{
 			instancesAvailable.Clear ();
 			instancesInUse = new HashSet<object> ();
 			instanceCount = 0;
 		}
 
-		virtual public int available
+		public virtual int available
 		{
 			get
 			{
@@ -209,11 +209,11 @@ namespace SimplifyIoC.Pools
 			}
 		}
 
-		virtual public int size { get; set; }
+		public virtual int size { get; set; }
 
-		virtual public PoolOverflowBehavior overflowBehavior { get; set; }
+		public virtual PoolOverflowBehavior overflowBehavior { get; set; }
 
-		virtual public PoolInflationType inflationType { get; set; }
+		public virtual PoolInflationType inflationType { get; set; }
 
 		#endregion
 
@@ -247,7 +247,7 @@ namespace SimplifyIoC.Pools
 		/// Otherwise, it is presumed inactive, and the next available object is popped from
 		/// instancesAvailable.
 		/// <param name="value">An instance to remove permanently from the Pool.</param>
-		virtual protected void removeInstance(object value)
+		protected virtual void removeInstance(object value)
 		{
 			failIf (value.GetType() != poolType, "Attempt to remove a instance from a pool that is of the wrong Type:\n\t\tPool type: " + poolType.ToString() + "\n\t\tInstance type: " + value.GetType().ToString(), PoolExceptionType.TYPE_MISMATCH);
 			if (instancesInUse.Contains(value))

@@ -15,7 +15,7 @@
  */
 
 
-/** 
+/*
  * @interface SimplifyIoC.Framework.IInstanceProvider
  *
  * Provides an instance of the specified Type
@@ -28,12 +28,12 @@ namespace SimplifyIoC.Framework
 {
     public interface IInstanceProvider
     {
-        /// Retrieve an Instance based on the key.
-        /// ex. `injectionBinder.Get<cISomeInterface>();`
+        // Retrieve an Instance based on the key.
+        // ex. `injectionBinder.Get<ISomeInterface>();`
         T GetInstance<T>();
 
-        /// Retrieve an Instance based on the key.
-        /// ex. `injectionBinder.Get(typeof(ISomeInterface));`
+        // Retrieve an Instance based on the key.
+        // ex. `injectionBinder.Get(typeof(ISomeInterface));`
         object GetInstance(Type key);
     }
 }

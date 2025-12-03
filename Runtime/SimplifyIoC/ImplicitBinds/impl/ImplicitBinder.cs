@@ -56,22 +56,22 @@ namespace SimplifyIoC.ImplicitBinds
 
 				IEnumerable<Type> types = assembly.GetExportedTypes();
 
-				List<Type> typesInNamespaces = new List<Type>();
-				int namespacesLength = usingNamespaces.Length;
-				for (int ns = 0; ns < namespacesLength; ns++)
+				var typesInNamespaces = new List<Type>();
+				var namespacesLength = usingNamespaces.Length;
+				for (var ns = 0; ns < namespacesLength; ns++)
 				{
 					typesInNamespaces.AddRange(types.Where(t => !string.IsNullOrEmpty(t.Namespace) && t.Namespace.StartsWith(usingNamespaces[ns])));
 				}
 
-				List<ImplicitBindingVO> implementsBindings = new List<ImplicitBindingVO>();
-				List<ImplicitBindingVO> implementedByBindings = new List<ImplicitBindingVO>();
+				var implementsBindings = new List<ImplicitBindingVO>();
+				var implementedByBindings = new List<ImplicitBindingVO>();
 
-				foreach (Type type in typesInNamespaces)
+				foreach (var type in typesInNamespaces)
 				{
-					object[] implements = type.GetCustomAttributes(typeof (Implements), true);
-					object[] implementedBy = type.GetCustomAttributes(typeof(ImplementedBy), true);
-					object[] mediated = type.GetCustomAttributes(typeof(MediatedBy), true);
-					object[] mediates = type.GetCustomAttributes(typeof(Mediates), true);
+					var implements = type.GetCustomAttributes(typeof (Implements), true);
+					var implementedBy = type.GetCustomAttributes(typeof(ImplementedBy), true);
+					var mediated = type.GetCustomAttributes(typeof(MediatedBy), true);
+					var mediates = type.GetCustomAttributes(typeof(Mediates), true);
 
 					#region Concrete and Interface Bindings
 
@@ -79,7 +79,7 @@ namespace SimplifyIoC.ImplicitBinds
 					if (implementedBy.Any())
 					{
 
-						ImplementedBy implBy = (ImplementedBy)implementedBy.First();
+						var implBy = (ImplementedBy)implementedBy.First();
 						if (implBy.defaultType.GetInterfaces().Contains(type)) //Verify this DefaultType exists and implements the tagged interface
 						{
 							implementedByBindings.Add(new ImplicitBindingVO(type, implBy.defaultType, implBy.scope == InjectionBindingScope.CROSS_CONTEXT, null));
@@ -94,11 +94,11 @@ namespace SimplifyIoC.ImplicitBinds
 
 					if (implements.Any())
 					{
-						Type[] interfaces = type.GetInterfaces();
+						var interfaces = type.GetInterfaces();
 						
 						object name = null;
-						bool isCrossContext = false;
-						List<Type> bindTypes = new List<Type>();
+						var isCrossContext = false;
+						var bindTypes = new List<Type>();
 
 						foreach (Implements impl in implements)
 						{
@@ -128,7 +128,7 @@ namespace SimplifyIoC.ImplicitBinds
 							name = name ?? impl.name;
 						}
 
-						ImplicitBindingVO thisBindingVo = new ImplicitBindingVO(bindTypes, type, isCrossContext, name);
+						var thisBindingVo = new ImplicitBindingVO(bindTypes, type, isCrossContext, name);
 
 						implementsBindings.Add(thisBindingVo);
 					}
@@ -182,12 +182,12 @@ namespace SimplifyIoC.ImplicitBinds
 			//We do not check for the existence of a binding. Because implicit bindings are weak bindings, they are overridden automatically by other implicit bindings
 			//Therefore, ImplementedBy will be overriden by an Implements to that interface.
 
-			IInjectionBinding binding = injectionBinder.Bind(toBind.BindTypes.First());
+			var binding = injectionBinder.Bind(toBind.BindTypes.First());
 			binding.Weak();
 
-			for (int i = 1; i < toBind.BindTypes.Count; i++)
+			for (var i = 1; i < toBind.BindTypes.Count; i++)
 			{
-				Type bindType = toBind.BindTypes.ElementAt(i);
+				var bindType = toBind.BindTypes.ElementAt(i);
 				binding.Bind(bindType);
 			}
 

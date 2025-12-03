@@ -34,7 +34,7 @@ namespace SimplifyIoC.Injectors
             {
                 throw new InjectionException("InjectorFactory cannot act on null binding", InjectionExceptionType.NULL_BINDING);
             }
-            InjectionBindingType type = binding.type;
+            var type = binding.type;
 
             switch (type)
             {
@@ -61,7 +61,7 @@ namespace SimplifyIoC.Injectors
             {
                 if (binding.value.GetType().IsInstanceOfType(typeof(Type)))
                 {
-                    object o = CreateFromValue(binding.value, args);
+                    var o = CreateFromValue(binding.value, args);
                     if (o == null)
                         return null;
                     binding.SetValue(o);
@@ -80,7 +80,7 @@ namespace SimplifyIoC.Injectors
 
         protected object GenerateImplicit(object key, object[] args)
         {
-            Type type = key as Type;
+            var type = key as Type;
             if (!type.IsInterface && !type.IsAbstract)
             {
                 return CreateFromValue(key, args);
@@ -101,14 +101,14 @@ namespace SimplifyIoC.Injectors
             {
                 return CreateFromValue(binding.value, args);
             }
-            object value = GenerateImplicit((binding.key as object[])[0], args);
+            var value = GenerateImplicit((binding.key as object[])[0], args);
             return CreateFromValue(value, args);
         }
 
         /// Call the Activator to attempt instantiation the given object
         protected object CreateFromValue(object o, object[] args)
         {
-            Type value = (o is Type) ? o as Type : o.GetType();
+            var value = (o is Type) ? o as Type : o.GetType();
             object retv = null;
             try
             {

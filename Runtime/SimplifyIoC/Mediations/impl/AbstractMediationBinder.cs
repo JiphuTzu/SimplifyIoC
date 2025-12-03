@@ -30,7 +30,7 @@ using SimplifyIoC.Framework;
 
 namespace SimplifyIoC.Mediations
 {
-    abstract public class AbstractMediationBinder : Binder, IMediationBinder
+    public abstract class AbstractMediationBinder : Binder, IMediationBinder
     {
 
         [Inject]
@@ -41,10 +41,10 @@ namespace SimplifyIoC.Mediations
             return new MediationBinding(Resolver) as IBinding;
         }
 
-        public void Trigger(MediationEvent evt, IView view)
+        public virtual void Trigger(MediationEvent evt, IView view)
         {
-            Type viewType = view.GetType();
-            IMediationBinding binding = GetBinding(viewType) as IMediationBinding;
+            var viewType = view.GetType();
+            var binding = GetBinding(viewType) as IMediationBinding;
             if (binding != null)
             {
                 switch (evt)
@@ -77,18 +77,18 @@ namespace SimplifyIoC.Mediations
         /// implements IMediator), perform PreRegister and OnRegister.
         protected virtual void ApplyMediationToView(IMediationBinding binding, IView view, Type mediatorType)
         {
-            bool isTrueMediator = IsTrueMediator(mediatorType);
+            var isTrueMediator = IsTrueMediator(mediatorType);
             if (!isTrueMediator || !HasMediator(view, mediatorType))
             {
-                Type viewType = view.GetType();
-                object mediator = CreateMediator(view, mediatorType);
+                var viewType = view.GetType();
+                var mediator = CreateMediator(view, mediatorType);
 
                 if (mediator == null)
                     ThrowNullMediatorError(viewType, mediatorType);
                 if (isTrueMediator)
                     ((IMediator)mediator).PreRegister();
 
-                Type typeToInject = (binding.abstraction == null || binding.abstraction.Equals(BindingConst.NULLOID)) ? viewType : binding.abstraction as Type;
+                var typeToInject = (binding.abstraction == null || binding.abstraction.Equals(BindingConst.NULLOID)) ? viewType : binding.abstraction as Type;
                 injectionBinder.Bind(typeToInject).ToValue(view).ToInject(false);
                 injectionBinder.injector.Inject(mediator);
                 injectionBinder.Unbind(typeToInject);
@@ -104,11 +104,11 @@ namespace SimplifyIoC.Mediations
         /// different handling than EditorWindows)
         protected virtual void InjectViewAndChildren(IView view)
         {
-            IView[] views = GetViews(view);
-            int aa = views.Length;
-            for (int a = aa - 1; a > -1; a--)
+            var views = GetViews(view);
+            var aa = views.Length;
+            for (var a = aa - 1; a > -1; a--)
             {
-                IView iView = views[a] as IView;
+                var iView = views[a] as IView;
                 if (iView != null && iView.shouldRegister)
                 {
                     if (iView.autoRegisterWithContext && iView.registeredWithContext)
@@ -128,32 +128,32 @@ namespace SimplifyIoC.Mediations
             return typeof(IMediator).IsAssignableFrom(mediatorType);
         }
 
-        override protected IBinding PerformKeyValueBindings(List<object> keyList, List<object> valueList)
-        {
-            IBinding binding = null;
-
-            // Bind in order
-            foreach (object key in keyList)
-            {
-                Type keyType = Type.GetType(key as string);
-                if (keyType == null)
-                {
-                    throw new BinderException("A runtime Mediation Binding has resolved to null. Did you forget to register its fully-qualified name?\n View:" + key, BinderExceptionType.RUNTIME_NULL_VALUE);
-                }
-                binding = Bind(keyType);
-            }
-            foreach (object value in valueList)
-            {
-                Type valueType = Type.GetType(value as string);
-                if (valueType == null)
-                {
-                    throw new BinderException("A runtime Mediation Binding has resolved to null. Did you forget to register its fully-qualified name?\n Mediator:" + value, BinderExceptionType.RUNTIME_NULL_VALUE);
-                }
-                binding = binding.To(valueType);
-            }
-
-            return binding;
-        }
+        // protected override IBinding PerformKeyValueBindings(List<object> keyList, List<object> valueList)
+        // {
+        //     IBinding binding = null;
+        //
+        //     // Bind in order
+        //     foreach (var key in keyList)
+        //     {
+        //         var keyType = Type.GetType(key as string);
+        //         if (keyType == null)
+        //         {
+        //             throw new BinderException("A runtime Mediation Binding has resolved to null. Did you forget to register its fully-qualified name?\n View:" + key, BinderExceptionType.RUNTIME_NULL_VALUE);
+        //         }
+        //         binding = Bind(keyType);
+        //     }
+        //     foreach (var value in valueList)
+        //     {
+        //         var valueType = Type.GetType(value as string);
+        //         if (valueType == null)
+        //         {
+        //             throw new BinderException("A runtime Mediation Binding has resolved to null. Did you forget to register its fully-qualified name?\n Mediator:" + value, BinderExceptionType.RUNTIME_NULL_VALUE);
+        //         }
+        //         binding = binding.To(valueType);
+        //     }
+        //
+        //     return binding;
+        // }
 
         // override protected Dictionary<string, object> ConformRuntimeItem(Dictionary<string, object> dictionary)
         // {
@@ -208,7 +208,7 @@ namespace SimplifyIoC.Mediations
         // 	return binding;
         // }
 
-        new public IMediationBinding Bind<T>()
+        public new IMediationBinding Bind<T>()
         {
             return base.Bind<T>() as IMediationBinding;
         }
@@ -220,17 +220,17 @@ namespace SimplifyIoC.Mediations
 
         /// Creates and registers one or more Mediators for a specific View instance.
         /// Takes a specific View instance and a binding and, if a binding is found for that type, creates and registers a Mediator.
-        virtual protected void MapView(IView view, IMediationBinding binding)
+        protected virtual void MapView(IView view, IMediationBinding binding)
         {
-            Type viewType = view.GetType();
+            var viewType = view.GetType();
 
             if (bindings.ContainsKey(viewType))
             {
-                object[] values = binding.value as object[];
-                int aa = values.Length;
-                for (int a = 0; a < aa; a++)
+                var values = binding.value as object[];
+                var aa = values.Length;
+                for (var a = 0; a < aa; a++)
                 {
-                    Type mediatorType = values[a] as Type;
+                    var mediatorType = values[a] as Type;
                     if (mediatorType == viewType)
                     {
                         throw new MediationException(viewType + "mapped to itself. The result would be a stack overflow.", MediationExceptionType.MEDIATOR_VIEW_STACK_OVERFLOW);
@@ -244,35 +244,35 @@ namespace SimplifyIoC.Mediations
         }
 
         /// Removes a mediator when its view is destroyed
-        virtual protected void UnmapView(IView view, IMediationBinding binding)
+        protected virtual void UnmapView(IView view, IMediationBinding binding)
         {
             TriggerInBindings(view, binding, DestroyMediator);
         }
 
         /// Enables a mediator when its view is enabled
-        virtual protected void EnableView(IView view, IMediationBinding binding)
+        protected virtual void EnableView(IView view, IMediationBinding binding)
         {
             TriggerInBindings(view, binding, EnableMediator);
         }
 
         /// Disables a mediator when its view is disabled
-        virtual protected void DisableView(IView view, IMediationBinding binding)
+        protected virtual void DisableView(IView view, IMediationBinding binding)
         {
             TriggerInBindings(view, binding, DisableMediator);
         }
 
         /// Triggers given function in all mediators bound to given view
-        virtual protected void TriggerInBindings(IView view, IMediationBinding binding, Func<IView, Type, object> method)
+        protected virtual void TriggerInBindings(IView view, IMediationBinding binding, Func<IView, Type, object> method)
         {
-            Type viewType = view.GetType();
+            var viewType = view.GetType();
 
             if (bindings.ContainsKey(viewType))
             {
-                object[] values = binding.value as object[];
-                int aa = values.Length;
-                for (int a = 0; a < aa; a++)
+                var values = binding.value as object[];
+                var aa = values.Length;
+                for (var a = 0; a < aa; a++)
                 {
-                    Type mediatorType = values[a] as Type;
+                    var mediatorType = values[a] as Type;
                     method(view, mediatorType);
                 }
             }
