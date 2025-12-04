@@ -415,7 +415,7 @@ namespace SimplifyIoC.Commands
                     binding = injectionBinder.Bind(value) as IInjectionBinding;
                     binding.ToSingleton();
                 }
-                signal = injectionBinder.GetInstance(type) as IBaseSignal;
+                signal = injectionBinder.GetInstance(type,false) as IBaseSignal;
             }
             return base.Bind(signal ?? value) as ICommandBinding;
         }

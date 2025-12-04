@@ -33,7 +33,7 @@ namespace SimplifyIoC.Framework
 
         public SemiBinding()
         {
-            constraint = BindingConstraintType.ONE;
+            constraint = BindingConstraintType.One;
             uniqueValues = true;
         }
 
@@ -41,7 +41,7 @@ namespace SimplifyIoC.Framework
 
         public IManagedList Add(object o)
         {
-            if (objectValue == null || (BindingConstraintType)constraint == BindingConstraintType.ONE)
+            if (objectValue == null || (BindingConstraintType)constraint == BindingConstraintType.One)
             {
                 objectValue = new object[1];
             }
@@ -109,7 +109,7 @@ namespace SimplifyIoC.Framework
         {
             get
             {
-                if (constraint.Equals(BindingConstraintType.ONE))
+                if (constraint.Equals(BindingConstraintType.One))
                 {
                     return (objectValue == null) ? null : objectValue[0];
                 }

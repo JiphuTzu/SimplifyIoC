@@ -61,6 +61,7 @@ namespace SimplifyIoC.Mediations
         public virtual void Trigger(MediationEvent evt, View view)
         {
             var viewType = view.GetType();
+            Debug.Log("Trigger " + view+" === "+viewType+" == "+evt);
             if (GetBinding(viewType) is IMediationBinding binding)
             {
                 switch (evt)
@@ -87,11 +88,11 @@ namespace SimplifyIoC.Mediations
                 //Even if not mapped, Views (and their children) have potential to be injected
                 InjectViewAndChildren(view);
             }
-            // else if (evt == MediationEvent.DESTROYED)
-            // {
-            //     Debug.Log("Upmap View "+view);
-            //     UnmapView(view, null);
-            // }
+            else if (evt == MediationEvent.DESTROYED)
+            {
+                Debug.Log("Upmap View "+view);
+                UnmapView(view, null);
+            }
         }
 
         /// Add a Mediator to a View. If the mediator is a "true" Mediator (i.e., it
@@ -108,7 +109,7 @@ namespace SimplifyIoC.Mediations
             if (isTrueMediator)
                 ((Mediator)mediator).PreRegister();
 
-            var typeToInject = (binding.abstraction == null || binding.abstraction.Equals(BindingConst.NULLOID)) ? viewType : binding.abstraction as Type;
+            var typeToInject = (binding.abstraction == null || binding.abstraction.Equals(BindingConst.Nulloid)) ? viewType : binding.abstraction as Type;
             injectionBinder.Bind(typeToInject).ToValue(view).ToInject(false);
             injectionBinder.injector.Inject(mediator);
             injectionBinder.Unbind(typeToInject);
@@ -374,8 +375,9 @@ namespace SimplifyIoC.Mediations
             {
                 if (pair.Value is not ListensTo attr) continue;
                 if(!toAdd) Debug.Log("Removing Signal: " + attr.type);
-                var signal = (ISignal)injectionBinder.GetInstance(attr.type);
-                Debug.Log("Adding Signal: " + signal);
+                else Debug.Log("Adding Signal: " + attr.type);
+                var signal = (ISignal)injectionBinder.GetInstance(attr.type,!toAdd);
+                if(signal == null) continue;
                 if (toAdd)
                     AssignDelegate(mono, signal, pair.Key);
                 else

@@ -34,6 +34,6 @@ namespace SimplifyIoC.Framework
 
         // Retrieve an Instance based on the key.
         // ex. `injectionBinder.Get(typeof(ISomeInterface));`
-        object GetInstance(Type key);
+        object GetInstance(Type key, bool ignoreException);
     }
 }

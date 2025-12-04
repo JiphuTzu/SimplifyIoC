@@ -67,7 +67,7 @@ namespace SimplifyIoC.Reflectors
         public override IBinding GetRawBinding()
         {
             var binding = base.GetRawBinding();
-            binding.valueConstraint = BindingConstraintType.ONE;
+            binding.valueConstraint = BindingConstraintType.One;
             return binding;
         }
 

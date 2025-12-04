@@ -55,7 +55,7 @@ namespace SimplifyIoC.Pools
 		public Pool ()
 		{
 			size = 0;
-			constraint = BindingConstraintType.POOL;
+			constraint = BindingConstraintType.Pool;
 			uniqueValues = true;
 			
 			overflowBehavior = PoolOverflowBehavior.EXCEPTION;
@@ -171,7 +171,7 @@ namespace SimplifyIoC.Pools
 
 				for (var a = 0; a < instancesToCreate; a++)
 				{
-					var newInstance = instanceProvider.GetInstance (poolType);
+					var newInstance = instanceProvider.GetInstance(poolType,false);
 					Add (newInstance);
 				}
 				return GetInstance ();
