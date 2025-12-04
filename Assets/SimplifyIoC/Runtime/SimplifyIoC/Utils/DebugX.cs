@@ -1,9 +1,11 @@
 /*
  * 使用方法：
- * PlayerSettings>OtherSettings>ScriptingDefineSymbols中添加：
+ * PlayerSettings > OtherSettings > ScriptingDefineSymbols 中添加：
  * DEBUG_X
+ * 或者
+ * DEBUG_X_HIDE 初始时隐藏按钮，需要在左上角连续点击6次后，显示调试按钮
  */
-#if DEBUG_X
+#if DEBUG_X || DEBUG_X_HIDE
 namespace SimplifyIoC.Utils
 {
 
@@ -28,10 +30,15 @@ namespace SimplifyIoC.Utils
 
         private Text _text;
         private int _lines = 10;
-        private const string _AUTHOR = "\t<color=#CCCCCC><size=10>[DebugX@JiphuTzu]</size></color>\n";
+        private const string _AUTHOR = "<color=#CCCCCC>\t [DebugX@JiphuTzu]</color>\n";
         private const string _ICON =
             "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAeUlEQVQ4EWNkAIKzQACiSQXGQMBIrmaYZUwwBrn0wBvAgux037Qz/5H5m2eZMMLE0NkwdSheACkCSYBomAaYGEwDOh/FAJgidBqXYSB1RBmAbiAynygDQOEAcwWyZhAbxQBYgIFoXJpgamAGjaZEBgZwwiE3R4KyMwAjrj6HJzm5/wAAAABJRU5ErkJggg==";
         private readonly List<string> _logs = new();
+#if DEBUG_X_HIDE
+        private bool _hideOnStart;
+        private float _lastClickTime;
+        private int _clickCount;
+#endif
 
         private ILogHandler _defaultHandler;
         // Start is called before the first frame update
@@ -46,7 +53,17 @@ namespace SimplifyIoC.Utils
             
             var scaler = GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.matchWidthOrHeight = 1;
+            if (Screen.width > Screen.height)
+            {
+                scaler.referenceResolution = new Vector2(1920, 1080);
+                scaler.matchWidthOrHeight = 1;
+            }
+            else
+            {
+                scaler.referenceResolution = new Vector2(1080, 1920);
+                scaler.matchWidthOrHeight = 0;
+            }
+            
             //
             CreateDebugButton();
 
@@ -70,6 +87,22 @@ namespace SimplifyIoC.Utils
 
         private void OnLogVisible()
         {
+#if DEBUG_X_HIDE
+            if (_hideOnStart)
+            {
+                _clickCount++;
+                if (Time.time - _lastClickTime > 0.5f)
+                    _clickCount = 1;
+                
+                if (_clickCount == 6)
+                {
+                    _hideOnStart = false;
+                    GetComponentInChildren<Image>().color = Color.white;
+                }
+                _lastClickTime = Time.time;
+                return;
+            }
+#endif
             _text.gameObject.SetActive(!_text.gameObject.activeSelf);
             if(_text.gameObject.activeSelf)
                 _text.text = _AUTHOR + string.Join("\n",_logs);
@@ -107,14 +140,19 @@ namespace SimplifyIoC.Utils
             brt.anchorMin = new Vector2(0, 1);
             brt.anchorMax = new Vector2(0, 1);
             brt.pivot = new Vector2(0, 1);
-            brt.anchoredPosition = new Vector2(2, -2);
-            brt.sizeDelta = new Vector2(16, 16);
+            brt.anchoredPosition = new Vector2(5, -5);
+            brt.sizeDelta = new Vector2(50, 50);
             bgo.GetComponent<Button>().onClick.AddListener(OnLogVisible);
             //
             var t = new Texture2D(2, 2);
             t.LoadImage(Convert.FromBase64String(_ICON));
             t.Apply();
-            bgo.GetComponent<Image>().sprite = Sprite.Create(t,new Rect(0,0,16,16),new Vector2(0.5f,0.5f));
+            var image = bgo.GetComponent<Image>();
+            image.sprite = Sprite.Create(t,new Rect(0,0,16,16),new Vector2(0.5f,0.5f));
+#if DEBUG_X_HIDE
+            _hideOnStart = true;
+            image.color = new Color(1, 1, 1, 0);
+#endif
         }
 
         private void CreateDebugText()
@@ -125,18 +163,19 @@ namespace SimplifyIoC.Utils
             trt.anchorMax = Vector2.one;
             trt.anchorMin = Vector2.zero;
             //-right,-top
-            trt.offsetMax = new Vector2(-10,-6);
+            trt.offsetMax = new Vector2(-20,-20);
             //left,bottom
-            trt.offsetMin = new Vector2(10,10);
+            trt.offsetMin = new Vector2(20,20);
             _text = tgo.GetComponent<Text>();
 #if UNITY_2022_1_OR_NEWER
             _text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 #else
             _text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
 #endif
-            _text.fontSize = 12;
-            _text.color = new Color(1, 1, 1, 0.3f);
+            _text.fontSize = 32;
+            _text.color = new Color(0.93f, 0.95f, 0.92f, 0.8f);
             _text.alignment = TextAnchor.UpperLeft;
+            _text.fontStyle = FontStyle.Bold;
             _text.raycastTarget = false;
             _text.text = _AUTHOR;
             tgo.SetActive(false);

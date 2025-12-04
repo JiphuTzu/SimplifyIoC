@@ -92,10 +92,7 @@ namespace SimplifyIoC.Commands
             foreach (var key in bindings.Keys)
             {
                 var signal = (BaseSignal)key;
-                if (signal != null)
-                {
-                    signal.RemoveListener(ReactTo);
-                }
+                signal?.RemoveListener(ReactTo);
             }
         }
 
@@ -111,25 +108,20 @@ namespace SimplifyIoC.Commands
 
         public virtual void ReactTo(object trigger, object data)
         {
-            if (data is IPoolable)
+            if (data is IPoolable poolable)
+                poolable.Retain();
+            if (GetBinding(trigger) is not ICommandBinding binding) return;
+            if (binding.isSequence)
             {
-                (data as IPoolable).Retain();
+                Next(binding, data, 0);
             }
-            var binding = GetBinding(trigger) as ICommandBinding;
-            if (binding != null)
+            else
             {
-                if (binding.isSequence)
+                var values = binding.value as object[];
+                var aa = values.Length + 1;
+                for (var a = 0; a < aa; a++)
                 {
-                    Next(binding, data, 0);
-                }
-                else
-                {
-                    var values = binding.value as object[];
-                    var aa = values.Length + 1;
-                    for (var a = 0; a < aa; a++)
-                    {
-                        Next(binding, data, a);
-                    }
+                    Next(binding, data, a);
                 }
             }
         }
@@ -226,9 +218,8 @@ namespace SimplifyIoC.Commands
         
         protected Command GetCommand(Type type)
         {
-            if (usePooling && pools.ContainsKey(type))
+            if (usePooling && pools.TryGetValue(type, out var pool))
             {
-                var pool = pools[type];
                 var command = pool.GetInstance() as Command;
                 if (command.isClean)
                 {
@@ -311,87 +302,16 @@ namespace SimplifyIoC.Commands
                 return pool as Pool<T>;
             return null;
         }
-
-        // protected override IBinding PerformKeyValueBindings(List<object> keyList, List<object> valueList)
-        // {
-        //     IBinding binding = null;
-        //
-        //     // Bind in order
-        //     foreach (var key in keyList)
-        //     {
-        //         //Attempt to resolve key as a class
-        //         var keyType = Type.GetType(key as string);
-        //         Enum enumerator = null;
-        //         if (keyType == null)
-        //         {
-        //             //If it's not a class, attempt to resolve as an Enum
-        //             var keyString = key as string;
-        //             var separator = keyString.LastIndexOf(".");
-        //             if (separator > -1)
-        //             {
-        //                 var enumClassName = keyString.Substring(0, separator);
-        //                 var enumType = Type.GetType(enumClassName as string);
-        //                 if (enumType != null)
-        //                 {
-        //                     var enumName = keyString.Substring(separator + 1);
-        //                     enumerator = Enum.Parse(enumType, enumName) as Enum;
-        //                 }
-        //             }
-        //         }
-        //         //If all else fails, just bind the original key
-        //         var bindingKey = keyType ?? enumerator ?? key;
-        //         binding = Bind(bindingKey);
-        //     }
-        //     foreach (var value in valueList)
-        //     {
-        //         var valueType = Type.GetType(value as string);
-        //         if (valueType == null)
-        //         {
-        //             throw new BinderException("A runtime Command Binding has resolved to null. Did you forget to register its fully-qualified name?\n Command:" + value, BinderExceptionType.RUNTIME_NULL_VALUE);
-        //         }
-        //         binding = binding.To(valueType);
-        //     }
-        //
-        //     return binding;
-        // }
-
-        /// Additional options: Once, InParallel, InSequence, Pooled
-        // override protected IBinding AddRuntimeOptions(IBinding b, List<object> options)
-        // {
-        //     base.AddRuntimeOptions(b, options);
-        //     ICommandBinding binding = b as ICommandBinding;
-        //     if (options.IndexOf("Once") > -1)
-        //     {
-        //         binding.Once();
-        //     }
-        //     if (options.IndexOf("InParallel") > -1)
-        //     {
-        //         binding.InParallel();
-        //     }
-        //     if (options.IndexOf("InSequence") > -1)
-        //     {
-        //         binding.InSequence();
-        //     }
-        //     if (options.IndexOf("Pooled") > -1)
-        //     {
-        //         binding.Pooled();
-        //     }
-
-        //     return binding;
-        // }
-
+        
         private void RemoveSequence(Command command)
         {
-            if (activeSequences.ContainsKey(command))
-            {
-                command.Cancel();
-                activeSequences.Remove(command);
-            }
+            if (!activeSequences.ContainsKey(command)) return;
+            command.Cancel();
+            activeSequences.Remove(command);
         }
 
         public new virtual ICommandBinding Bind<T>()
         {
-            //return base.Bind<T>() as ICommandBinding;
             var binding = injectionBinder.GetBinding<T>();
             if (binding == null) //If this isn't injected yet, inject a new one as a singleton
             {
@@ -423,11 +343,9 @@ namespace SimplifyIoC.Commands
         public override void Unbind<T>()
         {
             var binding = GetBinding<T>();
-            if (binding != null)
-            {
-                var signal = (T)injectionBinder.GetInstance<T>();
-                Unbind(signal, null);
-            }
+            if (binding == null) return;
+            var signal = injectionBinder.GetInstance<T>();
+            Unbind(signal, null);
         }
 
         /// <summary>Unbind by Signal Instance</summary>
@@ -466,10 +384,10 @@ namespace SimplifyIoC.Commands
         {
             var poolType = typeof(Pool<>).MakeGenericType(type);
             injectionBinder.Bind(type).To(type);
-            const string poolName = "COMMAND_POOL";
-            injectionBinder.Bind<Pool>().To(poolType).ToName(poolName);
-            var pool = injectionBinder.GetInstance<Pool>(poolName);
-            injectionBinder.Unbind<Pool>(poolName);
+            const string POOL_NAME = "COMMAND_POOL";
+            injectionBinder.Bind<Pool>().To(poolType).ToName(POOL_NAME);
+            var pool = injectionBinder.GetInstance<Pool>(POOL_NAME);
+            injectionBinder.Unbind<Pool>(POOL_NAME);
             return pool;
         }
 
