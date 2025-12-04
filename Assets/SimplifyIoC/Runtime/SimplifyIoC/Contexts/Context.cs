@@ -248,9 +248,9 @@ namespace SimplifyIoC.Contexts
         /// until the Context is ready to mediate them.
         protected virtual void CacheView(View view)
         {
-            if (_viewCache.constraint.Equals(BindingConstraintType.ONE))
+            if (_viewCache.constraint.Equals(BindingConstraintType.One))
             {
-                _viewCache.constraint = BindingConstraintType.MANY;
+                _viewCache.constraint = BindingConstraintType.Many;
             }
             _viewCache.Add(view);
         }

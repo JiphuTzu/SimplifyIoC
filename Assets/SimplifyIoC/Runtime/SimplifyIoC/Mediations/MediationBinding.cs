@@ -40,7 +40,7 @@ namespace SimplifyIoC.Mediations
 
         public MediationBinding(Binder.BindingResolver resolver) : base(resolver)
         {
-            _abstraction.constraint = BindingConstraintType.ONE;
+            _abstraction.constraint = BindingConstraintType.One;
         }
 
         IMediationBinding IMediationBinding.ToMediator<T>()
@@ -66,7 +66,7 @@ namespace SimplifyIoC.Mediations
             return this;
         }
 
-        public object abstraction => _abstraction.value ?? BindingConst.NULLOID;
+        public object abstraction => _abstraction.value ?? BindingConst.Nulloid;
 
         public new IMediationBinding Bind<T>()
         {

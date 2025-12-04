@@ -70,7 +70,7 @@ namespace SimplifyIoC.Injectors
 
 		/// Retrieve an Instance based on a key/name combo.
 		/// ex. `injectionBinder.Get(typeof(ISomeInterface), SomeEnum.MY_ENUM);`
-		object GetInstance(Type key, object name);
+		object GetInstance(Type key, object name, bool ignoreException);
 
 		/// Retrieve an Instance based on a key/name combo.
 		/// ex. `injectionBinder.Get<ISomeInterface>(SomeEnum.MY_ENUM);`

@@ -35,9 +35,9 @@ namespace SimplifyIoC.Injectors
         public InjectionBinding(Binder.BindingResolver resolver)
         {
             this.resolver = resolver;
-            keyConstraint = BindingConstraintType.MANY;
-            valueConstraint = BindingConstraintType.ONE;
-            supplyList.constraint = BindingConstraintType.MANY;
+            keyConstraint = BindingConstraintType.Many;
+            valueConstraint = BindingConstraintType.One;
+            supplyList.constraint = BindingConstraintType.Many;
         }
 
         public InjectionBindingType type { get; set; } = InjectionBindingType.DEFAULT;

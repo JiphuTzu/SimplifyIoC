@@ -42,16 +42,17 @@ namespace SimplifyIoC.Injectors
             injector.reflector = new ReflectionBinder();
         }
 
-        public object GetInstance(Type key)
+        public object GetInstance(Type key, bool ignoreException)
         {
-            return GetInstance(key, null);
+            return GetInstance(key, null, ignoreException);
         }
 
-        public virtual object GetInstance(Type key, object name)
+        public virtual object GetInstance(Type key, object name, bool ignoreException)
         {
             var binding = GetBinding(key, name);
             if (binding == null)
             {
+                if (ignoreException) return null;
                 throw new InjectionException("InjectionBinder has no binding for:\n\tkey: " + key + "\nname: " + name, InjectionExceptionType.NULL_BINDING);
             }
             var instance = GetInjectorForBinding(binding).Instantiate(binding, false);
@@ -67,14 +68,14 @@ namespace SimplifyIoC.Injectors
 
         public T GetInstance<T>()
         {
-            var instance = GetInstance(typeof(T));
+            var instance = GetInstance(typeof(T),false);
             var retv = (T)instance;
             return retv;
         }
 
         public T GetInstance<T>(object name)
         {
-            var instance = GetInstance(typeof(T), name);
+            var instance = GetInstance(typeof(T), name,false);
             var retv = (T)instance;
             return retv;
         }

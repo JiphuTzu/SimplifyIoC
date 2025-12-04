@@ -42,19 +42,19 @@ namespace SimplifyIoC.Framework
     public enum BindingConstraintType
     {
         /// Constrains a SemiBinding to carry no more than one item in its Value
-        ONE,
+        One,
         /// Constrains a SemiBinding to carry a list of items in its Value
-        MANY,
+        Many,
         /// Instructs the Binding to apply a Pool instead of a SemiBinding
-        POOL,
+        Pool,
     }
     public class Binding : IBinding
     {
-        public Binder.BindingResolver resolver;
+        protected Binder.BindingResolver resolver;
 
-        protected ISemiBinding _key;
-        protected ISemiBinding _value;
-        protected ISemiBinding _name;
+        private readonly ISemiBinding _key;
+        protected readonly ISemiBinding _value;
+        private readonly ISemiBinding _name;
 
         public Binding(Binder.BindingResolver resolver)
         {
@@ -64,70 +64,40 @@ namespace SimplifyIoC.Framework
             _value = new SemiBinding();
             _name = new SemiBinding();
 
-            keyConstraint = BindingConstraintType.ONE;
-            nameConstraint = BindingConstraintType.ONE;
-            valueConstraint = BindingConstraintType.MANY;
+            keyConstraint = BindingConstraintType.One;
+            nameConstraint = BindingConstraintType.One;
+            valueConstraint = BindingConstraintType.Many;
         }
 
         public Binding() : this(null) { }
 
         #region IBinding implementation
-        public object key { get { return _key.value; } }
+        public object key => _key.value;
 
-        public object value { get { return _value.value; } }
+        public object value => _value.value;
 
-        public object name
-        {
-            get
-            {
-                return (_name.value == null) ? BindingConst.NULLOID : _name.value;
-            }
-        }
+        public object name => _name.value ?? BindingConst.Nulloid;
 
         public BindingConstraintType keyConstraint
         {
-            get
-            {
-                return _key.constraint;
-            }
-            set
-            {
-                _key.constraint = value;
-            }
+            get => _key.constraint;
+            set => _key.constraint = value;
         }
 
         public BindingConstraintType valueConstraint
         {
-            get
-            {
-                return _value.constraint;
-            }
-            set
-            {
-                _value.constraint = value;
-            }
+            get => _value.constraint;
+            set => _value.constraint = value;
         }
 
         public BindingConstraintType nameConstraint
         {
-            get
-            {
-                return _name.constraint;
-            }
-            set
-            {
-                _name.constraint = value;
-            }
+            get => _name.constraint;
+            set => _name.constraint = value;
         }
 
-        protected bool _isWeak = false;
-        public bool isWeak
-        {
-            get
-            {
-                return _isWeak;
-            }
-        }
+        private bool _isWeak = false;
+        public bool isWeak => _isWeak;
 
         public virtual IBinding Bind<T>()
         {
@@ -160,7 +130,7 @@ namespace SimplifyIoC.Framework
 
         public virtual IBinding ToName(object o)
         {
-            var toName = (o == null) ? BindingConst.NULLOID : o;
+            var toName = o ?? BindingConst.Nulloid;
             _name.Add(toName);
             if (resolver != null)
                 resolver(this);
