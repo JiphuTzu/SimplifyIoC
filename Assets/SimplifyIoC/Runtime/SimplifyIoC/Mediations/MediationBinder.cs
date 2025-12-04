@@ -37,16 +37,16 @@ namespace SimplifyIoC.Mediations
     public enum MediationEvent
     {
         /// The View is Awake
-        AWAKE,
+        Awake,
 
         /// The View is about to be Destroyed
-        DESTROYED,
+        Destroyed,
 
         /// The View is being Enabled
-        ENABLED,
+        Enabled,
 
         /// The View is being Disabled
-        DISABLED
+        Disabled
     }
     public class MediationBinder : Binder, IMediationBinder
     {
@@ -61,36 +61,32 @@ namespace SimplifyIoC.Mediations
         public virtual void Trigger(MediationEvent evt, View view)
         {
             var viewType = view.GetType();
-            Debug.Log("Trigger " + view+" === "+viewType+" == "+evt);
             if (GetBinding(viewType) is IMediationBinding binding)
             {
                 switch (evt)
                 {
-                    case MediationEvent.AWAKE:
+                    case MediationEvent.Awake:
                         InjectViewAndChildren(view);
                         MapView(view, binding);
                         break;
-                    case MediationEvent.DESTROYED:
+                    case MediationEvent.Destroyed:
                         UnmapView(view, binding);
                         break;
-                    case MediationEvent.ENABLED:
+                    case MediationEvent.Enabled:
                         EnableView(view, binding);
                         break;
-                    case MediationEvent.DISABLED:
+                    case MediationEvent.Disabled:
                         DisableView(view, binding);
-                        break;
-                    default:
                         break;
                 }
             }
-            else if (evt == MediationEvent.AWAKE)
+            else if (evt == MediationEvent.Awake)
             {
                 //Even if not mapped, Views (and their children) have potential to be injected
                 InjectViewAndChildren(view);
             }
-            else if (evt == MediationEvent.DESTROYED)
+            else if (evt == MediationEvent.Destroyed)
             {
-                Debug.Log("Upmap View "+view);
                 UnmapView(view, null);
             }
         }
@@ -106,17 +102,15 @@ namespace SimplifyIoC.Mediations
 
             if (mediator == null)
                 ThrowNullMediatorError(viewType, mediatorType);
-            if (isTrueMediator)
-                ((Mediator)mediator).PreRegister();
+            if (isTrueMediator && mediator is Mediator m0)
+                m0.PreRegister();
 
-            var typeToInject = (binding.abstraction == null || binding.abstraction.Equals(BindingConst.Nulloid)) ? viewType : binding.abstraction as Type;
+            var typeToInject = binding.abstraction == null || binding.abstraction.Equals(BindingConst.Nulloid) ? viewType : binding.abstraction as Type;
             injectionBinder.Bind(typeToInject).ToValue(view).ToInject(false);
             injectionBinder.injector.Inject(mediator);
             injectionBinder.Unbind(typeToInject);
-            if (isTrueMediator)
-            {
-                ((Mediator)mediator).OnRegister();
-            }
+            if (isTrueMediator && mediator is Mediator m1)
+                m1.OnRegister();
         }
 
         /// Add Mediators to Views. We make this virtual to allow for different concrete
@@ -137,7 +131,7 @@ namespace SimplifyIoC.Mediations
                     }
                     iView.registeredWithContext = true;
                     if (!iView.Equals(view))
-                        Trigger(MediationEvent.AWAKE, iView);
+                        Trigger(MediationEvent.Awake, iView);
                 }
             }
             injectionBinder.injector.Inject(view, false);
@@ -363,53 +357,52 @@ namespace SimplifyIoC.Mediations
         /// class to specify the nature of the error.
         protected virtual void ThrowNullMediatorError(Type viewType, Type mediatorType)
         {
-            throw new Exception("The view: " + viewType + " is mapped to mediator: " + mediatorType + ". AddComponent resulted in null, which probably means " + mediatorType.ToString().Substring(mediatorType.ToString().LastIndexOf(".") + 1) + " is not a MonoBehaviour.");
+            var fullTypeName = mediatorType.ToString();
+            var className = fullTypeName.Substring(fullTypeName.LastIndexOf('.') + 1);
+            throw new Exception($"The view: {viewType} is mapped to mediator: {mediatorType}. AddComponent resulted in null, which probably means {className} is not a MonoBehaviour.");
         }
         /// Determine whether to add or remove ListensTo delegates
-        protected void HandleDelegates(object mono, Type mediatorType, bool toAdd)
+        private void HandleDelegates(object mono, Type mediatorType, bool toAdd)
         {
             var reflectedClass = injectionBinder.injector.reflector.Get(mediatorType);
-            if(!toAdd) Debug.Log("Removing Delegate: " + mediatorType+" >>> "+reflectedClass);
             //GetInstance Signals and add listeners
             foreach (var pair in reflectedClass.attrMethods)
             {
                 if (pair.Value is not ListensTo attr) continue;
-                if(!toAdd) Debug.Log("Removing Signal: " + attr.type);
-                else Debug.Log("Adding Signal: " + attr.type);
                 var signal = (ISignal)injectionBinder.GetInstance(attr.type,!toAdd);
                 if(signal == null) continue;
-                if (toAdd)
-                    AssignDelegate(mono, signal, pair.Key);
-                else
-                    RemoveDelegate(mono, signal, pair.Key);
+                if (toAdd) AssignDelegate(mono, signal, pair.Key);
+                else RemoveDelegate(mono, signal, pair.Key);
             }
         }
 
         /// Remove any existing ListensTo Delegates
-        protected void RemoveDelegate(object mediator, ISignal signal, MethodInfo method)
+        private void RemoveDelegate(object target, ISignal signal, MethodInfo method)
         {
-            if (signal.GetType().BaseType.IsGenericType) //e.g. Signal<T>, Signal<T,U> etc.
+            var memberInfo = signal.GetType().BaseType;
+            if (memberInfo != null && memberInfo.IsGenericType) //e.g. Signal<T>, Signal<T,U> etc.
             {
-                var toRemove = Delegate.CreateDelegate(signal.listener.GetType(), mediator, method);
+                var toRemove = Delegate.CreateDelegate(signal.listener.GetType(), target, method);
                 signal.listener = Delegate.Remove(signal.listener, toRemove);
             }
             else
             {
-                ((Signal)signal).RemoveListener((Action)Delegate.CreateDelegate(typeof(Action), mediator, method)); //Assign and cast explicitly for Type == Signal case
+                ((Signal)signal).RemoveListener((Action)Delegate.CreateDelegate(typeof(Action), target, method)); //Assign and cast explicitly for Type == Signal case
             }
         }
 
         /// Apply ListensTo delegates
-        protected void AssignDelegate(object mediator, ISignal signal, MethodInfo method)
+        private void AssignDelegate(object target, ISignal signal, MethodInfo method)
         {
-            if (signal.GetType().BaseType.IsGenericType)
+            var memberInfo = signal.GetType().BaseType;
+            if (memberInfo != null && memberInfo.IsGenericType)
             {
-                var toAdd = Delegate.CreateDelegate(signal.listener.GetType(), mediator, method); //e.g. Signal<T>, Signal<T,U> etc.
+                var toAdd = Delegate.CreateDelegate(signal.listener.GetType(), target, method); //e.g. Signal<T>, Signal<T,U> etc.
                 signal.listener = Delegate.Combine(signal.listener, toAdd);
             }
             else
             {
-                ((Signal)signal).AddListener((Action)Delegate.CreateDelegate(typeof(Action), mediator, method)); //Assign and cast explicitly for Type == Signal case
+                ((Signal)signal).AddListener((Action)Delegate.CreateDelegate(typeof(Action), target, method)); //Assign and cast explicitly for Type == Signal case
             }
         }
     }

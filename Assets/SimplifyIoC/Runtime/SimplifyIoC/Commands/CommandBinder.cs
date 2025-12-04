@@ -83,7 +83,7 @@ namespace SimplifyIoC.Commands
 
             if (bindings.ContainsKey(key)) //If this key already exists, don't bind this again
             {
-                var signal = (IBaseSignal)key;
+                var signal = (BaseSignal)key;
                 signal.AddListener(ReactTo); //Do normal bits, then assign the commandlistener to be reactTo
             }
         }
@@ -91,7 +91,7 @@ namespace SimplifyIoC.Commands
         {
             foreach (var key in bindings.Keys)
             {
-                var signal = (IBaseSignal)key;
+                var signal = (BaseSignal)key;
                 if (signal != null)
                 {
                     signal.RemoveListener(ReactTo);
@@ -161,7 +161,7 @@ namespace SimplifyIoC.Commands
 
         protected virtual Command InvokeCommand(Type cmd, ICommandBinding binding, object data, int depth)
         {
-            var signal = (IBaseSignal)binding.key;
+            var signal = (BaseSignal)binding.key;
             var command = CreateCommandForSignal(cmd, data, signal.GetTypes()); //Special signal-only command creation
             command.sequenceId = depth;
             TrackCommand(command, binding);
@@ -406,7 +406,7 @@ namespace SimplifyIoC.Commands
         public new virtual ICommandBinding Bind(object value)
         {
             var binding = injectionBinder.GetBinding(value);
-            IBaseSignal signal = null;
+            BaseSignal signal = null;
 
             if (value is Type type)
             {
@@ -415,7 +415,7 @@ namespace SimplifyIoC.Commands
                     binding = injectionBinder.Bind(value) as IInjectionBinding;
                     binding.ToSingleton();
                 }
-                signal = injectionBinder.GetInstance(type,false) as IBaseSignal;
+                signal = injectionBinder.GetInstance(type,false) as BaseSignal;
             }
             return base.Bind(signal ?? value) as ICommandBinding;
         }
@@ -437,7 +437,7 @@ namespace SimplifyIoC.Commands
         {
             if (bindings.ContainsKey(key))
             {
-                var signal = (IBaseSignal)key;
+                var signal = (BaseSignal)key;
                 signal.RemoveListener(ReactTo);
             }
             base.Unbind(key, name);

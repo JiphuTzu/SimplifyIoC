@@ -2,6 +2,8 @@ using SimplifyIoC.Mediations;
 using SimplifyIoC.Utils;
 using UMa.Signals;
 using UMa.Views;
+using UnityEngine;
+
 //============================================================
 //支持中文，文件使用UTF-8编码
 //@author	JiphuTzu

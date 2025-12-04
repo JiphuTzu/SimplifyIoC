@@ -21,11 +21,11 @@ namespace UMa.Commands
         public Vector3 pos { get; set; }
         public override void Execute()
         {
+            Debug.Log("create object command execute");
             var index = Random.Range(0, objects.Length);
             var go = GameObject.Instantiate(objects[index],root.transform);
             go.transform.position = pos + Vector3.up * Random.Range(0.8f, 1.6f);
             go.SetActive(true);
-            Debug.Log("create object command execute");
         }
     }
 }

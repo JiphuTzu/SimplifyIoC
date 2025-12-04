@@ -45,17 +45,11 @@ namespace SimplifyIoC.Contexts
 {
     public class CrossContextBridge : Binder
 	{
-
-		/// Prevents the currently dispatching Event from cycling back on itself
-		protected HashSet<object> eventsInProgress = new HashSet<object>();
-
-		public CrossContextBridge (){}
-
 		public override IBinding Bind(object key)
 		{
-			var binding = GetRawBinding ();
+			var binding = GetRawBinding();
 			binding.Bind(key);
-			Resolver (binding);
+			Resolver(binding);
 			return binding;
 		}
 	}

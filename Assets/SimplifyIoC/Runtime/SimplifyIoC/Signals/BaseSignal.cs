@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @class SimplifyIoC.Signals.BaseSignal
  * 
  * The base class for all Signals.
@@ -29,14 +29,14 @@ using System.Linq;
 
 namespace SimplifyIoC.Signals
 {
-    public class BaseSignal : IBaseSignal
+    public class BaseSignal
     {
 
         /// The delegate for repeating listeners
-        public event Action<IBaseSignal, object[]> BaseListener = null;
+        private event Action<BaseSignal, object[]> _baseListener = null;
 
         /// The delegate for one-off listeners
-        public event Action<IBaseSignal, object[]> OnceBaseListener = null;
+        private event Action<BaseSignal, object[]> _onceBaseListener = null;
 
         /// <summary>
         /// Sends a Dispatch to all listeners with the provided arguments
@@ -44,11 +44,9 @@ namespace SimplifyIoC.Signals
         /// <param name="args">A list of values which must be implemented by listening methods.</param>
         public void Dispatch(object[] args)
         {
-            if (BaseListener != null)
-                BaseListener(this, args);
-            if (OnceBaseListener != null)
-                OnceBaseListener(this, args);
-            OnceBaseListener = null;
+            _baseListener?.Invoke(this, args);
+            _onceBaseListener?.Invoke(this, args);
+            _onceBaseListener = null;
         }
 
         public virtual List<Type> GetTypes() { return new List<Type>(); }
@@ -57,18 +55,18 @@ namespace SimplifyIoC.Signals
         /// Adds a listener.
         /// </summary>
         /// <param name="callback">The method to be called when Dispatch fires.</param>
-        public void AddListener(Action<IBaseSignal, object[]> callback)
+        public void AddListener(Action<BaseSignal, object[]> callback)
         {
-            BaseListener = AddUnique(BaseListener, callback);
+            _baseListener = AddUnique(_baseListener, callback);
         }
 
         /// <summary>
         /// Adds a listener which will be removed immediately after the Signal fires.
         /// </summary>
         /// <param name="callback">The method to be called when Dispatch fires.</param>
-        public void AddOnce(Action<IBaseSignal, object[]> callback)
+        public void AddOnce(Action<BaseSignal, object[]> callback)
         {
-            OnceBaseListener = AddUnique(OnceBaseListener, callback);
+            _onceBaseListener = AddUnique(_onceBaseListener, callback);
         }
 
         private Action<T, U> AddUnique<T, U>(Action<T, U> listeners, Action<T, U> callback)
@@ -84,10 +82,10 @@ namespace SimplifyIoC.Signals
         /// Removes the listener.
         /// </summary>
         /// <param name="callback">The callback to be removed.</param>
-        public void RemoveListener(Action<IBaseSignal, object[]> callback)
+        public void RemoveListener(Action<BaseSignal, object[]> callback)
         {
-            if (BaseListener != null)
-                BaseListener -= callback;
+            if (_baseListener != null)
+                _baseListener -= callback;
         }
 
         /// <summary>
@@ -95,9 +93,8 @@ namespace SimplifyIoC.Signals
         /// </summary>
         public virtual void RemoveAllListeners()
         {
-            BaseListener = null;
-            OnceBaseListener = null;
+            _baseListener = null;
+            _onceBaseListener = null;
         }
-
     }
 }

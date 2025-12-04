@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @interface SimplifyIoC.Promises.IPromise
  *
  * Promises are an elegant pattern for handling asynchronous data, as well as data 

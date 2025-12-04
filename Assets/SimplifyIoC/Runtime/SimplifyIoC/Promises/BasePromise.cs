@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @class SimplifyIoC.Promises.BasePromise
  *
  * @see SimplifyIoC.Promises.IPromise

@@ -24,12 +24,13 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using SimplifyIoC.Framework;
+using UnityEngine;
 
 namespace SimplifyIoC.Pools
 {
     public class Pool<T> : Pool, IPool<T>
 	{
-		public Pool() : base()
+		public Pool()
 		{
 			poolType = typeof(T);
 		}
@@ -66,9 +67,9 @@ namespace SimplifyIoC.Pools
 
 		public virtual IManagedList Add (object value)
 		{
-			FailIf(value.GetType () != poolType, "Pool Type mismatch. Pools must consist of a common concrete type.\n\t\tPool type: " + poolType.ToString() + "\n\t\tMismatch type: " + value.GetType ().ToString(), PoolExceptionType.TYPE_MISMATCH);
+			FailIf(value.GetType () != poolType, "Pool Type mismatch. Pools must consist of a common concrete type.\n\t\tPool type: " + poolType + "\n\t\tMismatch type: " + value.GetType ());
 			instanceCount++;
-			instancesAvailable.Push (value);
+			instancesAvailable.Push(value);
 			return this;
 		}
 
@@ -142,12 +143,11 @@ namespace SimplifyIoC.Pools
 				{
 					//Illegal overflow. Report and return null
 					FailIf (overflowBehavior == PoolOverflowBehavior.EXCEPTION,
-						"A pool has overflowed its limit.\n\t\tPool type: " + poolType,
-						PoolExceptionType.OVERFLOW);
+						"A pool has overflowed its limit.\n\t\tPool type: " + poolType);
 
 					if (overflowBehavior == PoolOverflowBehavior.WARNING)
 					{
-						Console.WriteLine ("WARNING: A pool has overflowed its limit.\n\t\tPool type: " + poolType, PoolExceptionType.OVERFLOW);
+						Debug.Log("WARNING: A pool has overflowed its limit.\n\t\tPool type: " + poolType);
 					}
 					return null;
 				}
@@ -167,7 +167,7 @@ namespace SimplifyIoC.Pools
 
 			if (instancesToCreate > 0)
 			{
-				FailIf (instanceProvider == null, "A Pool of type: " + poolType + " has no instance provider.", PoolExceptionType.NO_INSTANCE_PROVIDER);
+				FailIf (instanceProvider == null, "A Pool of type: " + poolType + " has no instance provider.");
 
 				for (var a = 0; a < instancesToCreate; a++)
 				{
@@ -249,7 +249,7 @@ namespace SimplifyIoC.Pools
 		/// <param name="value">An instance to remove permanently from the Pool.</param>
 		protected virtual void RemoveInstance(object value)
 		{
-			FailIf (value.GetType() != poolType, "Attempt to remove a instance from a pool that is of the wrong Type:\n\t\tPool type: " + poolType.ToString() + "\n\t\tInstance type: " + value.GetType().ToString(), PoolExceptionType.TYPE_MISMATCH);
+			FailIf (value.GetType() != poolType, "Attempt to remove a instance from a pool that is of the wrong Type:\n\t\tPool type: " + poolType + "\n\t\tInstance type: " + value.GetType());
 			if (instancesInUse.Contains(value))
 			{
 				instancesInUse.Remove (value);
@@ -260,11 +260,11 @@ namespace SimplifyIoC.Pools
 			}
 		}
 
-		protected void FailIf(bool condition, string message, PoolExceptionType type)
+		private void FailIf(bool condition, string message)
 		{
 			if (condition)
 			{
-				throw new PoolException(message, type);
+				throw new Exception(message);
 			}
 		}
 	}
