@@ -51,7 +51,7 @@ namespace SimplifyIoC.Injectors
 
         public InjectorFactory factory { get; set; } = new InjectorFactory();
         public IInjectionBinder binder { get; set; }
-        public IReflectionBinder reflector { get; set; }
+        public ReflectionBinder reflector { get; set; }
 
         public object Instantiate(IInjectionBinding binding, bool tryInjectHere)
         {
@@ -171,7 +171,7 @@ namespace SimplifyIoC.Injectors
             PerformUninjection(target, reflection);
         }
 
-        private object PerformConstructorInjection(object target, IReflectedClass reflection)
+        private object PerformConstructorInjection(object target, ReflectedClass reflection)
         {
             FailIf(target == null, "Attempt to perform constructor injection into a null object", InjectionExceptionType.NULL_TARGET);
             FailIf(reflection == null, "Attempt to perform constructor injection without a reflection", InjectionExceptionType.NULL_REFLECTION);
@@ -198,7 +198,7 @@ namespace SimplifyIoC.Injectors
             return (constructedObj == null) ? target : constructedObj;
         }
 
-        private void PerformSetterInjection(object target, IReflectedClass reflection)
+        private void PerformSetterInjection(object target, ReflectedClass reflection)
         {
             FailIf(target == null, "Attempt to inject into a null object", InjectionExceptionType.NULL_TARGET);
             FailIf(reflection == null, "Attempt to inject without a reflection", InjectionExceptionType.NULL_REFLECTION);
@@ -253,7 +253,7 @@ namespace SimplifyIoC.Injectors
         }
 
         //After injection, call any methods labelled with the [PostConstruct] tag
-        private void PostInject(object target, IReflectedClass reflection)
+        private void PostInject(object target, ReflectedClass reflection)
         {
             FailIf(target == null, "Attempt to PostConstruct a null target", InjectionExceptionType.NULL_TARGET);
             FailIf(reflection == null, "Attempt to PostConstruct without a reflection", InjectionExceptionType.NULL_REFLECTION);
@@ -269,7 +269,7 @@ namespace SimplifyIoC.Injectors
         }
 
         //Note that uninjection can only clean publicly settable points
-        private void PerformUninjection(object target, IReflectedClass reflection)
+        private void PerformUninjection(object target, ReflectedClass reflection)
         {
             foreach (var attr in reflection.setters)
                 attr.propertyInfo.SetValue(target, null, null);

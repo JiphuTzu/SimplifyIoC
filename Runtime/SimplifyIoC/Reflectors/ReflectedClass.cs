@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @class SimplifyIoC.Reflectors.ReflectedClass
  * 
  * A reflection of a class.
@@ -31,7 +31,20 @@ using System.Reflection;
 
 namespace SimplifyIoC.Reflectors
 {
-    public class ReflectedClass : IReflectedClass
+    public struct ReflectedAttribute
+    {
+        public Type type;
+        public object name;
+        public PropertyInfo propertyInfo;
+
+        public ReflectedAttribute(Type type, PropertyInfo propertyInfo, object name )
+        {
+            this.type = type;
+            this.propertyInfo = propertyInfo;
+            this.name = name;
+        }
+    }
+    public class ReflectedClass
     {
         public ConstructorInfo constructor { get; set; }
         public Type[] constructorParameters { get; set; }

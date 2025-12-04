@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @class SimplifyIoC.Reflectors.ReflectionBinder
  * 
  * Uses System.Reflection to create `ReflectedClass` instances.
@@ -32,33 +32,33 @@ using SimplifyIoC.Framework;
 
 namespace SimplifyIoC.Reflectors
 {
-    public class ReflectionBinder : SimplifyIoC.Framework.Binder, IReflectionBinder
+    public class ReflectionBinder : Framework.Binder
     {
         public ReflectionBinder(){}
 
-        public IReflectedClass Get<T>()
+        public ReflectedClass Get<T>()
         {
             return Get(typeof(T));
         }
 
-        public IReflectedClass Get(Type type)
+        public ReflectedClass Get(Type type)
         {
             var binding = GetBinding(type);
-            IReflectedClass retv;
+            ReflectedClass retv;
             if (binding == null)
             {
                 binding = GetRawBinding();
-                IReflectedClass reflected = new ReflectedClass();
+                ReflectedClass reflected = new ReflectedClass();
                 MapPreferredConstructor(reflected, binding, type);
                 MapSetters(reflected, binding, type); //map setters before mapping methods
                 MapMethods(reflected, binding, type);
                 binding.Bind(type).To(reflected);
-                retv = binding.value as IReflectedClass;
+                retv = binding.value as ReflectedClass;
                 retv.preGenerated = false;
             }
             else
             {
-                retv = binding.value as IReflectedClass;
+                retv = binding.value as ReflectedClass;
                 retv.preGenerated = true;
             }
             return retv;
@@ -71,12 +71,12 @@ namespace SimplifyIoC.Reflectors
             return binding;
         }
 
-        private void MapPreferredConstructor(IReflectedClass reflected, IBinding binding, Type type)
+        private void MapPreferredConstructor(ReflectedClass reflected, IBinding binding, Type type)
         {
             var constructor = FindPreferredConstructor(type);
             if (constructor == null)
             {
-                throw new ReflectionException("The reflector requires concrete classes.\nType " + type + " has no constructor. Is it an interface?", ReflectionExceptionType.CANNOT_REFLECT_INTERFACE);
+                throw new Exception("The reflector requires concrete classes.\nType " + type + " has no constructor. Is it an interface?");
             }
             var parameters = constructor.GetParameters();
 
@@ -135,7 +135,7 @@ namespace SimplifyIoC.Reflectors
             return shortestConstructor;
         }
 
-        private void MapMethods(IReflectedClass reflected, IBinding binding, Type type)
+        private void MapMethods(ReflectedClass reflected, IBinding binding, Type type)
         {
             var methods = type.GetMethods(BindingFlags.FlattenHierarchy |
                                           BindingFlags.Public |
@@ -168,7 +168,7 @@ namespace SimplifyIoC.Reflectors
             reflected.attrMethods = attrMethods.ToArray();
         }
 
-        private void MapSetters(IReflectedClass reflected, IBinding binding, Type type)
+        private void MapSetters(ReflectedClass reflected, IBinding binding, Type type)
         {
             var privateMembers = type.FindMembers(MemberTypes.Property,
                                                     BindingFlags.FlattenHierarchy |
@@ -181,7 +181,7 @@ namespace SimplifyIoC.Reflectors
                 var injections = member.GetCustomAttributes(typeof(Inject), true);
                 if (injections.Length > 0)
                 {
-                    throw new ReflectionException("The class " + type.Name + " has a non-public Injection setter " + member.Name + ". Make the setter public to allow injection.", ReflectionExceptionType.CANNOT_INJECT_INTO_NONPUBLIC_SETTER);
+                    throw new Exception("The class " + type.Name + " has a non-public Injection setter " + member.Name + ". Make the setter public to allow injection.");
                 }
             }
 

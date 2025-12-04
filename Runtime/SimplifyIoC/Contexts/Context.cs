@@ -194,7 +194,7 @@ namespace SimplifyIoC.Contexts
         public virtual void AddView(View view)
         {
             if (mediationBinder != null)
-                mediationBinder.Trigger(MediationEvent.AWAKE, view);
+                mediationBinder.Trigger(MediationEvent.Awake, view);
             else
                 CacheView(view);
         }
@@ -202,19 +202,19 @@ namespace SimplifyIoC.Contexts
         /// Remove a View from this Context
         public virtual void RemoveView(View view)
         {
-            mediationBinder.Trigger(MediationEvent.DESTROYED, view);
+            mediationBinder.Trigger(MediationEvent.Destroyed, view);
         }
 
         /// Enable a View from this Context
         public virtual void EnableView(View view)
         {
-            mediationBinder.Trigger(MediationEvent.ENABLED, view);
+            mediationBinder.Trigger(MediationEvent.Enabled, view);
         }
 
         /// Disable a View from this Context
         public virtual void DisableView(View view)
         {
-            mediationBinder.Trigger(MediationEvent.DISABLED, view);
+            mediationBinder.Trigger(MediationEvent.Disabled, view);
         }
 
         public override void OnRemove()
@@ -236,7 +236,7 @@ namespace SimplifyIoC.Contexts
             var aa = values.Length;
             for (var a = 0; a < aa; a++)
             {
-                mediationBinder.Trigger(MediationEvent.AWAKE, values[a] as View);
+                mediationBinder.Trigger(MediationEvent.Awake, values[a] as View);
             }
             _viewCache = new SemiBinding();
         }

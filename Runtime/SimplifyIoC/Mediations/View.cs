@@ -67,7 +67,7 @@ namespace SimplifyIoC.Mediations
         {
             InitAttributes();
             if (autoRegisterWithContext && !registeredWithContext && shouldRegister)
-                BubbleToContext(this, BubbleType.Add, false);
+                BubbleToContext(BubbleType.Add, false);
         }
 
         protected virtual void InitAttributes()
@@ -90,7 +90,7 @@ namespace SimplifyIoC.Mediations
         protected virtual void Start()
         {
             if (autoRegisterWithContext && !registeredWithContext && shouldRegister)
-                BubbleToContext(this, BubbleType.Add, true);
+                BubbleToContext(BubbleType.Add, true);
         }
 
         /// A MonoBehaviour OnDestroy handler
@@ -98,54 +98,54 @@ namespace SimplifyIoC.Mediations
         /// destroyed.
         protected virtual void OnDestroy()
         {
-            BubbleToContext(this, BubbleType.Remove, false);
+            BubbleToContext(BubbleType.Remove, false);
         }
 
         /// A MonoBehaviour OnEnable handler
         /// The View will inform the Context that it was enabled
         protected virtual void OnEnable()
         {
-            BubbleToContext(this, BubbleType.Enable, false);
+            BubbleToContext(BubbleType.Enable, false);
         }
 
         /// A MonoBehaviour OnDisable handler
         /// The View will inform the Context that it was disabled
         protected virtual void OnDisable()
         {
-            BubbleToContext(this, BubbleType.Disable, false);
+            BubbleToContext(BubbleType.Disable, false);
         }
 
         /// Recurses through Transform.parent to find the GameObject to which ContextView is attached
         /// Has a loop limit of 100 levels.
         /// By default, raises an Exception if no Context is found.
-        protected void BubbleToContext(View view, BubbleType type, bool finalTry)
+        protected void BubbleToContext(BubbleType type, bool finalTry)
         {
             const int LOOP_MAX = 100;
             var loopLimiter = 0;
-            var trans = view.gameObject.transform;
+            var trans = transform;
             while (trans.parent != null && loopLimiter < LOOP_MAX)
             {
                 loopLimiter++;
                 trans = trans.parent;
-                var contextView = trans.gameObject.GetComponent<ContextView>();
+                var contextView = trans.GetComponent<ContextView>();
                 if (contextView != null && contextView.context != null)
                 {
                     var context = contextView.context;
                     switch (type)
                     {
                         case BubbleType.Add:
-                            context.AddView(view);
+                            context.AddView(this);
                             registeredWithContext = true;
-                            break;
+                            return;
                         case BubbleType.Remove:
-                            context.RemoveView(view);
-                            break;
+                            context.RemoveView(this);
+                            return;
                         case BubbleType.Enable:
-                            context.EnableView(view);
-                            break;
+                            context.EnableView(this);
+                            return;
                         case BubbleType.Disable:
-                            context.DisableView(view);
-                            break;
+                            context.DisableView(this);
+                            return;
                         default:
                             return;
                     }
@@ -156,7 +156,7 @@ namespace SimplifyIoC.Mediations
             //last ditch. If there's a Context anywhere, we'll use it!
             if (Context.firstContext != null)
             {
-                Context.firstContext.AddView(view);
+                Context.firstContext.AddView(this);
                 registeredWithContext = true;
                 return;
             }
@@ -164,7 +164,7 @@ namespace SimplifyIoC.Mediations
             var msg = loopLimiter == LOOP_MAX ?
                 "A view couldn't find a context. Loop limit reached." :
                 "A view was added with no context. Views must be added into the hierarchy of their ContextView lest all hell break loose.";
-            msg += "\nView: " + view;
+            msg += "\nView: " + this;
             throw new Exception(msg);
         }
     }
