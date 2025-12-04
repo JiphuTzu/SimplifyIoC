@@ -33,10 +33,10 @@ namespace SimplifyIoC.Signals
     {
 
         /// The delegate for repeating listeners
-        private event Action<BaseSignal, object[]> _baseListener = null;
+        private Action<BaseSignal, object[]> _baseListener;
 
         /// The delegate for one-off listeners
-        private event Action<BaseSignal, object[]> _onceBaseListener = null;
+        private Action<BaseSignal, object[]> _onceBaseListener;
 
         /// <summary>
         /// Sends a Dispatch to all listeners with the provided arguments

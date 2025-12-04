@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @class Inject
  * 
  * The `[Inject]` attribute marks a setter Injection point.

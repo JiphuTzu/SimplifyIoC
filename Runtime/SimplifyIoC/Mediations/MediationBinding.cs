@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @interface SimplifyIoC.Mediations.MediationBinding
  * 
  * Subclass of Binding for MediationBinding.

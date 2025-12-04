@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @interface SimplifyIoC.Injectors.ICrossContextInjectionBinder
  * 
  * A special version of InjectionBinder that allows shared injections across multiple Contexts.

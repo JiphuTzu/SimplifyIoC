@@ -16,14 +16,14 @@
 
 
 
-/**
-* @class SimplifyIoC.Injectors.CrossContextInjectionBinder
-* 
-* A special version of InjectionBinder that allows shared injections across multiple Contexts.
-* 
-* @see SimplifyIoC.Injectors.IInjectionBinder
-* @see SimplifyIoC.Injectors.ICrossContextInjectionBinder
-*/
+/*
+ * @class SimplifyIoC.Injectors.CrossContextInjectionBinder
+ * 
+ * A special version of InjectionBinder that allows shared injections across multiple Contexts.
+ * 
+ * @see SimplifyIoC.Injectors.IInjectionBinder
+ * @see SimplifyIoC.Injectors.ICrossContextInjectionBinder
+ */
 using SimplifyIoC.Framework;
 namespace SimplifyIoC.Injectors
 {

@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @class SimplifyIoC.Injectors.InjectorFactory
  * 
  * The Factory that instantiates all instances.
@@ -32,15 +32,15 @@ namespace SimplifyIoC.Injectors
         {
             if (binding == null)
             {
-                throw new InjectionException("InjectorFactory cannot act on null binding", InjectionExceptionType.NULL_BINDING);
+                throw new Exception("InjectorFactory cannot act on null binding");
             }
             var type = binding.type;
 
             switch (type)
             {
-                case InjectionBindingType.SINGLETON:
+                case InjectionBindingType.Singleton:
                     return SingletonOf(binding, args);
-                case InjectionBindingType.VALUE:
+                case InjectionBindingType.Value:
                     return ValueOf(binding);
                 default:
                     break;
@@ -85,7 +85,7 @@ namespace SimplifyIoC.Injectors
             {
                 return CreateFromValue(key, args);
             }
-            throw new InjectionException("InjectorFactory can't instantiate an Interface or Abstract Class. Class: " + key.ToString(), InjectionExceptionType.NOT_INSTANTIABLE);
+            throw new Exception("InjectorFactory can't instantiate an Interface or Abstract Class. Class: " + key);
         }
 
         /// The binding already has a value. Simply return it.

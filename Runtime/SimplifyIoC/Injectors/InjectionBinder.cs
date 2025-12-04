@@ -53,7 +53,7 @@ namespace SimplifyIoC.Injectors
             if (binding == null)
             {
                 if (ignoreException) return null;
-                throw new InjectionException("InjectionBinder has no binding for:\n\tkey: " + key + "\nname: " + name, InjectionExceptionType.NULL_BINDING);
+                throw new Exception("InjectionBinder has no binding for:\n\tkey: " + key + "\nname: " + name);
             }
             var instance = GetInjectorForBinding(binding).Instantiate(binding, false);
             injector.TryInject(binding, instance);

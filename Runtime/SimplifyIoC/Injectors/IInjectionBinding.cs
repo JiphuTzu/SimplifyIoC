@@ -50,6 +50,17 @@ using SimplifyIoC.Framework;
 
 namespace SimplifyIoC.Injectors
 {
+    public enum InjectionBindingType
+    {
+        /// The binding provides a new instance every time
+        Default,
+
+        /// The binding always provides the same instance
+        Singleton,
+
+        /// The binding always provides the same instance based on a provided value
+        Value,
+    }
     public interface IInjectionBinding : IBinding
     {
         /// Map the Binding to a Singleton so that every `GetInstance()` on the Binder Key returns the same imstance.
@@ -82,7 +93,7 @@ namespace SimplifyIoC.Injectors
         bool isCrossContext { get; }
 
         /// Boolean setter to optionally override injection. If false, the instance will not be injected after instantiation.
-        IInjectionBinding ToInject(bool value);
+        IInjectionBinding ToInject(bool inject);
 
         /// Get the parameter that specifies whether this Binding allows an instance to be injected
         bool toInject { get; }

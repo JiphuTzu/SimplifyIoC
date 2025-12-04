@@ -78,8 +78,8 @@ namespace SimplifyIoC.Signals
     /// Base concrete form for a Signal with no parameters
     public class Signal : BaseSignal, ISignal
     {
-        private event Action _listener = null;
-        private event Action _onceListener = null;
+        private Action _listener;
+        private Action _onceListener;
 
         public void AddListener(Action callback)
         {
@@ -102,10 +102,8 @@ namespace SimplifyIoC.Signals
         }
         public void Dispatch()
         {
-            if (_listener != null)
-                _listener();
-            if (_onceListener != null)
-                _onceListener();
+            _listener?.Invoke();
+            _onceListener?.Invoke();
             _onceListener = null;
             base.Dispatch(null);
         }
@@ -128,7 +126,11 @@ namespace SimplifyIoC.Signals
 
         public Delegate listener
         {
-            get { return _listener ?? (_listener = delegate { }); }
+            get
+            {
+                if (_listener == null) _listener = delegate { };
+                return _listener;
+            }
             set => _listener = (Action)value;
         }
     }
@@ -136,8 +138,8 @@ namespace SimplifyIoC.Signals
     /// Base concrete form for a Signal with one parameter
     public class Signal<T> : BaseSignal, ISignal
     {
-        private event Action<T> _listener = null;
-        private event Action<T> _onceListener = null;
+        private Action<T> _listener;
+        private Action<T> _onceListener;
 
         public void AddListener(Action<T> callback)
         {
@@ -195,8 +197,8 @@ namespace SimplifyIoC.Signals
     /// Base concrete form for a Signal with two parameters
     public class Signal<T, U> : BaseSignal, ISignal
     {
-        private event Action<T, U> _listener = null;
-        private event Action<T, U> _onceListener = null;
+        private Action<T, U> _listener;
+        private Action<T, U> _onceListener;
 
         public void AddListener(Action<T, U> callback)
         {
@@ -257,8 +259,8 @@ namespace SimplifyIoC.Signals
     /// Base concrete form for a Signal with three parameters
     public class Signal<T, U, V> : BaseSignal, ISignal
     {
-        private event Action<T, U, V> _listener = null;
-        private event Action<T, U, V> _onceListener = null;
+        private Action<T, U, V> _listener;
+        private Action<T, U, V> _onceListener;
 
         public void AddListener(Action<T, U, V> callback)
         {
@@ -319,8 +321,8 @@ namespace SimplifyIoC.Signals
     /// Base concrete form for a Signal with four parameters
     public class Signal<T, U, V, W> : BaseSignal, ISignal
     {
-        private event Action<T, U, V, W> _listener = null;
-        private event Action<T, U, V, W> _onceListener = null;
+        private Action<T, U, V, W> _listener;
+        private Action<T, U, V, W> _onceListener;
 
         public void AddListener(Action<T, U, V, W> callback)
         {

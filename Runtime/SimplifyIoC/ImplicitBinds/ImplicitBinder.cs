@@ -25,7 +25,6 @@ namespace SimplifyIoC.ImplicitBinds
 {
     public class ImplicitBinder : IImplicitBinder
 	{
-
 		[Inject]
 		public IInjectionBinder injectionBinder { get; set; }
 
@@ -82,12 +81,11 @@ namespace SimplifyIoC.ImplicitBinds
 						var implBy = (ImplementedBy)implementedBy.First();
 						if (implBy.defaultType.GetInterfaces().Contains(type)) //Verify this DefaultType exists and implements the tagged interface
 						{
-							implementedByBindings.Add(new ImplicitBindingVO(type, implBy.defaultType, implBy.scope == InjectionBindingScope.CROSS_CONTEXT, null));
+							implementedByBindings.Add(new ImplicitBindingVO(type, implBy.defaultType, implBy.scope == InjectionBindingScope.CrossContext, null));
 						}
 						else
 						{
-							throw new InjectionException("Default Type: " + implBy.defaultType.Name + " does not implement annotated interface " + type.Name,
-								InjectionExceptionType.IMPLICIT_BINDING_IMPLEMENTOR_DOES_NOT_IMPLEMENT_INTERFACE);
+							throw new Exception("Default Type: " + implBy.defaultType.Name + " does not implement annotated interface " + type.Name);
 						}
 
 					}
@@ -112,8 +110,7 @@ namespace SimplifyIoC.ImplicitBinds
 								}
 								else
 								{
-									throw new InjectionException("Annotated type " + type.Name + " does not implement Default Interface " + impl.defaultInterface.Name,
-									InjectionExceptionType.IMPLICIT_BINDING_TYPE_DOES_NOT_IMPLEMENT_DESIGNATED_INTERFACE);
+									throw new Exception("Annotated type " + type.Name + " does not implement Default Interface " + impl.defaultInterface.Name);
 								}
 							}
 							else //Concrete
@@ -124,7 +121,7 @@ namespace SimplifyIoC.ImplicitBinds
 								bindTypes.Add(type);
 							}
 
-							isCrossContext = isCrossContext || impl.scope == InjectionBindingScope.CROSS_CONTEXT;
+							isCrossContext = isCrossContext || impl.scope == InjectionBindingScope.CrossContext;
 							name = name ?? impl.name;
 						}
 
@@ -171,7 +168,7 @@ namespace SimplifyIoC.ImplicitBinds
 			}
 			else
 			{
-				throw new InjectionException("Assembly was not initialized yet for Implicit Bindings!", InjectionExceptionType.UNINITIALIZED_ASSEMBLY);
+				throw new Exception("Assembly was not initialized yet for Implicit Bindings!");
 			}
 		}
 
