@@ -38,9 +38,9 @@ using UnityEngine;
 
 namespace SimplifyIoC.Contexts
 {
-    public class ContextView : MonoBehaviour, IView
+    public class ContextView : MonoBehaviour
 	{
-		public Context context { get; set; }
+		public Context context { get; protected set; }
 
 		/// <summary>
 		/// When a ContextView is Destroyed, automatically removes the associated Context.

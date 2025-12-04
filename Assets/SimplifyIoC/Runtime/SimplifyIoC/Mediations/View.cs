@@ -26,20 +26,12 @@
 using System;
 using SimplifyIoC.Contexts;
 using SimplifyIoC.Injectors;
-using SimplifyIoC.Signals;
 using UnityEngine;
 
 namespace SimplifyIoC.Mediations
 {
-    public abstract class View : MonoBehaviour, IView
+    public abstract class View : MonoBehaviour
     {
-        [Inject]
-        public IInjectionBinder injectionBinder { get; set; }
-        /// Leave this value true most of the time. If for some reason you want
-        /// a view to exist outside a context you can set it to false. The only
-        /// difference is whether an error gets generated.
-        public bool requiresContext { get; set; } = true;
-
         /// Determines the type of event the View is bubbling to the Context
         protected enum BubbleType
         {
@@ -48,7 +40,14 @@ namespace SimplifyIoC.Mediations
             Enable,
             Disable
         }
-
+        
+        [Inject]
+        public IInjectionBinder injectionBinder { get; set; }
+        /// Leave this value true most of the time. If for some reason you want
+        /// a view to exist outside a context you can set it to false. The only
+        /// difference is whether an error gets generated.
+        public bool requiresContext { get; set; } = true;
+        
         /// A flag for allowing the View to register with the Context
         /// In general you can ignore this. But some developers have asked for a way of disabling
         ///  View registration with a checkbox from Unity, so here it is.
@@ -59,6 +58,8 @@ namespace SimplifyIoC.Mediations
         public virtual bool autoRegisterWithContext { get; set; } = true;
 
         public bool registeredWithContext { get; set; }
+        
+        public bool shouldRegister => enabled && gameObject.activeInHierarchy;
 
         /// A MonoBehaviour Awake handler.
         /// The View will attempt to connect to the Context at this moment.
@@ -78,10 +79,10 @@ namespace SimplifyIoC.Mediations
             //     .ParseAttributes();
         }
 
-        protected T Get<T>() where T : BaseSignal
-        {
-            return injectionBinder.GetInstance<T>();
-        }
+        // protected T Get<T>() where T : BaseSignal
+        // {
+        //     return injectionBinder.GetInstance<T>();
+        // }
 
         /// A MonoBehaviour Start handler
         /// If the View is not yet registered with the Context, it will 
@@ -150,24 +151,21 @@ namespace SimplifyIoC.Mediations
                     }
                 }
             }
-            if (requiresContext && finalTry && type == BubbleType.Add)
+
+            if (!requiresContext || !finalTry || type != BubbleType.Add) return;
+            //last ditch. If there's a Context anywhere, we'll use it!
+            if (Context.firstContext != null)
             {
-                //last ditch. If there's a Context anywhere, we'll use it!
-                if (Context.firstContext != null)
-                {
-                    Context.firstContext.AddView(view);
-                    registeredWithContext = true;
-                    return;
-                }
-
-                var msg = (loopLimiter == LOOP_MAX) ?
-                    "A view couldn't find a context. Loop limit reached." :
-                        "A view was added with no context. Views must be added into the hierarchy of their ContextView lest all hell break loose.";
-                msg += "\nView: " + view;
-                throw new Exception(msg);
+                Context.firstContext.AddView(view);
+                registeredWithContext = true;
+                return;
             }
-        }
 
-        public bool shouldRegister => enabled && gameObject.activeInHierarchy;
+            var msg = loopLimiter == LOOP_MAX ?
+                "A view couldn't find a context. Loop limit reached." :
+                "A view was added with no context. Views must be added into the hierarchy of their ContextView lest all hell break loose.";
+            msg += "\nView: " + view;
+            throw new Exception(msg);
+        }
     }
 }
