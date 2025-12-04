@@ -55,14 +55,13 @@ namespace SimplifyIoC.Mediations
         public IInjectionBinder injectionBinder { get; set; }
         public override IBinding GetRawBinding()
         {
-            return new MediationBinding(Resolver) as IBinding;
+            return new MediationBinding(Resolver);
         }
 
-        public virtual void Trigger(MediationEvent evt, IView view)
+        public virtual void Trigger(MediationEvent evt, View view)
         {
             var viewType = view.GetType();
-            var binding = GetBinding(viewType) as IMediationBinding;
-            if (binding != null)
+            if (GetBinding(viewType) is IMediationBinding binding)
             {
                 switch (evt)
                 {
@@ -88,44 +87,47 @@ namespace SimplifyIoC.Mediations
                 //Even if not mapped, Views (and their children) have potential to be injected
                 InjectViewAndChildren(view);
             }
+            // else if (evt == MediationEvent.DESTROYED)
+            // {
+            //     Debug.Log("Upmap View "+view);
+            //     UnmapView(view, null);
+            // }
         }
 
         /// Add a Mediator to a View. If the mediator is a "true" Mediator (i.e., it
         /// implements IMediator), perform PreRegister and OnRegister.
-        protected virtual void ApplyMediationToView(IMediationBinding binding, IView view, Type mediatorType)
+        protected virtual void ApplyMediationToView(IMediationBinding binding, View view, Type mediatorType)
         {
             var isTrueMediator = IsTrueMediator(mediatorType);
-            if (!isTrueMediator || !HasMediator(view, mediatorType))
+            if (isTrueMediator && HasMediator(view, mediatorType)) return;
+            var viewType = view.GetType();
+            var mediator = CreateMediator(view, mediatorType);
+
+            if (mediator == null)
+                ThrowNullMediatorError(viewType, mediatorType);
+            if (isTrueMediator)
+                ((Mediator)mediator).PreRegister();
+
+            var typeToInject = (binding.abstraction == null || binding.abstraction.Equals(BindingConst.NULLOID)) ? viewType : binding.abstraction as Type;
+            injectionBinder.Bind(typeToInject).ToValue(view).ToInject(false);
+            injectionBinder.injector.Inject(mediator);
+            injectionBinder.Unbind(typeToInject);
+            if (isTrueMediator)
             {
-                var viewType = view.GetType();
-                var mediator = CreateMediator(view, mediatorType);
-
-                if (mediator == null)
-                    ThrowNullMediatorError(viewType, mediatorType);
-                if (isTrueMediator)
-                    ((IMediator)mediator).PreRegister();
-
-                var typeToInject = (binding.abstraction == null || binding.abstraction.Equals(BindingConst.NULLOID)) ? viewType : binding.abstraction as Type;
-                injectionBinder.Bind(typeToInject).ToValue(view).ToInject(false);
-                injectionBinder.injector.Inject(mediator);
-                injectionBinder.Unbind(typeToInject);
-                if (isTrueMediator)
-                {
-                    ((IMediator)mediator).OnRegister();
-                }
+                ((Mediator)mediator).OnRegister();
             }
         }
 
         /// Add Mediators to Views. We make this virtual to allow for different concrete
         /// behaviors for different View/Mediation Types (e.g., MonoBehaviours require 
         /// different handling than EditorWindows)
-        protected virtual void InjectViewAndChildren(IView view)
+        protected virtual void InjectViewAndChildren(View view)
         {
             var views = GetViews(view);
             var aa = views.Length;
             for (var a = aa - 1; a > -1; a--)
             {
-                var iView = views[a] as IView;
+                var iView = views[a];
                 if (iView != null && iView.shouldRegister)
                 {
                     if (iView.autoRegisterWithContext && iView.registeredWithContext)
@@ -133,18 +135,17 @@ namespace SimplifyIoC.Mediations
                         continue;
                     }
                     iView.registeredWithContext = true;
-                    if (iView.Equals(view) == false)
+                    if (!iView.Equals(view))
                         Trigger(MediationEvent.AWAKE, iView);
                 }
             }
             injectionBinder.injector.Inject(view, false);
-            var mono = view as MonoBehaviour;
-            HandleDelegates(view, mono.GetType(), true);
+            HandleDelegates(view, view.GetType(), true);
         }
 
         protected virtual bool IsTrueMediator(Type mediatorType)
         {
-            return typeof(IMediator).IsAssignableFrom(mediatorType);
+            return typeof(Mediator).IsAssignableFrom(mediatorType);
         }
 
         // protected override IBinding PerformKeyValueBindings(List<object> keyList, List<object> valueList)
@@ -239,7 +240,7 @@ namespace SimplifyIoC.Mediations
 
         /// Creates and registers one or more Mediators for a specific View instance.
         /// Takes a specific View instance and a binding and, if a binding is found for that type, creates and registers a Mediator.
-        protected virtual void MapView(IView view, IMediationBinding binding)
+        protected virtual void MapView(View view, IMediationBinding binding)
         {
             var viewType = view.GetType();
 
@@ -263,27 +264,26 @@ namespace SimplifyIoC.Mediations
         }
 
         /// Removes a mediator when its view is destroyed
-        protected virtual void UnmapView(IView view, IMediationBinding binding)
+        protected virtual void UnmapView(View view, IMediationBinding binding)
         {
-            TriggerInBindings(view, binding, DestroyMediator);
-            var mono = view as MonoBehaviour;
-            HandleDelegates(view, mono.GetType(), false);
+            if(binding != null) TriggerInBindings(view, binding, DestroyMediator);
+            HandleDelegates(view, view.GetType(), false);
         }
 
         /// Enables a mediator when its view is enabled
-        protected virtual void EnableView(IView view, IMediationBinding binding)
+        protected virtual void EnableView(View view, IMediationBinding binding)
         {
             TriggerInBindings(view, binding, EnableMediator);
         }
 
         /// Disables a mediator when its view is disabled
-        protected virtual void DisableView(IView view, IMediationBinding binding)
+        protected virtual void DisableView(View view, IMediationBinding binding)
         {
             TriggerInBindings(view, binding, DisableMediator);
         }
 
         /// Triggers given function in all mediators bound to given view
-        protected virtual void TriggerInBindings(IView view, IMediationBinding binding, Func<IView, Type, object> method)
+        protected virtual void TriggerInBindings(View view, IMediationBinding binding, Func<View, Type, object> method)
         {
             var viewType = view.GetType();
 
@@ -300,11 +300,10 @@ namespace SimplifyIoC.Mediations
         }
 
         /// Create a new Mediator object based on the mediatorType on the provided view
-        protected virtual object CreateMediator(IView view, Type mediatorType)
+        protected virtual object CreateMediator(View view, Type mediatorType)
         {
-            var mono = view as MonoBehaviour;
-            var mediator = mono.gameObject.AddComponent(mediatorType);
-            if (mediator is IMediator)
+            var mediator = view.gameObject.AddComponent(mediatorType);
+            if (mediator is Mediator)
             {
                 HandleDelegates(mediator, mediatorType, true);
             }
@@ -313,10 +312,9 @@ namespace SimplifyIoC.Mediations
         }
 
         /// Destroy the Mediator on the provided view object based on the mediatorType
-        protected virtual IMediator DestroyMediator(IView view, Type mediatorType)
+        protected virtual Mediator DestroyMediator(View view, Type mediatorType)
         {
-            var mono = view as MonoBehaviour;
-            var mediator = mono.GetComponent(mediatorType) as IMediator;
+            var mediator = view.GetComponent(mediatorType) as Mediator;
             if (mediator != null)
             {
                 mediator.OnRemove();
@@ -326,10 +324,9 @@ namespace SimplifyIoC.Mediations
         }
 
         /// Calls the OnEnabled method of the mediator
-        protected virtual object EnableMediator(IView view, Type mediatorType)
+        protected virtual object EnableMediator(View view, Type mediatorType)
         {
-            var mono = view as MonoBehaviour;
-            var mediator = mono.GetComponent(mediatorType) as IMediator;
+            var mediator = view.GetComponent(mediatorType) as Mediator;
             if (mediator != null)
                 mediator.OnEnabled();
 
@@ -337,10 +334,9 @@ namespace SimplifyIoC.Mediations
         }
 
         /// Calls the OnDisabled method of the mediator
-        protected virtual object DisableMediator(IView view, Type mediatorType)
+        protected virtual object DisableMediator(View view, Type mediatorType)
         {
-            var mono = view as MonoBehaviour;
-            var mediator = mono.GetComponent(mediatorType) as IMediator;
+            var mediator = view.GetComponent(mediatorType) as Mediator;
             if (mediator != null)
                 mediator.OnDisabled();
 
@@ -348,19 +344,17 @@ namespace SimplifyIoC.Mediations
         }
 
         /// Retrieve all views including children for this view
-        protected virtual IView[] GetViews(IView view)
+        protected virtual View[] GetViews(View view)
         {
-            var mono = view as MonoBehaviour;
-            var components = mono.GetComponentsInChildren(typeof(IView), true);
-            var views = components.Cast<IView>().ToArray();
+            var components = view.GetComponentsInChildren(typeof(View), true);
+            var views = components.Cast<View>().ToArray();
             return views;
         }
 
         /// Whether or not an instantiated Mediator of this type exists
-        protected virtual bool HasMediator(IView view, Type mediatorType)
+        protected virtual bool HasMediator(View view, Type mediatorType)
         {
-            var mono = view as MonoBehaviour;
-            return mono.GetComponent(mediatorType) != null;
+            return view.GetComponent(mediatorType) != null;
         }
 
         /// Error thrown when a Mediator can't be instantiated
@@ -374,18 +368,18 @@ namespace SimplifyIoC.Mediations
         protected void HandleDelegates(object mono, Type mediatorType, bool toAdd)
         {
             var reflectedClass = injectionBinder.injector.reflector.Get(mediatorType);
+            if(!toAdd) Debug.Log("Removing Delegate: " + mediatorType+" >>> "+reflectedClass);
             //GetInstance Signals and add listeners
             foreach (var pair in reflectedClass.attrMethods)
             {
-                if (pair.Value is ListensTo)
-                {
-                    var attr = (ListensTo)pair.Value;
-                    var signal = (ISignal)injectionBinder.GetInstance(attr.type);
-                    if (toAdd)
-                        AssignDelegate(mono, signal, pair.Key);
-                    else
-                        RemoveDelegate(mono, signal, pair.Key);
-                }
+                if (pair.Value is not ListensTo attr) continue;
+                if(!toAdd) Debug.Log("Removing Signal: " + attr.type);
+                var signal = (ISignal)injectionBinder.GetInstance(attr.type);
+                Debug.Log("Adding Signal: " + signal);
+                if (toAdd)
+                    AssignDelegate(mono, signal, pair.Key);
+                else
+                    RemoveDelegate(mono, signal, pair.Key);
             }
         }
 

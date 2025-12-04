@@ -49,6 +49,7 @@
 
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace SimplifyIoC.Framework
 {
@@ -138,6 +139,7 @@ namespace SimplifyIoC.Framework
 
         public virtual void Unbind(object key, object name)
         {
+            Debug.Log($"{this}.Unbind({key}, {name})");
             if (!bindings.TryGetValue(key, out var dict)) return;
             var bindingName = name ?? BindingConst.NULLOID;
             dict.Remove(bindingName);
@@ -145,19 +147,14 @@ namespace SimplifyIoC.Framework
 
         public virtual void Unbind(IBinding binding)
         {
-            if (binding == null)
-            {
-                return;
-            }
+            if (binding == null) return;
             Unbind(binding.key, binding.name);
         }
 
         public virtual void RemoveValue(IBinding binding, object value)
         {
-            if (binding == null || value == null)
-            {
-                return;
-            }
+            if (binding == null || value == null) return;
+            
             var key = binding.key;
             if (!bindings.TryGetValue(key, out var dict) || dict.ContainsKey(binding.name)) return;
             var useBinding = dict[binding.name];

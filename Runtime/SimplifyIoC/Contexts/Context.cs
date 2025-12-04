@@ -33,7 +33,6 @@ using SimplifyIoC.Commands;
 using SimplifyIoC.Framework;
 using SimplifyIoC.Injectors;
 using SimplifyIoC.Mediations;
-using UnityEngine;
 
 namespace SimplifyIoC.Contexts
 {
@@ -80,7 +79,7 @@ namespace SimplifyIoC.Contexts
         
         /// A Binder that handles dependency injection binding and instantiation
         /// All cross-context capable contexts must implement an injectionBinder
-        public ICrossContextInjectionBinder injectionBinder { get; set;} = new CrossContextInjectionBinder();
+        protected ICrossContextInjectionBinder injectionBinder { get; } = new CrossContextInjectionBinder();
         
         /// A Binder that maps Signals to Commands
         protected ICommandBinder commandBinder { get; set; }
@@ -114,7 +113,6 @@ namespace SimplifyIoC.Contexts
         {
         }
 
-        /// Override to add componentry. Or just extend MVCSContext.
         protected virtual void AddCoreComponents()
         {
             //Only null if it could not find a parent context / firstContext
@@ -172,7 +170,7 @@ namespace SimplifyIoC.Contexts
             //It's possible for views to fire their Awake before bindings. This catches any early risers and attaches their Mediators.
             MediateViewCache();
             //Ensure that all Views underneath the ContextView are triggered
-            mediationBinder.Trigger(MediationEvent.AWAKE, _contextView);
+            //mediationBinder.Trigger(MediationEvent.AWAKE, _contextView);
         }
 
         /// Add another Context to this one.
@@ -193,7 +191,7 @@ namespace SimplifyIoC.Contexts
         }
 
         /// Register a View with this Context
-        public virtual void AddView(IView view)
+        public virtual void AddView(View view)
         {
             if (mediationBinder != null)
                 mediationBinder.Trigger(MediationEvent.AWAKE, view);
@@ -202,19 +200,19 @@ namespace SimplifyIoC.Contexts
         }
 
         /// Remove a View from this Context
-        public virtual void RemoveView(IView view)
+        public virtual void RemoveView(View view)
         {
             mediationBinder.Trigger(MediationEvent.DESTROYED, view);
         }
 
         /// Enable a View from this Context
-        public virtual void EnableView(IView view)
+        public virtual void EnableView(View view)
         {
             mediationBinder.Trigger(MediationEvent.ENABLED, view);
         }
 
         /// Disable a View from this Context
-        public virtual void DisableView(IView view)
+        public virtual void DisableView(View view)
         {
             mediationBinder.Trigger(MediationEvent.DISABLED, view);
         }
@@ -238,7 +236,7 @@ namespace SimplifyIoC.Contexts
             var aa = values.Length;
             for (var a = 0; a < aa; a++)
             {
-                mediationBinder.Trigger(MediationEvent.AWAKE, values[a] as IView);
+                mediationBinder.Trigger(MediationEvent.AWAKE, values[a] as View);
             }
             _viewCache = new SemiBinding();
         }
@@ -248,7 +246,7 @@ namespace SimplifyIoC.Contexts
         /// View to be Awake before this Context has finished initing.
         /// `cacheView()` maintains a list of such 'early-risers'
         /// until the Context is ready to mediate them.
-        protected virtual void CacheView(IView view)
+        protected virtual void CacheView(View view)
         {
             if (_viewCache.constraint.Equals(BindingConstraintType.ONE))
             {

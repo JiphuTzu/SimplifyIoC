@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @interface SimplifyIoC.Mediations.IMediationBinder
  * 
  * Interface for the Binder which maps Views to Mediators.
@@ -70,7 +70,7 @@ namespace SimplifyIoC.Mediations
     {
         /// An event that just happened, and the View it happened to.
         /// If the event was Awake, it will trigger creation of a mapped Mediator.
-        void Trigger(MediationEvent evt, IView view);
+        void Trigger(MediationEvent evt, View view);
 
         /// Recast binding as IMediationBinding.
         new IMediationBinding Bind<T>();

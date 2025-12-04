@@ -22,18 +22,15 @@
  * @see SimplifyIoC.Mediations.IMediationBinder
  */
 
-using SimplifyIoC.Contexts;
 using SimplifyIoC.Injectors;
 using UnityEngine;
 
 namespace SimplifyIoC.Mediations
 {
-    public class Mediator : MonoBehaviour, IMediator
+    public class Mediator : MonoBehaviour
     {
 	    [Inject]
 	    public IInjectionBinder injectionBinder { get; set; }
-        [Inject(ContextKeys.CONTEXT_VIEW)]
-        public ContextView contextView { get; set; }
 
         //public Mediator() { }
 
