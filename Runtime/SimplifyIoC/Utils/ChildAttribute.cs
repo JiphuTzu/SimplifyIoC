@@ -39,7 +39,18 @@ namespace SimplifyIoC.Utils
      *                  this.AddAttributeParser(this.GetChildParser())
      *                      .ParseAttributes();
      *              }
+     * 也可以在Inspector的右键中添加手动执行
+     * #if UNITY_EDITOR
+     *              [ContextMenu("🔭 MapChildren",false,0)]
+     *              private void AutoMapChildren()
+     *              {
+     *                  this.AddAttributeParser(this.GetChildParser())
+     *                      .ParseFields(BindingFlags.Instance | BindingFlags.Public);
+     *                  UnityEditor.EditorUtility.SetDirty(this);
+     *              }
+     * #endif
      *           }
+     *
      */
     [AttributeUsage(AttributeTargets.Field)]
     public class ChildAttribute : PreserveAttribute
@@ -206,7 +217,7 @@ namespace SimplifyIoC.Utils
             //TODO：当类型为Transform或者RectTransform时，value的值会是"null"
             return value != null && "" + value != "null";
         }
-#if UNITY_EDITOR
+#if UNITY_EDITOR && MAP_CHILDREN_ON_SELECT
         [UnityEditor.InitializeOnLoadMethod]
         private static void InitializeOnApplicationLoad()
         {
@@ -227,6 +238,7 @@ namespace SimplifyIoC.Utils
                 behaviour.AddAttributeParser(behaviour.GetChildParser())
                     .ParseFields(flags);
             }
+            UnityEditor.EditorUtility.SetDirty(selected);
         }
 #endif
     }
