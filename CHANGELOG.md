@@ -1,4 +1,9 @@
 ﻿# CHANGELOG
+## 1.1.0
++ 彻底删除EventDispatcher
++ 调整类的文件目录
++ 清理一些不常用的类，去除一些接口
++ 优化工具类
 ## 1.0.8
 + 修复ChildAttribute的不可用问题
 + 调整AddAttributeParser方法
