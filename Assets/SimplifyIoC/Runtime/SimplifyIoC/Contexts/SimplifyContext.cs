@@ -1,4 +1,5 @@
 using SimplifyIoC.Commands;
+using SimplifyIoC.Mediations;
 using SimplifyIoC.Signals;
 
 //============================================================
@@ -29,7 +30,7 @@ namespace SimplifyIoC.Contexts
         protected sealed override void MapBindings()
         {
             base.MapBindings();
-            BindCommand<StartupSignal, T>(true, false);
+            BindCommand<StartupSignal, T>(true);
             BindCommands();
             BindViews();
             BindSignals();
@@ -39,13 +40,13 @@ namespace SimplifyIoC.Contexts
         {
             injectionBinder.GetInstance<StartupSignal>().Dispatch();
         }
-        protected abstract void BindCommands();
+        protected virtual void BindCommands(){}
 
-        protected abstract void BindViews();
+        protected virtual void BindViews(){}
 
-        protected abstract void BindSignals();
+        protected virtual void BindSignals(){}
 
-        protected abstract void BindValues();
+        protected virtual void BindValues(){}
         /// <summary>
         /// 信号和命令绑定
         /// </summary>
@@ -53,14 +54,14 @@ namespace SimplifyIoC.Contexts
         /// <typeparam name="C">命令类型</typeparam>
         /// <param name="once">该命令是否只执行一次</param>
         /// <param name="crossContext"></param>
-        protected void BindCommand<S, C>(bool once = false, bool crossContext = false)
+        protected void BindCommand<S, C>(bool once = false, bool crossContext = false) where S : BaseSignal where C : Command
         {
             if (crossContext) BindSignal<S>(true);
             var binding = commandBinder.Bind<S>();
             binding = binding.To<C>();
             if (once) binding = binding.Once();
         }
-        protected void BindCommand<S, C, D>(bool once = false, bool crossContext = false, bool inSequence = false)
+        protected void BindCommand<S, C, D>(bool once = false, bool crossContext = false, bool inSequence = false) where S : BaseSignal where C : Command where D : Command
         {
             if (crossContext) BindSignal<S>(true);
             var binding = commandBinder.Bind<S>();
@@ -69,7 +70,7 @@ namespace SimplifyIoC.Contexts
             if (once) binding = binding.Once();
             if (inSequence) binding = binding.InSequence();
         }
-        protected void BindCommand<S, C, D, E>(bool once = false, bool crossContext = false, bool inSequence = false)
+        protected void BindCommand<S, C, D, E>(bool once = false, bool crossContext = false, bool inSequence = false) where S : BaseSignal where C : Command where D : Command where  E : Command
         {
             if (crossContext) BindSignal<S>(true);
             var binding = commandBinder.Bind<S>();
@@ -79,7 +80,7 @@ namespace SimplifyIoC.Contexts
             if (once) binding = binding.Once();
             if (inSequence) binding = binding.InSequence();
         }
-        protected void BindCommand<S, C, D, E, F>(bool once = false, bool crossContext = false, bool inSequence = false)
+        protected void BindCommand<S, C, D, E, F>(bool once = false, bool crossContext = false, bool inSequence = false) where S : BaseSignal where C : Command where D : Command where E : Command where F : Command
         {
             if (crossContext) BindSignal<S>(true);
             var binding = commandBinder.Bind<S>();
@@ -95,7 +96,7 @@ namespace SimplifyIoC.Contexts
         /// </summary>
         /// <typeparam name="V">View类型</typeparam>
         /// <typeparam name="M">Mediator类型</typeparam>
-        protected void BindView<V, M>()
+        protected void BindView<V, M>() where V : View where M : Mediator
         {
             mediationBinder.Bind<V>().ToMediator<M>();
         }
@@ -105,7 +106,7 @@ namespace SimplifyIoC.Contexts
         /// <typeparam name="V">View的类型</typeparam>
         /// <typeparam name="M">Mediator类型</typeparam>
         /// <typeparam name="A">View的父类</typeparam>
-        protected void BindView<V, M, A>() where V : A
+        protected void BindView<V, M, A>() where V : A where A : View where M : Mediator
         {
             mediationBinder.Bind<V>().ToMediator<M>().ToAbstraction<A>();
         }
@@ -114,7 +115,7 @@ namespace SimplifyIoC.Contexts
         /// 信号为一个特殊的值类型
         /// </summary>
         /// <typeparam name="S">信号类型</typeparam>
-        protected void BindSignal<S>(bool crossContext = false)
+        protected void BindSignal<S>(bool crossContext = false) where S : BaseSignal
         {
             BindValue<S>(crossContext);
         }
