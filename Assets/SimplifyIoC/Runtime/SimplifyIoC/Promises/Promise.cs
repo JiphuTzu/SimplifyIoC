@@ -28,7 +28,7 @@ namespace SimplifyIoC.Promises
 {
     public class Promise : BasePromise, IPromise
     {
-        protected event Action Listener = null;
+        private Action _listener;
 
         /// <summary>
         /// Trigger completion callbacks to all listeners.
@@ -53,7 +53,7 @@ namespace SimplifyIoC.Promises
             }
             else if (pending)
             {
-                Listener = AddUnique(Listener, action);
+                _listener = AddUnique(_listener, action);
             }
 
             return this;
@@ -61,32 +61,31 @@ namespace SimplifyIoC.Promises
 
         public void RemoveListener(Action action)
         {
-            if (Listener != null)
-                Listener -= action;
+            if (_listener != null)
+                _listener -= action;
         }
         public override void RemoveAllListeners()
         {
             base.RemoveAllListeners();
-            Listener = null;
+            _listener = null;
         }
 
         public override int ListenerCount()
         {
-            return Listener == null ? 0 : Listener.GetInvocationList().Length;
+            return _listener == null ? 0 : _listener.GetInvocationList().Length;
         }
 
         private void CallListener()
         {
-            if (Listener != null)
-                Listener();
+            _listener?.Invoke();
         }
     }
 
     public class Promise<T> : BasePromise, IPromise<T>
     {
-        private T t;
+        private T _t;
 
-        protected event Action<T> Listener = null;
+        private Action<T> _listener;
 
         /// <summary>
         /// Trigger completion callbacks to all listeners
@@ -94,12 +93,10 @@ namespace SimplifyIoC.Promises
         /// <param name="t">First param.</param>
         public void Dispatch(T t)
         {
-            if (Fulfill())
-            {
-                this.t = t;
-                CallListener();
-                Finally();
-            }
+            if (!Fulfill()) return;
+            _t = t;
+            CallListener();
+            Finally();
         }
 
         /// <summary>
@@ -110,100 +107,96 @@ namespace SimplifyIoC.Promises
         {
             if (fulfilled)
             {
-                action(this.t);
+                action(_t);
                 Finally();
             }
             else if (pending)
             {
-                Listener = AddUnique(Listener, action);
+                _listener = AddUnique(_listener, action);
             }
             return this;
         }
 
         public void RemoveListener(Action<T> action)
         {
-            if (Listener != null)
-                Listener -= action;
+            if (_listener != null)
+                _listener -= action;
         }
         public override void RemoveAllListeners()
         {
             base.RemoveAllListeners();
-            Listener = null;
+            _listener = null;
         }
         public override int ListenerCount()
         {
-            return Listener == null ? 0 : Listener.GetInvocationList().Length;
+            return _listener == null ? 0 : _listener.GetInvocationList().Length;
         }
         private void CallListener()
         {
-            if (Listener != null)
-                Listener(t);
+            _listener?.Invoke(_t);
         }
 
     }
 
-    public class Promise<T, U> : BasePromise, IPromise<T, U>
+    public class Promise<T, TU> : BasePromise, IPromise<T, TU>
     {
-        private T t;
-        private U u;
+        private T _t;
+        private TU _u;
 
-        protected event Action<T, U> Listener = null;
+        private Action<T, TU> _listener;
 
         /// <summary>
         /// Trigger completion callbacks to all listeners
         /// </summary>
         /// <param name="t">First param.</param>
         /// <param name="u">Second param.</param>
-        public void Dispatch(T t, U u)
+        public void Dispatch(T t, TU u)
         {
-            if (Fulfill())
-            {
-                this.t = t;
-                this.u = u;
-                CallListener();
-                Finally();
-            }
+            if (!Fulfill()) return;
+            _t = t;
+            _u = u;
+            CallListener();
+            Finally();
         }
 
         /// <summary>
         /// Handle a callback when the Promise completes successfully.
         /// </summary>
         /// <param name="action">The callback (two arguments).</param>
-        public IPromise<T, U> Then(Action<T, U> action)
+        public IPromise<T, TU> Then(Action<T, TU> action)
         {
             if (fulfilled)
             {
-                action(this.t, this.u);
+                action(_t, _u);
                 Finally();
             }
             else if (pending)
             {
-                Listener = AddUnique(Listener, action);
+                _listener = AddUnique(_listener, action);
             }
             return this;
         }
 
-        public void RemoveListener(Action<T, U> action)
+        public void RemoveListener(Action<T, TU> action)
         {
-            if (Listener != null)
-                Listener -= action;
+            if (_listener != null)
+                _listener -= action;
         }
         public override void RemoveAllListeners()
         {
             base.RemoveAllListeners();
-            Listener = null;
+            _listener = null;
         }
         public override int ListenerCount()
         {
-            return Listener == null ? 0 : Listener.GetInvocationList().Length;
+            return _listener == null ? 0 : _listener.GetInvocationList().Length;
         }
         private void CallListener()
         {
-            if (Listener != null)
-                Listener(t, u);
+            _listener?.Invoke(_t, _u);
         }
 
-        protected Action<T, U> AddUnique(Action<T, U> listeners, Action<T, U> callback)
+        private Action<T, TU> AddUnique(Action<T, TU> listeners, Action<T, TU> callback)
         {
             if (listeners == null || !listeners.GetInvocationList().Contains(callback))
             {
@@ -213,13 +206,13 @@ namespace SimplifyIoC.Promises
         }
     }
 
-    public class Promise<T, U, V> : BasePromise, IPromise<T, U, V>
+    public class Promise<T, TU, TV> : BasePromise, IPromise<T, TU, TV>
     {
-        private T t;
-        private U u;
-        private V v;
+        private T _t;
+        private TU _u;
+        private TV _v;
 
-        protected event Action<T, U, V> Listener = null;
+        private Action<T, TU, TV> _listener;
 
         /// <summary>
         /// Trigger completion callbacks to all listeners
@@ -227,57 +220,54 @@ namespace SimplifyIoC.Promises
         /// <param name="t">First param.</param>
         /// <param name="u">Second param.</param>
         /// <param name="v">Third param.</param>
-        public void Dispatch(T t, U u, V v)
+        public void Dispatch(T t, TU u, TV v)
         {
-            if (Fulfill())
-            {
-                this.t = t;
-                this.u = u;
-                this.v = v;
-                CallListener();
-                Finally();
-            }
+            if (!Fulfill()) return;
+            _t = t;
+            _u = u;
+            _v = v;
+            CallListener();
+            Finally();
         }
 
         /// <summary>
         /// Handle a callback when the Promise completes successfully.
         /// </summary>
         /// <param name="action">The callback (three arguments).</param>
-        public IPromise<T, U, V> Then(Action<T, U, V> action)
+        public IPromise<T, TU, TV> Then(Action<T, TU, TV> action)
         {
             if (fulfilled)
             {
-                action(this.t, this.u, this.v);
+                action(_t, _u, _v);
                 Finally();
             }
             else if (pending)
             {
-                Listener = AddUnique(Listener, action);
+                _listener = AddUnique(_listener, action);
             }
             return this;
         }
 
-        public void RemoveListener(Action<T, U, V> action)
+        public void RemoveListener(Action<T, TU, TV> action)
         {
-            if (Listener != null)
-                Listener -= action;
+            if (_listener != null)
+                _listener -= action;
         }
         public override void RemoveAllListeners()
         {
             base.RemoveAllListeners();
-            Listener = null;
+            _listener = null;
         }
         public override int ListenerCount()
         {
-            return Listener == null ? 0 : Listener.GetInvocationList().Length;
+            return _listener == null ? 0 : _listener.GetInvocationList().Length;
         }
         private void CallListener()
         {
-            if (Listener != null)
-                Listener(t, u, v);
+            _listener?.Invoke(_t, _u, _v);
         }
 
-        protected Action<T, U, V> AddUnique(Action<T, U, V> listeners, Action<T, U, V> callback)
+        private Action<T, TU, TV> AddUnique(Action<T, TU, TV> listeners, Action<T, TU, TV> callback)
         {
             if (listeners == null || !listeners.GetInvocationList().Contains(callback))
             {
@@ -287,14 +277,14 @@ namespace SimplifyIoC.Promises
         }
     }
 
-    public class Promise<T, U, V, W> : BasePromise, IPromise<T, U, V, W>
+    public class Promise<T, TU, TV, TW> : BasePromise, IPromise<T, TU, TV, TW>
     {
-        private T t;
-        private U u;
-        private V v;
-        private W w;
+        private T _t;
+        private TU _u;
+        private TV _v;
+        private TW _w;
 
-        protected event Action<T, U, V, W> Listener = null;
+        private Action<T, TU, TV, TW> _listener;
 
         /// <summary>
         /// Trigger completion callbacks to all listeners
@@ -303,58 +293,55 @@ namespace SimplifyIoC.Promises
         /// <param name="u">Second param.</param>
         /// <param name="v">Third param.</param>
         /// <param name="w">Fourth param.</param>
-        public void Dispatch(T t, U u, V v, W w)
+        public void Dispatch(T t, TU u, TV v, TW w)
         {
-            if (Fulfill())
-            {
-                this.t = t;
-                this.u = u;
-                this.v = v;
-                this.w = w;
-                CallListener();
-                Finally();
-            }
+            if (!Fulfill()) return;
+            _t = t;
+            _u = u;
+            _v = v;
+            _w = w;
+            CallListener();
+            Finally();
         }
 
         /// <summary>
         /// Handle a callback when the Promise completes successfully.
         /// </summary>
         /// <param name="action">The callback (four arguments).</param>
-        public IPromise<T, U, V, W> Then(Action<T, U, V, W> action)
+        public IPromise<T, TU, TV, TW> Then(Action<T, TU, TV, TW> action)
         {
             if (fulfilled)
             {
-                action(t, u, v, w);
+                action(_t, _u, _v, _w);
                 Finally();
             }
             else if (pending)
             {
-                Listener = AddUnique(Listener, action);
+                _listener = AddUnique(_listener, action);
             }
             return this;
         }
 
-        public void RemoveListener(Action<T, U, V, W> action)
+        public void RemoveListener(Action<T, TU, TV, TW> action)
         {
-            if (Listener != null)
-                Listener -= action;
+            if (_listener != null)
+                _listener -= action;
         }
         public override void RemoveAllListeners()
         {
             base.RemoveAllListeners();
-            Listener = null;
+            _listener = null;
         }
         public override int ListenerCount()
         {
-            return Listener == null ? 0 : Listener.GetInvocationList().Length;
+            return _listener == null ? 0 : _listener.GetInvocationList().Length;
         }
         private void CallListener()
         {
-            if (Listener != null)
-                Listener(t, u, v, w);
+            _listener?.Invoke(_t, _u, _v, _w);
         }
 
-        protected Action<T, U, V, W> AddUnique(Action<T, U, V, W> listeners, Action<T, U, V, W> callback)
+        private Action<T, TU, TV, TW> AddUnique(Action<T, TU, TV, TW> listeners, Action<T, TU, TV, TW> callback)
         {
             if (listeners == null || !listeners.GetInvocationList().Contains(callback))
             {

@@ -201,19 +201,18 @@ namespace SimplifyIoC.Commands
                             }
                             else //Do not allow null injections
                             {
-                                throw new SignalException("SignalCommandBinder attempted to bind a null value from a signal to Command: " + cmd.GetType() + " to type: " + type, SignalExceptionType.COMMAND_NULL_INJECTION);
+                                throw new Exception("SignalCommandBinder attempted to bind a null value from a signal to Command: " + cmd.GetType() + " to type: " + type);
                             }
                         }
                         if (!foundValue)
                         {
-                            throw new SignalException("Could not find an unused injectable value to inject in to Command: " + cmd.GetType() + " for Type: " + type, SignalExceptionType.COMMAND_VALUE_NOT_FOUND);
+                            throw new Exception("Could not find an unused injectable value to inject in to Command: " + cmd.GetType() + " for Type: " + type);
                         }
                     }
                     else
                     {
-                        throw new SignalException("SignalCommandBinder: You have attempted to map more than one value of type: " + type +
-                            " in Command: " + cmd.GetType() + ". Only the first value of a type will be injected. You may want to place your values in a VO, instead.",
-                            SignalExceptionType.COMMAND_VALUE_CONFLICT);
+                        throw new Exception("SignalCommandBinder: You have attempted to map more than one value of type: " + type +
+                            " in Command: " + cmd.GetType() + ". Only the first value of a type will be injected. You may want to place your values in a VO, instead.");
                     }
                 }
             }

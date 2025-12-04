@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @class SimplifyIoC.Injectors.InjectionBinding
  * 
  * The Binding for Injections.
@@ -30,35 +30,35 @@ namespace SimplifyIoC.Injectors
     public class InjectionBinding : Binding, IInjectionBinding
     {
 
-        private ISemiBinding supplyList = new SemiBinding();
+        private readonly ISemiBinding _supplyList = new SemiBinding();
 
         public InjectionBinding(Binder.BindingResolver resolver)
         {
             this.resolver = resolver;
             keyConstraint = BindingConstraintType.Many;
             valueConstraint = BindingConstraintType.One;
-            supplyList.constraint = BindingConstraintType.Many;
+            _supplyList.constraint = BindingConstraintType.Many;
         }
 
-        public InjectionBindingType type { get; set; } = InjectionBindingType.DEFAULT;
+        public InjectionBindingType type { get; set; } = InjectionBindingType.Default;
 
         public bool toInject { get; private set; } = true;
 
-        public IInjectionBinding ToInject(bool value)
+        public IInjectionBinding ToInject(bool inject)
         {
-            toInject = value;
+            toInject = inject;
             return this;
         }
 
-        public bool isCrossContext { get; private set; } = false;
+        public bool isCrossContext { get; private set; }
 
         public IInjectionBinding ToSingleton()
         {
             //If already a value, this mapping is redundant
-            if (type == InjectionBindingType.VALUE)
+            if (type == InjectionBindingType.Value)
                 return this;
 
-            type = InjectionBindingType.SINGLETON;
+            type = InjectionBindingType.Singleton;
             if (resolver != null)
             {
                 resolver(this);
@@ -68,7 +68,7 @@ namespace SimplifyIoC.Injectors
 
         public IInjectionBinding ToValue(object o)
         {
-            type = InjectionBindingType.VALUE;
+            type = InjectionBindingType.Value;
             SetValue(o);
             return this;
         }
@@ -87,7 +87,7 @@ namespace SimplifyIoC.Injectors
                 var keyType = (aKey is Type) ? aKey as Type : aKey.GetType();
                 if (keyType.IsAssignableFrom(objType) == false && (HasGenericAssignableFrom(keyType, objType) == false))
                 {
-                    throw new InjectionException("Injection cannot bind a value that does not extend or implement the binding type.", InjectionExceptionType.ILLEGAL_BINDING_VALUE);
+                    throw new Exception("Injection cannot bind a value that does not extend or implement the binding type.");
                 }
             }
             To(o);
@@ -97,10 +97,7 @@ namespace SimplifyIoC.Injectors
         protected bool HasGenericAssignableFrom(Type keyType, Type objType)
         {
             //FIXME: We need to figure out how to determine generic assignability
-            if (keyType.IsGenericType == false)
-                return false;
-
-            return true;
+            return keyType.IsGenericType;
         }
 
         protected bool IsGenericTypeAssignable(Type givenType, Type genericType)
@@ -125,10 +122,7 @@ namespace SimplifyIoC.Injectors
         public IInjectionBinding CrossContext()
         {
             isCrossContext = true;
-            if (resolver != null)
-            {
-                resolver(this);
-            }
+            resolver?.Invoke(this);
             return this;
         }
 
@@ -141,11 +135,8 @@ namespace SimplifyIoC.Injectors
         /// Promise this Binding to any instance of Type type
         public IInjectionBinding SupplyTo(Type type)
         {
-            supplyList.Add(type);
-            if (resolver != null)
-            {
-                resolver(this);
-            }
+            _supplyList.Add(type);
+            resolver?.Invoke(this);
             return this;
         }
 
@@ -158,13 +149,13 @@ namespace SimplifyIoC.Injectors
         /// Remove the promise to supply this binding to Type type
         public IInjectionBinding Unsupply(Type type)
         {
-            supplyList.Remove(type);
+            _supplyList.Remove(type);
             return this;
         }
 
         public object[] GetSupply()
         {
-            return supplyList.value as object[];
+            return _supplyList.value as object[];
         }
 
         public new IInjectionBinding Bind<T>()

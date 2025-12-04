@@ -27,12 +27,12 @@ namespace SimplifyIoC.Promises
 {
     public abstract class BasePromise : IBasePromise
 	{
-		private event Action<float> OnProgress;
-		private event Action<Exception> OnFail;
-		private event Action OnFinally;
-		private Exception exception;
+		private Action<float> _onProgress;
+		private Action<Exception> _onFail;
+		private Action _onFinally;
+		private Exception _exception;
 
-		public PromiseState state { get; protected set; }
+		public PromiseState state { get; private set; }
 
 		public enum PromiseState
 		{
@@ -48,17 +48,17 @@ namespace SimplifyIoC.Promises
 
 		public void ReportFail(Exception ex)
 		{
-			exception = ex;
+			_exception = ex;
 			state = PromiseState.Failed;
-			if (OnFail != null)
-				OnFail(ex);
+			if (_onFail != null)
+				_onFail(ex);
 			Finally();
 		}
 
 		public void ReportProgress(float progress)
 		{
-			if (OnProgress != null)
-				OnProgress(progress);
+			if (_onProgress != null)
+				_onProgress(progress);
 		}
 
 		/// <summary>
@@ -75,7 +75,7 @@ namespace SimplifyIoC.Promises
 
 		public IBasePromise Progress(Action<float> listener)
 		{
-			OnProgress = AddUnique<float>(OnProgress, listener);
+			_onProgress = AddUnique(_onProgress, listener);
 			return this;
 		}
 
@@ -83,11 +83,11 @@ namespace SimplifyIoC.Promises
 		{
 			if (failed)
 			{
-				listener(exception);
+				listener(_exception);
 				Finally();
 			}
 			else
-				OnFail = AddUnique<Exception>(OnFail, listener);
+				_onFail = AddUnique(_onFail, listener);
 			return this;
 		}
 
@@ -96,7 +96,7 @@ namespace SimplifyIoC.Promises
 			if (resolved)
 				listener();
 			else
-				OnFinally = AddUnique(OnFinally, listener);
+				_onFinally = AddUnique(_onFinally, listener);
 
 			return this;
 		}
@@ -106,18 +106,18 @@ namespace SimplifyIoC.Promises
 		/// </summary>
 		protected void Finally()
 		{
-			if (OnFinally != null)
-				OnFinally();
+			if (_onFinally != null)
+				_onFinally();
 			RemoveAllListeners();
 		}
 
-		public void RemoveProgressListeners() { OnProgress = null; }
-		public void RemoveFailListeners() { OnFail = null; }
+		public void RemoveProgressListeners() { _onProgress = null; }
+		public void RemoveFailListeners() { _onFail = null; }
 		public virtual void RemoveAllListeners()
 		{
-			OnProgress = null;
-			OnFail = null;
-			OnFinally = null;
+			_onProgress = null;
+			_onFail = null;
+			_onFinally = null;
 		}
 
 		/// <summary>
@@ -150,10 +150,10 @@ namespace SimplifyIoC.Promises
 			return listeners;
 		}
 
-		protected bool pending { get { return state == PromiseState.Pending; } }
-		protected bool resolved { get { return state != PromiseState.Pending; } }
-		protected bool fulfilled { get { return state == PromiseState.Fulfilled; } }
-		protected bool failed { get { return state == PromiseState.Failed; } }
+		protected bool pending => state == PromiseState.Pending;
+		protected bool resolved => state != PromiseState.Pending;
+		protected bool fulfilled => state == PromiseState.Fulfilled;
+		protected bool failed => state == PromiseState.Failed;
 
 		public abstract int ListenerCount();
 	}

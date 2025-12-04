@@ -15,7 +15,14 @@
  */
 
 using System;
-using SimplifyIoC.Injectors;
+
+public enum InjectionBindingScope
+{
+    /// Scope is limited to the current Context
+    SingleContext,
+    /// Scope is mapped across all Contexts
+    CrossContext,
+}
 
 /// <summary>
 /// Declares a Class to be implicitly bound.
@@ -23,9 +30,7 @@ using SimplifyIoC.Injectors;
 /// Passing an Interface binds to that interface
 /// Implements overrides ImplementedBy
 /// </summary>
-[AttributeUsage(AttributeTargets.Class,
-                AllowMultiple = true,
-                Inherited = true)]
+[AttributeUsage(AttributeTargets.Class,AllowMultiple = true)]
 public class Implements : Attribute
 {
     /// <summary>
@@ -44,7 +49,7 @@ public class Implements : Attribute
     /// </summary>
     /// <param name="t">Interface to bind to</param>
     /// <param name="scope">Single Context(default) or Cross Context.</param>
-    public Implements(Type t, InjectionBindingScope scope = InjectionBindingScope.SINGLE_CONTEXT)
+    public Implements(Type t, InjectionBindingScope scope = InjectionBindingScope.SingleContext)
     {
         defaultInterface = t;
         this.scope = scope;
@@ -82,9 +87,7 @@ public class Implements : Attribute
 /// Declares an interface to have an implicit implementor
 /// An Implements tag for the given interface overrides this tag.
 /// </summary>
-[AttributeUsage(AttributeTargets.Interface,
-                AllowMultiple = false,
-                Inherited = true)]
+[AttributeUsage(AttributeTargets.Interface)]
 public class ImplementedBy : Attribute
 {
     /// <summary>
@@ -92,7 +95,7 @@ public class ImplementedBy : Attribute
     /// </summary>
     /// <param name="t">Default Type</param>
     /// <param name="scope">Single Context(default) or Cross Context</param>
-    public ImplementedBy(Type t, InjectionBindingScope scope = InjectionBindingScope.SINGLE_CONTEXT)
+    public ImplementedBy(Type t, InjectionBindingScope scope = InjectionBindingScope.SingleContext)
     {
         defaultType = t;
         this.scope = scope;
@@ -106,8 +109,7 @@ public class ImplementedBy : Attribute
 /// Declares a View class implicity mediated by one or more named Mediators
 /// </summary>
 [AttributeUsage(AttributeTargets.Class,
-                AllowMultiple = true,
-                Inherited = true)]
+                AllowMultiple = true)]
 public class MediatedBy : Attribute
 {
     /// <summary>
@@ -125,9 +127,7 @@ public class MediatedBy : Attribute
 /// <summary>
 /// Declare a Mediator class implicitly bound to a provided View
 /// </summary>
-[AttributeUsage(AttributeTargets.Class,
-                AllowMultiple = false,
-                Inherited = true)]
+[AttributeUsage(AttributeTargets.Class)]
 public class Mediates : Attribute
 {
     /// <summary>
