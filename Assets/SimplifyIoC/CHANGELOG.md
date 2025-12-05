@@ -1,4 +1,7 @@
 ﻿# CHANGELOG
+## 1.2.0
++ 使用Bootstrap替换ContextView
++ 优化工具类
 ## 1.1.0
 + 彻底删除EventDispatcher
 + 调整类的文件目录

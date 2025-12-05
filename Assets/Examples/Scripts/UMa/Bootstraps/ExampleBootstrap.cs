@@ -22,16 +22,17 @@ namespace UMa.Bootstraps
             context = new ExampleContext(this);
         }
         //=========Context=============
-        private class ExampleContext : SimplifyContext<ExampleBootstrap, ExampleStartupCommand>
+        private class ExampleContext : SimplifyContext<ExampleStartupCommand>
         {
-            public ExampleContext(ExampleBootstrap view) : base(view) { }
+            public ExampleContext(Bootstrap view) : base(view) { }
             protected override void BindSignals()
             {
 				
             }
             protected override void BindValues()
             {
-                BindValue(bootstrap.objects);
+                var eb = bootstrap as ExampleBootstrap;
+                BindValue(eb.objects);
             }
             protected override void BindCommands()
             {

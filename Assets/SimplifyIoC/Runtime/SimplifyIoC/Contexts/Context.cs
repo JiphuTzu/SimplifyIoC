@@ -39,21 +39,21 @@ namespace SimplifyIoC.Contexts
     public enum ContextKeys
     {
         /// Marker for the named Injection of the Context
-        CONTEXT,
+        Context,
         /// Marker for the named Injection of the ContextView
-        CONTEXT_VIEW
+        Bootstrap
     }
     [Flags]
     public enum ContextStartupFlags
     {
         /// Context will map bindings and launch automatically (default).
-        AUTOMATIC = 0,
+        Automatic = 0,
         /// Context startup will halt after Core bindings are mapped, but before instantiation or any custom bindings.
         /// If this flag is invoked, the developer must call context.Start()
-        MANUAL_MAPPING = 1,
+        ManualMapping = 1,
         /// Context startup will halt after all bindings are mapped, but before firing ContextEvent.START (or the analogous Signal).
         /// If this flag is invoked, the developer must call context.Launch()
-        MANUAL_LAUNCH = 2,
+        ManualLaunch = 2,
     }
     /*
      * @class SimplifyIoC.Contexts.Context
@@ -72,7 +72,7 @@ namespace SimplifyIoC.Contexts
         
         /// The top of the View hierarchy.
         /// This is your top-level GameObject
-        private ContextView _contextView;
+        protected Bootstrap bootstrap;
 
         /// If false, the `Launch()` method won't fire.
         private readonly bool _autoStartup;
@@ -90,26 +90,26 @@ namespace SimplifyIoC.Contexts
 
         public Context() { }
 
-        public Context(ContextView view, ContextStartupFlags flags = ContextStartupFlags.AUTOMATIC)
+        public Context(Bootstrap view, ContextStartupFlags flags = ContextStartupFlags.Automatic)
         {
             //If firstContext was unloaded, the contextView will be null. Assign the new context as firstContext.
-            if (firstContext == null || firstContext._contextView == null)
+            if (firstContext == null || firstContext.bootstrap == null)
                 firstContext = this;
             else
                 firstContext.AddContext(this);
             // ReSharper disable once VirtualMemberCallInConstructor
-            SetContextView(view);
+            SetBootstrap(view);
             // ReSharper disable once VirtualMemberCallInConstructor
             AddCoreComponents();
-            _autoStartup = (flags & ContextStartupFlags.MANUAL_LAUNCH) != ContextStartupFlags.MANUAL_LAUNCH;
-            if ((flags & ContextStartupFlags.MANUAL_MAPPING) != ContextStartupFlags.MANUAL_MAPPING)
+            _autoStartup = (flags & ContextStartupFlags.ManualLaunch) != ContextStartupFlags.ManualLaunch;
+            if ((flags & ContextStartupFlags.ManualMapping) != ContextStartupFlags.ManualMapping)
             {
                 Start();
             }
         }
 
-        public Context(ContextView view, bool autoMapping)
-            : this(view, autoMapping ? ContextStartupFlags.MANUAL_MAPPING : ContextStartupFlags.MANUAL_LAUNCH | ContextStartupFlags.MANUAL_MAPPING)
+        public Context(Bootstrap view, bool autoMapping)
+            : this(view, autoMapping ? ContextStartupFlags.ManualMapping : ContextStartupFlags.ManualLaunch | ContextStartupFlags.ManualMapping)
         {
         }
 
@@ -122,7 +122,7 @@ namespace SimplifyIoC.Contexts
                 injectionBinder.Bind<CrossContextBridge>().ToSingleton ().CrossContext();
             
             injectionBinder.Bind<IInstanceProvider>().Bind<IInjectionBinder>().ToValue(injectionBinder);
-            injectionBinder.Bind<Context>().ToValue(this).ToName(ContextKeys.CONTEXT);
+            injectionBinder.Bind<Context>().ToValue(this).ToName(ContextKeys.Context);
             injectionBinder.Bind<ICommandBinder>().To<CommandBinder>().ToSingleton();
             injectionBinder.Bind<IMediationBinder>().To<MediationBinder>().ToSingleton();
         }
@@ -130,22 +130,17 @@ namespace SimplifyIoC.Contexts
         /// Override to instantiate componentry. Or just extend MVCSContext.
         protected virtual void InstantiateCoreComponents()
         {
-            injectionBinder.Bind<ContextView>().ToValue(_contextView).ToName(ContextKeys.CONTEXT_VIEW);
+            injectionBinder.Bind<Bootstrap>().ToValue(bootstrap).ToName(ContextKeys.Bootstrap);
             commandBinder = injectionBinder.GetInstance<ICommandBinder>();
             mediationBinder = injectionBinder.GetInstance<IMediationBinder>();
         }
 
         /// Set the object that represents the top of the Context hierarchy.
         /// In MVCSContext, this would be a GameObject.
-        protected virtual void SetContextView(ContextView view)
+        protected virtual void SetBootstrap(Bootstrap view)
         {
-            _contextView = view;
+            bootstrap = view;
         }
-
-        // public virtual ContextView GetContextView()
-        // {
-        //     return _contextView;
-        // }
 
         /// Call this from your Root to set everything in action.
         public void Start()

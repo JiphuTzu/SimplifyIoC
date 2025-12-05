@@ -21,9 +21,9 @@ namespace UMa.Bootstraps
 
 			DontDestroyOnLoad(gameObject);
         }
-        private class CrossContext : SimplifyContext<CrossContextBootstrap, CrossContextStartupCommand>
+        private class CrossContext : SimplifyContext<CrossContextStartupCommand>
         {
-            public CrossContext(CrossContextBootstrap view) : base(view)
+            public CrossContext(Bootstrap view) : base(view)
             {
             }
 

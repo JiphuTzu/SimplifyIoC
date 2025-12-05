@@ -220,12 +220,10 @@ namespace SimplifyIoC.Commands
         {
             if (usePooling && pools.TryGetValue(type, out var pool))
             {
-                var command = pool.GetInstance() as Command;
-                if (command.isClean)
-                {
-                    injectionBinder.injector.Inject(command);
-                    command.isClean = false;
-                }
+                if (pool.GetInstance() is not Command command) return null;
+                if (!command.isClean) return command;
+                injectionBinder.injector.Inject(command);
+                command.isClean = false;
                 return command;
             }
             else
@@ -324,27 +322,22 @@ namespace SimplifyIoC.Commands
 
         public new virtual ICommandBinding Bind(object value)
         {
-            var binding = injectionBinder.GetBinding(value);
-            BaseSignal signal = null;
-
-            if (value is Type type)
+            if (value is not Type type) return base.Bind(value) as ICommandBinding;
+            //If this isn't injected yet, inject a new one as a singleton
+            if (injectionBinder.GetBinding(type) == null)
             {
-                if (binding == null) //If this isn't injected yet, inject a new one as a singleton
-                {
-                    binding = injectionBinder.Bind(value) as IInjectionBinding;
-                    binding.ToSingleton();
-                }
-                signal = injectionBinder.GetInstance(type,false) as BaseSignal;
+                injectionBinder.Bind(type).ToSingleton();
             }
-            return base.Bind(signal ?? value) as ICommandBinding;
+            if(injectionBinder.GetInstance(type,false) is BaseSignal signal)
+                return base.Bind(signal) as ICommandBinding;
+            return base.Bind(value) as ICommandBinding;
         }
         /// <summary>Unbind by Signal Type</summary>
-        /// <exception cref="InjectionException">If there is no binding for this type.</exception>
         public override void Unbind<T>()
         {
-            var binding = GetBinding<T>();
-            if (binding == null) return;
+            if (GetBinding<T>() == null) return;
             var signal = injectionBinder.GetInstance<T>();
+            if(signal == null) return;
             Unbind(signal, null);
         }
 
@@ -352,9 +345,8 @@ namespace SimplifyIoC.Commands
         /// <param name="key">Instance of IBaseSignal</param>
         public override void Unbind(object key, object name)
         {
-            if (bindings.ContainsKey(key))
+            if (bindings.ContainsKey(key) && key is BaseSignal signal)
             {
-                var signal = (BaseSignal)key;
                 signal.RemoveListener(ReactTo);
             }
             base.Unbind(key, name);
@@ -363,20 +355,13 @@ namespace SimplifyIoC.Commands
         protected override void Resolver(IBinding binding)
         {
             base.Resolver(binding);
-            if (usePooling && (binding as ICommandBinding).isPooled)
+            if (!usePooling || !((ICommandBinding)binding).isPooled) return;
+            if (binding.value is not object[] values) return;
+            foreach (Type value in values)
             {
-                if (binding.value != null)
-                {
-                    var values = binding.value as object[];
-                    foreach (Type value in values)
-                    {
-                        if (pools.ContainsKey(value) == false)
-                        {
-                            var myPool = MakePoolFromType(value);
-                            pools[value] = myPool;
-                        }
-                    }
-                }
+                if (pools.ContainsKey(value)) continue;
+                var myPool = MakePoolFromType(value);
+                pools[value] = myPool;
             }
         }
 

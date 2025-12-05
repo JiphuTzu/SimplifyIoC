@@ -75,10 +75,7 @@ namespace SimplifyIoC.Commands
         public virtual void Release()
         {
             retain = false;
-            if (commandBinder != null)
-            {
-                commandBinder.ReleaseCommand(this);
-            }
+            commandBinder?.ReleaseCommand(this);
         }
 
         /// Use/override this method to clean up the Command for recycling
@@ -90,10 +87,7 @@ namespace SimplifyIoC.Commands
 
         public virtual void Fail()
         {
-            if (commandBinder != null)
-            {
-                commandBinder.Stop(this);
-            }
+            commandBinder?.Stop(this);
         }
 
         public void Cancel()

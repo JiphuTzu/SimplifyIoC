@@ -38,15 +38,9 @@
  * with the option of suspending the chain at any time.
  * 
  * Example bindings:
-
-		Bind("someEvent").To<SomeCommand>(); //Works, but poor form to use strings. Use the next example instead
-
-		Bind(EventMap.SOME_EVENT).To<SomeCommand>(); //Make it a constant
-
-		Bind(ContextEvent.START).To<StartCommand>().Once(); //Destroy the binding immediately after a single use
-
-		Bind(EventMap.END_GAME_EVENT).To<FirstCommand>().To<SecondCommand>().To<ThirdGCommand>().InSequence();
-
+		Bind<SomeSignal>().To<SomeCommand>(); 
+		Bind<StartupSignal>().To<StartCommand>().Once(); //Destroy the binding immediately after a single use
+		Bind<SomeSignal>().To<FirstCommand>().To<SecondCommand>().To<ThirdGCommand>().InSequence();
  * 
  * See Command for details on asynchronous Commands and cancelling sequences.
  */

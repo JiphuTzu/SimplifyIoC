@@ -13,8 +13,8 @@ namespace UMa.Commands
 {
     public class CreateObjectCommand : Command
     {
-		[Inject(ContextKeys.CONTEXT_VIEW)]
-		public ContextView root{get;set;}
+		[Inject(ContextKeys.Bootstrap)]
+		public Bootstrap root{get;set;}
         [Inject]
         public GameObject[] objects { get; set; }
         [Inject]

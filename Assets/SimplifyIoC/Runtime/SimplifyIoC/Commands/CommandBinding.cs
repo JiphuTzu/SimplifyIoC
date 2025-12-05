@@ -15,14 +15,14 @@
  */
 
 /*
-* @class SimplifyIoC.Commands.CommandBinding
-* 
-* The Binding for CommandBinder.
-* 
-* The only real distinction between CommandBinding and Binding
-* is the addition of `Once()`, which signals that the Binding
-* should be destroyed immediately after a single use.
-*/
+ * @class SimplifyIoC.Commands.CommandBinding
+ * 
+ * The Binding for CommandBinder.
+ * 
+ * The only real distinction between CommandBinding and Binding
+ * is the addition of `Once()`, which signals that the Binding
+ * should be destroyed immediately after a single use.
+ */
 using SimplifyIoC.Framework;
 namespace SimplifyIoC.Commands
 {
@@ -70,8 +70,6 @@ namespace SimplifyIoC.Commands
 		}
 
 		//Everything below this point is simply facade on Binding to ensure fluent interface
-
-
 		public new ICommandBinding Bind<T>()
 		{
 			return base.Bind<T> () as ICommandBinding;
