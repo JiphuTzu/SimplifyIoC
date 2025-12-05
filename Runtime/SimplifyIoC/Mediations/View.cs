@@ -127,7 +127,7 @@ namespace SimplifyIoC.Mediations
             {
                 loopLimiter++;
                 trans = trans.parent;
-                var contextView = trans.GetComponent<ContextView>();
+                var contextView = trans.GetComponent<Bootstrap>();
                 if (contextView != null && contextView.context != null)
                 {
                     var context = contextView.context;

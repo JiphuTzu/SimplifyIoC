@@ -1,8 +1,8 @@
 {
     "name": "com.uma.simplifyioc",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "displayName": "SimplifyIoC",
-    "description": "A simplify version of StrangeIoC.\n\n## 1.0.8\n+ 修复ChildAttribute的不可用问题\n+ 调整AddAttributeParser方法\n\n1.0.7\n+ BindEvent添加对私有变量的支持\n+ BindToEvent修改为BindEvent，参数改为targetName\n+ 使用target.AddAttributeParser(this.GetXxxParser()).ParseAttributes()统一处理Attribute\n+ Mediator和View添加Get<T>() where T:BaseSignal方法，省去Inject环节，直接使用。",
+    "description": "A simplify version of StrangeIoC.\n\n## 1.2.0\n+ 使用Bootstrap替换ContextView\n+ 彻底删除EventDispatcher\n+ 调整类的文件目录\n+ 清理一些不常用的类，去除一些接口\n+ 优化工具类",
     "unity": "2022.3",
     "keywords": [
       "mvc",

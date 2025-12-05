@@ -8,7 +8,7 @@ using System.Collections;
 //============================================================
 namespace SimplifyIoC.Contexts
 {
-    public abstract class SimplifyBootstrap : ContextView
+    public abstract class SimplifyBootstrap : Bootstrap
     {
         //在Awake中进行context的实例化
         protected abstract void Awake();

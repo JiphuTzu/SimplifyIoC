@@ -14,19 +14,11 @@ using SimplifyIoC.Signals;
 //============================================================
 namespace SimplifyIoC.Contexts
 {
-    public abstract class SimplifyContext<B, T> : Context where B : SimplifyBootstrap where T : Command
+    public abstract class SimplifyContext<T> : Context where T : Command
     {
-        protected B bootstrap { get; private set; }
 
-        public SimplifyContext(B view) : base(view, ContextStartupFlags.MANUAL_LAUNCH)
-        {
-        }
-
-        protected override void SetContextView(ContextView view)
-        {
-            bootstrap = view as B;
-            base.SetContextView(view);
-        }
+        public SimplifyContext(Bootstrap view) : base(view, ContextStartupFlags.ManualLaunch) { }
+        
         protected sealed override void MapBindings()
         {
             base.MapBindings();

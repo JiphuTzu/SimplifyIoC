@@ -8,7 +8,6 @@
 #if DEBUG_X || DEBUG_X_HIDE
 namespace SimplifyIoC.Utils
 {
-
     using System;
     using System.Collections;
     using System.Collections.Generic;
@@ -16,7 +15,7 @@ namespace SimplifyIoC.Utils
     using UnityEngine.UI;
     using Object = UnityEngine.Object;
     [RequireComponent(typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster))]
-    public class DebugX : MonoBehaviour,ILogHandler
+    public class DebugX : MonoBehaviour, ILogHandler
     {
 
         [RuntimeInitializeOnLoadMethod]
@@ -30,7 +29,7 @@ namespace SimplifyIoC.Utils
 
         private Text _text;
         private int _lines = 10;
-        private const string _AUTHOR = "<color=#CCCCCC>\t [DebugX@JiphuTzu]</color>\n";
+        private const string _AUTHOR = "<color=#CCCCCC>\t\t[DebugX@JiphuTzu]</color>\n";
         private const string _ICON =
             "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAeUlEQVQ4EWNkAIKzQACiSQXGQMBIrmaYZUwwBrn0wBvAgux037Qz/5H5m2eZMMLE0NkwdSheACkCSYBomAaYGEwDOh/FAJgidBqXYSB1RBmAbiAynygDQOEAcwWyZhAbxQBYgIFoXJpgamAGjaZEBgZwwiE3R4KyMwAjrj6HJzm5/wAAAABJRU5ErkJggg==";
         private readonly List<string> _logs = new();
@@ -65,9 +64,8 @@ namespace SimplifyIoC.Utils
             }
             
             //
-            CreateDebugButton();
-
             CreateDebugText();
+            CreateDebugButton();
             
             _defaultHandler = Debug.unityLogger.logHandler;
             Debug.unityLogger.logHandler = this;
@@ -75,9 +73,8 @@ namespace SimplifyIoC.Utils
 
         private IEnumerator Start()
         {
-            //等到更新之后才能得到真实高度
-            yield return new WaitForEndOfFrame();
-            _lines = (int)(_text.rectTransform.rect.height / (_text.fontSize*1.2f));
+            yield return null;
+            _lines = (int)((GetComponent<RectTransform>().rect.height-100) / (_text.fontSize*1.12f));
         }
 
         private void OnDestroy()
@@ -103,7 +100,7 @@ namespace SimplifyIoC.Utils
                 return;
             }
 #endif
-            _text.gameObject.SetActive(!_text.gameObject.activeSelf);
+            _text.transform.parent.gameObject.SetActive(!_text.transform.parent.gameObject.activeSelf);
             if(_text.gameObject.activeSelf)
                 _text.text = _AUTHOR + string.Join("\n",_logs);
         }
@@ -140,8 +137,8 @@ namespace SimplifyIoC.Utils
             brt.anchorMin = new Vector2(0, 1);
             brt.anchorMax = new Vector2(0, 1);
             brt.pivot = new Vector2(0, 1);
-            brt.anchoredPosition = new Vector2(5, -5);
-            brt.sizeDelta = new Vector2(50, 50);
+            brt.anchoredPosition = new Vector2(10, -10);
+            brt.sizeDelta = new Vector2(80, 80);
             bgo.GetComponent<Button>().onClick.AddListener(OnLogVisible);
             //
             var t = new Texture2D(2, 2);
@@ -157,28 +154,61 @@ namespace SimplifyIoC.Utils
 
         private void CreateDebugText()
         {
+            var bgo = new GameObject("Container", typeof(AlphaAdjuster));
+            bgo.transform.SetParent(transform);
+            //
             var tgo = new GameObject("Log", typeof(Text));
-            tgo.transform.SetParent(transform);
+            tgo.transform.SetParent(bgo.transform);
             var trt = tgo.GetComponent<RectTransform>();
             trt.anchorMax = Vector2.one;
             trt.anchorMin = Vector2.zero;
             //-right,-top
-            trt.offsetMax = new Vector2(-20,-20);
+            trt.offsetMax = new Vector2(-15,-36);
             //left,bottom
-            trt.offsetMin = new Vector2(20,20);
+            trt.offsetMin = new Vector2(15,15);
             _text = tgo.GetComponent<Text>();
 #if UNITY_2022_1_OR_NEWER
             _text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
 #else
             _text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
 #endif
-            _text.fontSize = 32;
-            _text.color = new Color(0.93f, 0.95f, 0.92f, 0.8f);
+            _text.fontSize = 34;
+            _text.color = new Color(0.93f, 0.95f, 0.92f, 1f);
             _text.alignment = TextAnchor.UpperLeft;
             _text.fontStyle = FontStyle.Bold;
             _text.raycastTarget = false;
             _text.text = _AUTHOR;
-            tgo.SetActive(false);
+            bgo.SetActive(false);
+        }
+        [RequireComponent(typeof(Image),typeof(CanvasGroup))]
+        private class AlphaAdjuster : MonoBehaviour
+        {
+            private CanvasGroup _cg;
+            private void Start()
+            {
+                var brt = GetComponent<RectTransform>();
+                brt.anchorMax = Vector2.one;
+                brt.anchorMin = Vector2.zero;
+                //-right,-top
+                brt.offsetMax = new Vector2(-15,-15);
+                //left,bottom
+                brt.offsetMin = new Vector2(15,15);
+                //
+                var image = GetComponent<Image>();
+                image.color = new Color(0.3f,0.3f,0.3f,1f);
+                image.raycastTarget = false;
+                //
+                _cg = GetComponent<CanvasGroup>();
+                _cg.blocksRaycasts = false;
+                _cg.interactable = false;
+                _cg.alpha = 0.6f;
+            }
+
+            private void Update()
+            {
+                if(!Input.GetMouseButton(0)) return;
+                _cg.alpha +=Input.GetAxis("Mouse Y") * 0.1f;
+            }
         }
     }
 }

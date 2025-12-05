@@ -38,7 +38,7 @@ using UnityEngine;
 
 namespace SimplifyIoC.Contexts
 {
-    public class ContextView : MonoBehaviour
+    public class Bootstrap : MonoBehaviour
 	{
 		public Context context { get; protected set; }
 
