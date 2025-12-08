@@ -1,4 +1,6 @@
 ﻿# CHANGELOG
+## 1.2.1
++ DebugX中可自定义显示内容
 ## 1.2.0
 + 使用Bootstrap替换ContextView
 + 优化工具类

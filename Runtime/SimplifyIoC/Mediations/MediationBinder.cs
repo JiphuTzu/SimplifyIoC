@@ -105,7 +105,7 @@ namespace SimplifyIoC.Mediations
             if (isTrueMediator && mediator is Mediator m0)
                 m0.PreRegister();
 
-            var typeToInject = binding.abstraction == null || binding.abstraction.Equals(BindingConst.Nulloid) ? viewType : binding.abstraction as Type;
+            var typeToInject = binding.abstraction == null || binding.abstraction.Equals(Binder.NULL_BINDING) ? viewType : binding.abstraction as Type;
             injectionBinder.Bind(typeToInject).ToValue(view).ToInject(false);
             injectionBinder.injector.Inject(mediator);
             injectionBinder.Unbind(typeToInject);

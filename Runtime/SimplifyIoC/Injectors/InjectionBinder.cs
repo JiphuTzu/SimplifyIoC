@@ -272,25 +272,27 @@ namespace SimplifyIoC.Injectors
 
         protected override void Resolver(IBinding binding)
         {
-            var iBinding = binding as IInjectionBinding;
-            var supply = iBinding.GetSupply();
-
-            if (supply != null)
+            if (binding is IInjectionBinding iBinding)
             {
-                foreach (var a in supply)
+                var supply = iBinding.GetSupply();
+
+                if (supply != null)
                 {
-                    var aType = a as Type;
-                    if (suppliers.ContainsKey(aType) == false)
+                    foreach (var a in supply)
                     {
-                        suppliers[aType] = new Dictionary<Type, IInjectionBinding>();
-                    }
-                    var keys = iBinding.key as object[];
-                    foreach (var key in keys)
-                    {
-                        var keyType = key as Type;
-                        if (!suppliers[aType].ContainsKey(keyType))
+                        if (a is not Type aType) continue;
+                        if (!suppliers.ContainsKey(aType))
                         {
-                            suppliers[aType][keyType] = iBinding;
+                            suppliers[aType] = new Dictionary<Type, IInjectionBinding>();
+                        }
+                        var keys = iBinding.key as object[];
+                        foreach (var key in keys)
+                        {
+                            var keyType = key as Type;
+                            if (!suppliers[aType].ContainsKey(keyType))
+                            {
+                                suppliers[aType][keyType] = iBinding;
+                            }
                         }
                     }
                 }

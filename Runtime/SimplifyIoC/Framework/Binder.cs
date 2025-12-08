@@ -52,13 +52,10 @@ using System.Collections.Generic;
 
 namespace SimplifyIoC.Framework
 {
-    public enum BindingConst
-    {
-        /// Null is an acceptable binding, but dictionaries choke on it, so we map null to this instead.
-        Nulloid
-    }
     public class Binder : IBinder
     {
+        //Null is an acceptable binding, but dictionaries choke on it, so we map null to this instead.
+        public const string NULL_BINDING = "null_binding";
         /// Dictionary of all bindings
         /// Two-layer keys. First key to individual Binding keys,
         /// then to Binding names. (This wouldn't be required if
@@ -117,7 +114,7 @@ namespace SimplifyIoC.Framework
             }
 
             if (!bindings.TryGetValue(key, out var dict)) return null;
-            name ??= BindingConst.Nulloid;
+            name ??= NULL_BINDING;
             return dict.GetValueOrDefault(name);
         }
 
@@ -139,7 +136,7 @@ namespace SimplifyIoC.Framework
         public virtual void Unbind(object key, object name)
         {
             if (!bindings.TryGetValue(key, out var dict)) return;
-            var bindingName = name ?? BindingConst.Nulloid;
+            var bindingName = name ?? NULL_BINDING;
             dict.Remove(bindingName);
         }
 
@@ -257,7 +254,7 @@ namespace SimplifyIoC.Framework
             }
 
             //Check for and assign new conflicts
-            var bindingName = binding.name ?? BindingConst.Nulloid;
+            var bindingName = binding.name ?? NULL_BINDING;
             Dictionary<object, IBinding> dict;
             if ((bindings.TryGetValue(key, out var binding1)))
             {
@@ -301,9 +298,9 @@ namespace SimplifyIoC.Framework
             }
 
             //Remove nulloid bindings
-            if (dict.ContainsKey(BindingConst.Nulloid) && dict[BindingConst.Nulloid].Equals(binding))
+            if (dict.ContainsKey(NULL_BINDING) && dict[NULL_BINDING].Equals(binding))
             {
-                dict.Remove(BindingConst.Nulloid);
+                dict.Remove(NULL_BINDING);
             }
 
             //Add (or override) our new binding!
