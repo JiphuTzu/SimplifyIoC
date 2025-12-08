@@ -76,7 +76,7 @@ namespace SimplifyIoC.Framework
 
         public object value => _value.value;
 
-        public object name => _name.value ?? BindingConst.Nulloid;
+        public object name => _name.value ?? Binder.NULL_BINDING;
 
         public BindingConstraintType keyConstraint
         {
@@ -130,7 +130,7 @@ namespace SimplifyIoC.Framework
 
         public virtual IBinding ToName(object o)
         {
-            var toName = o ?? BindingConst.Nulloid;
+            var toName = o ?? Binder.NULL_BINDING;
             _name.Add(toName);
             if (resolver != null)
                 resolver(this);

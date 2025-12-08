@@ -98,11 +98,9 @@ namespace SimplifyIoC.Injectors
 		/// will throw an error if there are any unresolved conflicts.
 		void ResolveBinding(IBinding binding, object key);
 
-		/// <summary>
 		/// Remove the supply binding for the specified injection Type T and target Type U.
 		void Unsupply<T, U>();
 
-		/// <summary>
 		/// Remove the supply binding for the specified injection Type and target Type.
 		void Unsupply(Type injectionType, Type targetType);
 
@@ -121,8 +119,5 @@ namespace SimplifyIoC.Injectors
 
 		/// For consumed bindings, provide a secure whitelist of legal bindings
 		void WhitelistBindings(List<object> list);
-
-		// Provide the Binder with JSON data to perform dynamic runtime binding
-		//void ConsumeBindings(string jsonString);
 	}
 }

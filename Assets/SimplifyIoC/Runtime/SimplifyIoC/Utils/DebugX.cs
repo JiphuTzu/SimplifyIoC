@@ -6,33 +6,43 @@
  * DEBUG_X_HIDE 初始时隐藏按钮，需要在左上角连续点击6次后，显示调试按钮
  */
 #if DEBUG_X || DEBUG_X_HIDE
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using SimplifyIoC.Utils;
+using UnityEngine;
+using UnityEngine.UI;
+using Object = UnityEngine.Object;
+public static class DebugXExtensions
+{
+    private static  DebugX _instance;
+    public static void ShowInDebugger(this Transform child)
+    {
+        if(_instance == null) return;
+        _instance.AddToContainer(child);
+    }
+        
+    [RuntimeInitializeOnLoadMethod]
+    private static void CheckOrCreate()
+    {
+        if(_instance) return;
+        var go = new GameObject("DebugX",typeof(DebugX));
+        _instance = go.GetComponent<DebugX>();
+        Object.DontDestroyOnLoad(go);
+    }
+}
 namespace SimplifyIoC.Utils
 {
-    using System;
-    using System.Collections;
-    using System.Collections.Generic;
-    using UnityEngine;
-    using UnityEngine.UI;
-    using Object = UnityEngine.Object;
     [RequireComponent(typeof(Canvas),typeof(CanvasScaler),typeof(GraphicRaycaster))]
     public class DebugX : MonoBehaviour, ILogHandler
     {
-
-        [RuntimeInitializeOnLoadMethod]
-        private static void CheckOrCreate()
-        {
-            if(_instance) return;
-            _ = new GameObject("DebugX",typeof(DebugX));
-        }
-
-        private static  DebugX _instance;
-
         private Text _text;
         private int _lines = 10;
         private const string _AUTHOR = "<color=#CCCCCC>\t\t[DebugX@JiphuTzu]</color>\n";
         private const string _ICON =
             "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAeUlEQVQ4EWNkAIKzQACiSQXGQMBIrmaYZUwwBrn0wBvAgux037Qz/5H5m2eZMMLE0NkwdSheACkCSYBomAaYGEwDOh/FAJgidBqXYSB1RBmAbiAynygDQOEAcwWyZhAbxQBYgIFoXJpgamAGjaZEBgZwwiE3R4KyMwAjrj6HJzm5/wAAAABJRU5ErkJggg==";
         private readonly List<string> _logs = new();
+        private Transform _container;
 #if DEBUG_X_HIDE
         private bool _hideOnStart;
         private float _lastClickTime;
@@ -43,9 +53,6 @@ namespace SimplifyIoC.Utils
         // Start is called before the first frame update
         private void Awake()
         {
-            _instance = this;
-            DontDestroyOnLoad(gameObject);
-            //
             var canvas = GetComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 999;
@@ -69,6 +76,11 @@ namespace SimplifyIoC.Utils
             
             _defaultHandler = Debug.unityLogger.logHandler;
             Debug.unityLogger.logHandler = this;
+        }
+
+        public void AddToContainer(Transform child)
+        {
+            child.SetParent(_container,false);
         }
 
         private IEnumerator Start()
@@ -155,7 +167,8 @@ namespace SimplifyIoC.Utils
         private void CreateDebugText()
         {
             var bgo = new GameObject("Container", typeof(AlphaAdjuster));
-            bgo.transform.SetParent(transform);
+            _container = bgo.transform;
+            _container.SetParent(transform);
             //
             var tgo = new GameObject("Log", typeof(Text));
             tgo.transform.SetParent(bgo.transform);
@@ -199,8 +212,8 @@ namespace SimplifyIoC.Utils
                 image.raycastTarget = false;
                 //
                 _cg = GetComponent<CanvasGroup>();
-                _cg.blocksRaycasts = false;
-                _cg.interactable = false;
+                //_cg.blocksRaycasts = false;
+                //_cg.interactable = false;
                 _cg.alpha = 0.6f;
             }
 

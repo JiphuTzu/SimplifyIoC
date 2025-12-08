@@ -1,8 +1,8 @@
 {
     "name": "com.uma.simplifyioc",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "displayName": "SimplifyIoC",
-    "description": "A simplify version of StrangeIoC.\n\n## 1.2.0\n+ 使用Bootstrap替换ContextView\n+ 彻底删除EventDispatcher\n+ 调整类的文件目录\n+ 清理一些不常用的类，去除一些接口\n+ 优化工具类",
+    "description": "A simplify version of StrangeIoC.\n\n## 1.2.1\n+ DebugX中可自定义显示内容\n## 1.2.0\n+ 使用Bootstrap替换ContextView\n+ 彻底删除EventDispatcher\n+ 调整类的文件目录\n+ 清理一些不常用的类，去除一些接口\n+ 优化工具类",
     "unity": "2022.3",
     "keywords": [
       "mvc",

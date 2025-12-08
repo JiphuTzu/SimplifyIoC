@@ -66,7 +66,7 @@ namespace SimplifyIoC.Mediations
             return this;
         }
 
-        public object abstraction => _abstraction.value ?? BindingConst.Nulloid;
+        public object abstraction => _abstraction.value ?? Binder.NULL_BINDING;
 
         public new IMediationBinding Bind<T>()
         {

@@ -65,9 +65,7 @@
 using System;
 using UnityEngine.Scripting;
 
-[AttributeUsage(AttributeTargets.Property,
-        AllowMultiple = false,
-        Inherited = true)]
+[AttributeUsage(AttributeTargets.Property)]
 public class Inject : PreserveAttribute
 {
     public Inject() { }
@@ -81,9 +79,7 @@ public class Inject : PreserveAttribute
 }
 
 //Tag [Name] to perform named injection in constructors and pseudo-constructors
-[AttributeUsage(AttributeTargets.Parameter,
-        AllowMultiple = false,
-        Inherited = false)]
+[AttributeUsage(AttributeTargets.Parameter)]
 public class Name : Attribute
 {
     public Name(object n)
@@ -95,9 +91,7 @@ public class Name : Attribute
 }
 
 //Tag [Construct] to perform construction injection
-[AttributeUsage(AttributeTargets.Constructor,
-        AllowMultiple = false,
-        Inherited = true)]
+[AttributeUsage(AttributeTargets.Constructor)]
 public class Construct : Attribute
 {
     public Construct() { }

@@ -52,40 +52,32 @@ namespace SimplifyIoC.Injectors
 
         public override IInjectionBinding GetBinding(object key, object name)
         {
-            var binding = base.GetBinding(key, name) as IInjectionBinding;
-            if (binding == null) //Attempt to get this from the cross context. Cross context is always SECOND PRIORITY. Local injections always override
-            {
-                if (crossContextBinder != null)
-                {
-                    binding = crossContextBinder.GetBinding(key, name) as IInjectionBinding;
-                }
-            }
-            return binding;
+            var binding = base.GetBinding(key, name);
+            //Attempt to get this from the cross context. Cross context is always SECOND PRIORITY. Local injections always override
+            if (binding != null) return binding;
+            if (crossContextBinder == null) return null;
+            return crossContextBinder.GetBinding(key, name);
         }
 
         public override void ResolveBinding(IBinding binding, object key)
         {
             //Decide whether to resolve locally or not
-            if (binding is IInjectionBinding)
+            if (binding is not IInjectionBinding injectionBinding) return;
+            if (injectionBinding.isCrossContext)
             {
-                var injectionBinding = (InjectionBinding)binding;
-                if (injectionBinding.isCrossContext)
-                {
-                    if (crossContextBinder == null) //We are a crosscontextbinder
-                    {
-
-                        base.ResolveBinding(binding, key);
-                    }
-                    else
-                    {
-                        base.Unbind(key, binding.name); //remove this cross context binding from ONLY the local binder
-                        crossContextBinder.ResolveBinding(binding, key);
-                    }
-                }
-                else
+                if (crossContextBinder == null) //We are a crosscontextbinder
                 {
                     base.ResolveBinding(binding, key);
                 }
+                else
+                {
+                    base.Unbind(key, binding.name); //remove this cross context binding from ONLY the local binder
+                    crossContextBinder.ResolveBinding(binding, key);
+                }
+            }
+            else
+            {
+                base.ResolveBinding(binding, key);
             }
         }
 
@@ -95,19 +87,13 @@ namespace SimplifyIoC.Injectors
             {
                 return crossContextBinder.injector;
             }
-            else
-            {
-                return injector;
-            }
+            return injector;
         }
 
         public override void Unbind(object key, object name)
         {
             var binding = GetBinding(key, name);
-
-            if (binding != null &&
-                binding.isCrossContext &&
-                crossContextBinder != null)
+            if (binding != null && binding.isCrossContext && crossContextBinder != null)
             {
                 crossContextBinder.Unbind(key, name);
             }

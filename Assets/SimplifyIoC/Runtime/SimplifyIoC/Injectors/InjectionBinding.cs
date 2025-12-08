@@ -75,17 +75,15 @@ namespace SimplifyIoC.Injectors
 
         public IInjectionBinding SetValue(object o)
         {
-
             var objType = o.GetType();
-
             var keys = key as object[];
             var aa = keys.Length;
             //Check that value is legal for the provided keys
             for (var a = 0; a < aa; a++)
             {
                 var aKey = keys[a];
-                var keyType = (aKey is Type) ? aKey as Type : aKey.GetType();
-                if (keyType.IsAssignableFrom(objType) == false && (HasGenericAssignableFrom(keyType, objType) == false))
+                var keyType = aKey as Type ?? aKey.GetType();
+                if (!keyType.IsAssignableFrom(objType) && !HasGenericAssignableFrom(keyType, objType))
                 {
                     throw new Exception("Injection cannot bind a value that does not extend or implement the binding type.");
                 }

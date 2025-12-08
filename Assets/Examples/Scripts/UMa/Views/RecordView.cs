@@ -1,7 +1,6 @@
 using SimplifyIoC.Mediations;
 using SimplifyIoC.Utils;
 using UMa.Signals;
-using UnityEngine;
 using UnityEngine.UI;
 //============================================================
 //支持中文，文件使用UTF-8编码
@@ -22,6 +21,9 @@ namespace UMa.Views
         protected override void Start()
         {
             base.Start();
+#if DEBUG_X || DEBUG_X_HIDE
+            transform.ShowInDebugger();
+#endif
             Show();
         }
         [ListensTo(typeof(RecordChangedSignal))]

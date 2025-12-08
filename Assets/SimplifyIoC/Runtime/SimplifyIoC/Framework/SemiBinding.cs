@@ -14,7 +14,7 @@
  *		limitations under the License.
  */
 
-/**
+/*
  * @class SimplifyIoC.Framework.SemiBinding
  * 
  * A managed list of values.
@@ -41,7 +41,7 @@ namespace SimplifyIoC.Framework
 
         public IManagedList Add(object o)
         {
-            if (objectValue == null || (BindingConstraintType)constraint == BindingConstraintType.One)
+            if (objectValue == null || constraint == BindingConstraintType.One)
             {
                 objectValue = new object[1];
             }
@@ -111,7 +111,7 @@ namespace SimplifyIoC.Framework
             {
                 if (constraint.Equals(BindingConstraintType.One))
                 {
-                    return (objectValue == null) ? null : objectValue[0];
+                    return objectValue?[0];
                 }
                 return objectValue;
             }
@@ -134,7 +134,7 @@ namespace SimplifyIoC.Framework
                 }
                 newList[a + mod] = objectValue[a];
             }
-            objectValue = (newList.Length == 0) ? null : newList;
+            objectValue = newList.Length == 0 ? null : newList;
         }
     }
 }
