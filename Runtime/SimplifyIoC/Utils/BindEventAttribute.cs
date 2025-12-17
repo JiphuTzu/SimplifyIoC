@@ -1,6 +1,6 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
-using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.Scripting;
 
@@ -27,44 +27,33 @@ namespace SimplifyIoC.Utils
     [Flags]
     public enum BindUsage : byte
     {
-        FIELD = 1 << 0,
-        PROPERTY = 1 << 1,
-        METHOD = 1 << 2
+        Field = 1 << 0,
+        Property = 1 << 1,
+        Method = 1 << 2
     }
 
     public static class BindEventExtension
     {
-        [Obsolete(
-            "use target.AddFieldParser(this.GetEventFieldParser(usage)).AddPropertyParser(this.GetEventPropertyParser(usage)).AddMethodParser(target.GetEventMethodParser(usage)).ParseAttributes() instead")]
-        public static void BindEvents(this Component target,
-            BindUsage usage = BindUsage.FIELD | BindUsage.PROPERTY | BindUsage.METHOD)
-        {
-            target.AddAttributeParser(target.GetEventFieldParser(usage))
-                .AddAttributeParser(target.GetEventPropertyParser(usage))
-                .AddAttributeParser(target.GetEventMethodParser(usage))
-                .ParseAttributes();
-        }
-
         public static Action<T, BindEventAttribute, MethodInfo, Type> GetEventMethodParser<T>(this T target,
-            BindUsage usage = BindUsage.METHOD)
+            BindUsage usage = BindUsage.Method)
         {
-            return (usage & BindUsage.METHOD) == BindUsage.METHOD
+            return (usage & BindUsage.Method) == BindUsage.Method
                 ? MethodParser
                 : null;
         }
 
         public static Action<T, BindEventAttribute, FieldInfo, Type> GetEventFieldParser<T>(this T target,
-            BindUsage usage = BindUsage.FIELD)
+            BindUsage usage = BindUsage.Field)
         {
-            return (usage & BindUsage.FIELD) == BindUsage.FIELD
+            return (usage & BindUsage.Field) == BindUsage.Field
                 ? FieldParser
                 : null;
         }
 
         public static Action<T, BindEventAttribute, PropertyInfo, Type> GetEventPropertyParser<T>(this T target,
-            BindUsage usage = BindUsage.PROPERTY)
+            BindUsage usage = BindUsage.Property)
         {
-            return (usage & BindUsage.PROPERTY) == BindUsage.PROPERTY
+            return (usage & BindUsage.Property) == BindUsage.Property
                 ? PropertyParser
                 : null;
         }
@@ -74,31 +63,104 @@ namespace SimplifyIoC.Utils
         {
             if (string.IsNullOrWhiteSpace(attribute.eventName)
                 || attribute.targetNames.Length == 0) return;
-            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
+            const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
                                        BindingFlags.IgnoreCase;
             foreach (var targetName in attribute.targetNames)
             {
-                var obj = targetType.GetField(targetName, flags)?.GetValue(target)
-                          ?? targetType.GetProperty(targetName, flags)?.GetValue(target);
-                var ue = GetEvent(obj, attribute.eventName);
-                if (ue != null) AddListener(ue, target, method);
+                var fieldInfo = targetType.GetField(targetName, FLAGS);
+                if (fieldInfo != null)
+                {
+                    if (fieldInfo.FieldType.HasElementType)
+                    {
+                        //是数组
+                        var arr = fieldInfo.GetValue(target) as object[];
+                        TryAddListener(arr, attribute.eventName, target, method);
+                        return;
+                    }
+                    if (fieldInfo.FieldType.IsGenericType &&
+                             fieldInfo.FieldType.GetGenericTypeDefinition() == typeof(List<>))
+                    {
+                        var toArray = fieldInfo.FieldType.GetMethod("ToArray");
+                        // ReSharper disable once PossibleNullReferenceException
+                        var arr = toArray.Invoke(fieldInfo.GetValue(target), new object[] { }) as object[];
+                        TryAddListener(arr,attribute.eventName, target, method);
+                        return;
+                    }
+                    TryAddListener(fieldInfo.GetValue(target), attribute.eventName, target, method);
+                    return;
+                }
+                var propertyInfo = targetType.GetProperty(targetName, FLAGS);
+                if (propertyInfo == null) return;
+                if (propertyInfo.PropertyType.HasElementType)
+                {
+                    var arr = propertyInfo.GetValue(target) as object[];
+                    TryAddListener(arr, attribute.eventName, target, method);
+                    return;
+                }
+
+                if (propertyInfo.PropertyType.IsGenericType &&
+                    propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
+                {
+                    var toArray = propertyInfo.PropertyType.GetMethod("ToArray");
+                    // ReSharper disable once PossibleNullReferenceException
+                    var arr = toArray.Invoke(propertyInfo.GetValue(target), new object[] { }) as object[];
+                    TryAddListener(arr, attribute.eventName, target, method);
+                    return;
+                }
+                TryAddListener(propertyInfo.GetValue(target), attribute.eventName, target, method);
             }
             
         }
+
+        private static void TryAddListener(object[] eventSources, string eventName, object handlerTarget,
+            MethodInfo method)
+        {
+            foreach (var eventSource in eventSources)
+            {
+                TryAddListener(eventSource, eventName, handlerTarget, method);
+            }
+        }
+
+        private static void TryAddListener(object eventSource, string eventName, object handlerTarget, MethodInfo method)
+        {
+            var ue = GetEvent(eventSource, eventName);
+            if (ue != null) AddListener(ue, handlerTarget, method);
+        }
+
+        // private static bool TryToArray(object obj, out object[] arr)
+        // {
+        //     if(Array.)
+        // }
 
         private static void FieldParser<T>(T target, BindEventAttribute attribute, FieldInfo field, Type targetType)
         {
             if (string.IsNullOrWhiteSpace(attribute.eventName)) return;
             var targetNames = attribute.targetNames;
             if (targetNames.Length == 0) targetNames = new []{$"on{field.Name}"};
-            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
+            const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
                                        BindingFlags.IgnoreCase;
             foreach (var targetName in targetNames)
             {
-                var methodInfo = targetType.GetMethod(targetName, flags);
+                var methodInfo = targetType.GetMethod(targetName, FLAGS);
                 if (methodInfo == null) continue;
-                var ue = GetEvent(field.GetValue(target), attribute.eventName);
-                if (ue != null) AddListener(ue, target, methodInfo);
+                if (field.FieldType.HasElementType)
+                {
+                    //是数组
+                    var arr = field.GetValue(target) as object[];
+                    TryAddListener(arr, attribute.eventName, target, methodInfo);
+                } 
+                else if (field.FieldType.IsGenericType &&
+                    field.FieldType.GetGenericTypeDefinition() == typeof(List<>))
+                {
+                    var toArray = field.FieldType.GetMethod("ToArray");
+                    // ReSharper disable once PossibleNullReferenceException
+                    var arr = toArray.Invoke(field.GetValue(target), new object[] { }) as object[];
+                    TryAddListener(arr,attribute.eventName, target, methodInfo);
+                } 
+                else
+                {
+                    TryAddListener(field.GetValue(target), attribute.eventName, target, methodInfo);
+                }
             }
             
         }
@@ -109,14 +171,29 @@ namespace SimplifyIoC.Utils
             if (string.IsNullOrWhiteSpace(attribute.eventName)) return;
             var targetNames = attribute.targetNames;
             if (targetNames.Length == 0) targetNames = new []{$"on{property.Name}"};
-            const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
+            const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
                                        BindingFlags.IgnoreCase;
             foreach (var targetName in targetNames)
             {
-                var methodInfo = targetType.GetMethod(targetName, flags);
+                var methodInfo = targetType.GetMethod(targetName, FLAGS);
                 if (methodInfo == null) continue;
-                var ue = GetEvent(property.GetValue(target), attribute.eventName);
-                if (ue != null) AddListener(ue, target, methodInfo);
+                if (property.PropertyType.HasElementType)
+                {
+                    var arr = property.GetValue(target) as object[];
+                    TryAddListener(arr, attribute.eventName, target, methodInfo);
+                }
+                else if (property.PropertyType.IsGenericType &&
+                         property.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
+                {
+                    var toArray = property.PropertyType.GetMethod("ToArray");
+                    // ReSharper disable once PossibleNullReferenceException
+                    var arr = toArray.Invoke(property.GetValue(target), new object[] { }) as object[];
+                    TryAddListener(arr, attribute.eventName, target, methodInfo);
+                }
+                else
+                {
+                    TryAddListener(property.GetValue(target), attribute.eventName, target, methodInfo);
+                }
             }
         }
 

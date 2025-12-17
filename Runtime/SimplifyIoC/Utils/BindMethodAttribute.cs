@@ -64,33 +64,27 @@ namespace SimplifyIoC.Utils
 
     public static class BindMethodExtension
     {
-        private static readonly Dictionary<Component, Dictionary<object, List<BindMethodAttribute>>> _METHODS = new();
-        [Obsolete("use target.AddAttributeParser(this.GetBindMethodParser()).ParseAttributes() instead")]
-        public static void BindMethods(this Component target)
-        {
-            target.AddAttributeParser(target.GetBindMethodParser())
-                .ParseAttributes();
-        }
+        private static readonly Dictionary<Component, Dictionary<object, List<BindMethodAttribute>>> _methods = new();
 
         public static Action<T,BindMethodAttribute, MethodInfo, Type> GetBindMethodParser<T>(this T target) where T : Component
         {
-            if (_METHODS.ContainsKey(target)) return null;
+            if (_methods.ContainsKey(target)) return null;
             var methods = new Dictionary<object, List<BindMethodAttribute>>();
-            _METHODS.Add(target, methods);
+            _methods.Add(target, methods);
             return MethodParser;
         }
 
         private static void MethodParser<T>(T target, BindMethodAttribute attribute, MethodInfo method, Type
             targetType) where T : Component
         {
-            var methods = _METHODS[target];
+            var methods = _methods[target];
 
             var names = attribute.names;
             if (names.Length == 0) names = new object[] { method.Name };
             for (var i = 0; i < names.Length; i++)
             {
                 var name = names[i];
-                if (name == default || string.IsNullOrEmpty(name.ToString()))
+                if (name == null || string.IsNullOrEmpty(name.ToString()))
                     continue;
                 //
                 attribute.method = method;
@@ -102,15 +96,15 @@ namespace SimplifyIoC.Utils
     
         public static void UnbindMethods(this Component target)
         {
-            var keys = new Component[_METHODS.Count];
-            _METHODS.Keys.CopyTo(keys, 0);
+            var keys = new Component[_methods.Count];
+            _methods.Keys.CopyTo(keys, 0);
             //var count = 0;
             //清除传入的指定对象或者key为空的对象
             foreach (var key in keys)
             {
                 if (key != null && key != target) continue;
-                ClearBinds(_METHODS[key]);
-                _METHODS.Remove(key);
+                ClearBinds(_methods[key]);
+                _methods.Remove(key);
                 //count++;
             }
             //Debug.Log($"unbind methods for {count} target(s) and {_methods.Count} left");
@@ -122,7 +116,7 @@ namespace SimplifyIoC.Utils
             if (target == null) return;
             //target.AddAttributeParser(target.GetBindMethodParser()).ParseAttributes();
             //Debug.Log($"Invoke Bind {name}");
-            if (!_METHODS.TryGetValue(target, out var attributeMap))
+            if (!_methods.TryGetValue(target, out var attributeMap))
             {
                 Debug.Log($"{target} has no method bound to {name}()");
                 return;

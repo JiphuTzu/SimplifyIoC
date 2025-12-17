@@ -74,7 +74,7 @@ namespace SimplifyIoC.Utils
         }
         //BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase
         public static void ParseAttributes<TTarget>(this ReflectedTarget<TTarget> target,BindingFlags flags = BindingFlags.Instance 
-            | BindingFlags.Public | BindingFlags.IgnoreCase) where TTarget:Component
+            | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase) where TTarget:Component
         {
             target.ParseFields(flags)
                 .ParseProperties(flags)
