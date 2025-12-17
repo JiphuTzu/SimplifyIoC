@@ -177,45 +177,46 @@ namespace SimplifyIoC.ImplicitBinds
 			//We do not check for the existence of a binding. Because implicit bindings are weak bindings, they are overridden automatically by other implicit bindings
 			//Therefore, ImplementedBy will be overriden by an Implements to that interface.
 
-			var binding = injectionBinder.Bind(toBind.BindTypes.First());
+			var binding = injectionBinder.Bind(toBind.bindTypes.First());
 			binding.Weak();
 
-			for (var i = 1; i < toBind.BindTypes.Count; i++)
+			for (var i = 1; i < toBind.bindTypes.Count; i++)
 			{
-				var bindType = toBind.BindTypes.ElementAt(i);
+				var bindType = toBind.bindTypes.ElementAt(i);
 				binding.Bind(bindType);
 			}
 
-			binding = toBind.ToType != null ?
-				binding.To(toBind.ToType).ToName(toBind.Name).ToSingleton() :
-				binding.ToName(toBind.Name).ToSingleton();
+			binding = toBind.toType != null ?
+				binding.To(toBind.toType).ToName(toBind.name).ToSingleton() :
+				binding.ToName(toBind.name).ToSingleton();
 
-			if (toBind.IsCrossContext) //Bind this to the cross context injector
+			if (toBind.isCrossContext) //Bind this to the cross context injector
 				binding.CrossContext();
 
 		}
 
+		// ReSharper disable once InconsistentNaming
 		private sealed class ImplicitBindingVO
 		{
-			public List<Type> BindTypes = new List<Type>();
-			public Type ToType;
-			public bool IsCrossContext;
-			public object Name;
+			public readonly List<Type> bindTypes = new List<Type>();
+			public readonly Type toType;
+			public readonly bool isCrossContext;
+			public readonly object name;
 
 			public ImplicitBindingVO(Type bindType, Type toType, bool isCrossContext, object name)
 			{
-				BindTypes.Add(bindType);
-				ToType = toType;
-				IsCrossContext = isCrossContext;
-				Name = name;
+				bindTypes.Add(bindType);
+				this.toType = toType;
+				this.isCrossContext = isCrossContext;
+				this.name = name;
 			}
 
 			public ImplicitBindingVO(List<Type> bindTypes, Type toType, bool isCrossContext, object name)
 			{
-				BindTypes = bindTypes;
-				ToType = toType;
-				IsCrossContext = isCrossContext;
-				Name = name;
+				this.bindTypes = bindTypes;
+				this.toType = toType;
+				this.isCrossContext = isCrossContext;
+				this.name = name;
 			}
 		}
 	}

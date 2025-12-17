@@ -16,10 +16,11 @@ using Object = UnityEngine.Object;
 public static class DebugXExtensions
 {
     private static  DebugX _instance;
-    public static void ShowInDebugger(this Transform child)
+    public static bool ShowInDebugger(this Transform child)
     {
-        if(_instance == null) return;
+        if(_instance == null) return false;
         _instance.AddToContainer(child);
+        return true;
     }
         
     [RuntimeInitializeOnLoadMethod]
@@ -69,7 +70,6 @@ namespace SimplifyIoC.Utils
                 scaler.referenceResolution = new Vector2(1080, 1920);
                 scaler.matchWidthOrHeight = 0;
             }
-            
             //
             CreateDebugText();
             CreateDebugButton();
@@ -86,7 +86,7 @@ namespace SimplifyIoC.Utils
         private IEnumerator Start()
         {
             yield return null;
-            _lines = (int)((GetComponent<RectTransform>().rect.height-100) / (_text.fontSize*1.12f));
+            _lines = (int)((GetComponent<RectTransform>().rect.height - 100) / (_text.fontSize * 1.12f));
         }
 
         private void OnDestroy()
@@ -112,9 +112,7 @@ namespace SimplifyIoC.Utils
                 return;
             }
 #endif
-            _text.transform.parent.gameObject.SetActive(!_text.transform.parent.gameObject.activeSelf);
-            if(_text.gameObject.activeSelf)
-                _text.text = _AUTHOR + string.Join("\n",_logs);
+            _container.gameObject.SetActive(!_container.gameObject.activeSelf);
         }
 
         public void LogFormat(LogType logType, Object context, string format, params object[] args)
@@ -131,14 +129,7 @@ namespace SimplifyIoC.Utils
 
         private void Log(string log)
         {
-            log = $"[{DateTime.Now:HH:mm:ss:fff}]{log}";
-            _logs.Insert(0,log);
-            if (_logs.Count >= _lines)
-            {
-                _logs.RemoveAt(_lines-1);
-            }
-            if(_text.gameObject.activeSelf)
-                _text.text = _AUTHOR + string.Join("\n",_logs);
+            _logs.Insert(0, log);
         }
 
         private void CreateDebugButton()
@@ -170,6 +161,8 @@ namespace SimplifyIoC.Utils
             _container = bgo.transform;
             _container.SetParent(transform);
             //
+            bgo.GetComponent<AlphaAdjuster>().onUpdate += UpdateText;
+            //
             var tgo = new GameObject("Log", typeof(Text));
             tgo.transform.SetParent(bgo.transform);
             var trt = tgo.GetComponent<RectTransform>();
@@ -193,9 +186,19 @@ namespace SimplifyIoC.Utils
             _text.text = _AUTHOR;
             bgo.SetActive(false);
         }
+
+        private void UpdateText()
+        {
+            if (_logs.Count >= _lines)
+            {
+                _logs.RemoveRange(_lines - 1,_logs.Count + 1 - _lines);
+            }
+            _text.text = _AUTHOR + string.Join("\n",_logs);
+        }
         [RequireComponent(typeof(Image),typeof(CanvasGroup))]
         private class AlphaAdjuster : MonoBehaviour
         {
+            public event Action onUpdate;
             private CanvasGroup _cg;
             private void Start()
             {
@@ -212,15 +215,15 @@ namespace SimplifyIoC.Utils
                 image.raycastTarget = false;
                 //
                 _cg = GetComponent<CanvasGroup>();
-                //_cg.blocksRaycasts = false;
-                //_cg.interactable = false;
-                _cg.alpha = 0.6f;
+                _cg.alpha = 0.3f;
             }
 
             private void Update()
             {
+                if(Time.frameCount % 30 == 0) onUpdate?.Invoke();
                 if(!Input.GetMouseButton(0)) return;
-                _cg.alpha +=Input.GetAxis("Mouse Y") * 0.1f;
+                _cg.alpha += Input.GetAxis("Mouse Y") * 0.05f;
+                if(_cg.alpha < 0.1f) _cg.alpha = 0.1f;
             }
         }
     }
