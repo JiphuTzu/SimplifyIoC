@@ -10,28 +10,27 @@ using UnityEngine;
 //@create	20210311
 //@company	UMa
 //
-//@description:
+//@description:	阶段 4 起改用 Mediator<TView> 强类型视图：
+//				不再写 [Inject] LifeTimeView view，也不需要在 OnRegister 里手抄解析。
 //============================================================
 namespace UMa.Mediators
 {
-    public class LifeTimeMediator : Mediator {
-		[Inject]
-		public LifeTimeView view{get;set;}
-		[Inject]
-		public RecordChangedSignal rcs{get;set;}
+    public class LifeTimeMediator : Mediator<LifeTimeView>
+    {
+        [Inject]
+        public RecordChangedSignal rcs { get; set; }
+
         public override void OnRegister()
         {
             base.OnRegister();
-            this.AddAttributeParser(this.GetEventMethodParser())
-	            .ParseAttributes();
-			rcs.Dispatch(true);
-			//view.OnDead.AddListener(OnDead);
+            rcs.Dispatch(true);
         }
-        [BindEvent("onDead",nameof(view))]
-		public void OnDead(){
-			rcs.Dispatch(false);
-			Destroy(gameObject);
-		}
-    
-	}
+
+        [BindEvent("onDead", nameof(view))]
+        public void OnDead()
+        {
+            rcs.Dispatch(false);
+            Destroy(gameObject);
+        }
+    }
 }

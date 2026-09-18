@@ -9,23 +9,17 @@ using UnityEngine;
 //@create	20210310
 //@company	UMa
 //
-//@description:
+//@description:	阶段 4 起改用 Mediator<TView> 强类型视图：
+//				不再写 [Inject] CameraView view，也不需要在 OnRegister 里手抄解析。
 //============================================================
 namespace UMa.Mediators
 {
-    public class CameraMediator : Mediator
+    public class CameraMediator : Mediator<CameraView>
     {
         [Inject]
-        public CameraView view { get; set; }
-        [Inject]
         public CreateObjectSignal cos { get; set; }
-        public override void OnRegister()
-        {
-            base.OnRegister();
-            this.AddAttributeParser(this.GetEventMethodParser())
-                .ParseAttributes();
-        }
-        [BindEvent("onClick",nameof(view))]
+
+        [BindEvent("onClick", nameof(view))]
         private void OnFloorClicked(Vector3 pos)
         {
             cos.Dispatch(pos);

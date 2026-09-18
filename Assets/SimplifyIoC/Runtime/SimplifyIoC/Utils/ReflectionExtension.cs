@@ -115,25 +115,95 @@ namespace SimplifyIoC.Utils
             return value;
         }
 
+        //4.1：类型级"匹配结果"缓存。
+        //原实现是 成员×解析器 双循环，每个成员对每个解析器各调一次 GetCustomAttribute，
+        //一个 30 成员 / 3 解析器的 View ≈ 90 次反射调用，且每次实例化都重跑。
+        //成员枚举结果与特性归属只取决于 (类型, 解析器特性类型, 成员种类, 查找标志)，
+        //故按该四元组缓存"命中的成员 + 对应的特性实例"（平行数组，按下标配对）。
+        private enum MemberKind
+        {
+            Field = 0,
+            Property = 1,
+            Method = 2
+        }
+
+        private sealed class Match
+        {
+            public static readonly Match Empty = new Match
+            {
+                members = Array.Empty<MemberInfo>(),
+                attributes = Array.Empty<Attribute>()
+            };
+
+            public MemberInfo[] members;
+            public Attribute[] attributes;
+        }
+
+        private static readonly Dictionary<(Type, Type, MemberKind, BindingFlags), Match> _matchCache = new();
+
+        private static Match GetMatchCached(Type targetType, Type attributeType, BindingFlags flags, MemberKind kind)
+        {
+            var key = (targetType, attributeType, kind, flags);
+            if (_matchCache.TryGetValue(key, out var cached)) return cached;
+
+            //三分支返回 MethodInfo[]/FieldInfo[]/PropertyInfo[]，无目标类型时 switch 表达式
+            //推导不出共同「最佳类型」（数组协变不参与推导），故显式标注 MemberInfo[]。
+            MemberInfo[] all = kind switch
+            {
+                MemberKind.Method => GetMethodsCached(targetType, flags),
+                MemberKind.Field => GetFieldsCached(targetType, flags),
+                _ => GetPropertiesCached(targetType, flags)
+            };
+
+            var hitMembers = new List<MemberInfo>();
+            var hitAttributes = new List<Attribute>();
+            for (var i = 0; i < all.Length; i++)
+            {
+                //2.3.d 注释保留：getCustomAttribute 结果按 (类型,成员,特性类型) 恒定，
+                //特性实例本身也被复用——这四个特性类的字段均为只读（BindMethodAttribute.method
+                //例外，但其写入值 = (该类型,该方法) 唯一，同 key 内覆盖幂等）。
+                var attribute = all[i].GetCustomAttribute(attributeType, true);
+                if (attribute == null) continue;
+                hitMembers.Add(all[i]);
+                hitAttributes.Add(attribute);
+            }
+
+            var match = hitMembers.Count == 0
+                ? Match.Empty
+                : new Match { members = hitMembers.ToArray(), attributes = hitAttributes.ToArray() };
+            _matchCache[key] = match;
+            return match;
+        }
+
+        /// <summary>
+        /// 2.3.d：委托优先；手工构造且未设 invoker 的 Parser 回落反射 Invoke。
+        /// </summary>
+        private static void InvokeParser(Parser parser, object target, Attribute attribute, MemberInfo member, Type targetType)
+        {
+            if (parser.invoker != null)
+            {
+                parser.invoker(target, attribute, member, targetType);
+            }
+            else
+            {
+                parser.parser.Invoke(target, new object[] { target, attribute, member, targetType });
+            }
+        }
+
         public static ReflectedTarget<TTarget> ParseMethods<TTarget>(this ReflectedTarget<TTarget> target, BindingFlags flags)  where TTarget:Component
         {
-            if (target.methodParsers.Count == 0) return target;
-            var methods = GetMethodsCached(target.targetType, flags);
-            foreach (var method in methods)
+            var parsers = target.methodParsers;
+            var aa = parsers.Count;
+            if (aa == 0) return target;
+            var targetType = target.targetType;
+            for (var a = 0; a < aa; a++)
             {
-                foreach (var attributeParser in target.methodParsers)
+                var attributeParser = parsers[a];
+                var match = GetMatchCached(targetType, attributeParser.attributeType, flags, MemberKind.Method);
+                var members = match.members;
+                for (var i = 0; i < members.Length; i++)
                 {
-                    var attribute = method.GetCustomAttribute(attributeParser.attributeType, true);
-                    if(attribute == null) continue;
-                    //2.3.d：委托优先；手工构造且未设 invoker 的 Parser 回落反射 Invoke
-                    if (attributeParser.invoker != null)
-                    {
-                        attributeParser.invoker(target.target, attribute, method, target.targetType);
-                    }
-                    else
-                    {
-                        attributeParser.parser.Invoke(target.target, new object[]{target.target, attribute, method, target.targetType});
-                    }
+                    InvokeParser(attributeParser, target.target, match.attributes[i], members[i], targetType);
                 }
             }
 
@@ -142,48 +212,38 @@ namespace SimplifyIoC.Utils
 
         public static ReflectedTarget<TTarget> ParseFields<TTarget>(this ReflectedTarget<TTarget> target, BindingFlags flags)  where TTarget:Component
         {
-            if (target.fieldParsers.Count == 0) return target;
-            var fields = GetFieldsCached(target.targetType, flags);
-            foreach (var field in fields)
+            var parsers = target.fieldParsers;
+            var aa = parsers.Count;
+            if (aa == 0) return target;
+            var targetType = target.targetType;
+            for (var a = 0; a < aa; a++)
             {
-                foreach (var attributeParser in target.fieldParsers)
+                var attributeParser = parsers[a];
+                var match = GetMatchCached(targetType, attributeParser.attributeType, flags, MemberKind.Field);
+                var members = match.members;
+                for (var i = 0; i < members.Length; i++)
                 {
-                    var attribute = field.GetCustomAttribute(attributeParser.attributeType, true);
-                    if(attribute == null) continue;
-                    //2.3.d：委托优先；手工构造且未设 invoker 的 Parser 回落反射 Invoke
-                    if (attributeParser.invoker != null)
-                    {
-                        attributeParser.invoker(target.target, attribute, field, target.targetType);
-                    }
-                    else
-                    {
-                        attributeParser.parser.Invoke(target.target, new object[]{target.target, attribute, field, target.targetType});
-                    }
+                    InvokeParser(attributeParser, target.target, match.attributes[i], members[i], targetType);
                 }
             }
-            
+
             return target;
         }
 
         public static ReflectedTarget<TTarget> ParseProperties<TTarget>(this ReflectedTarget<TTarget> target, BindingFlags flags)  where TTarget:Component
         {
-            if (target.propertyParsers.Count == 0) return target;
-            var properties = GetPropertiesCached(target.targetType, flags);
-            foreach (var property in properties)
+            var parsers = target.propertyParsers;
+            var aa = parsers.Count;
+            if (aa == 0) return target;
+            var targetType = target.targetType;
+            for (var a = 0; a < aa; a++)
             {
-                foreach (var attributeParser in target.propertyParsers)
+                var attributeParser = parsers[a];
+                var match = GetMatchCached(targetType, attributeParser.attributeType, flags, MemberKind.Property);
+                var members = match.members;
+                for (var i = 0; i < members.Length; i++)
                 {
-                    var attribute = property.GetCustomAttribute(attributeParser.attributeType, true);
-                    if(attribute == null) continue;
-                    //2.3.d：委托优先；手工构造且未设 invoker 的 Parser 回落反射 Invoke
-                    if (attributeParser.invoker != null)
-                    {
-                        attributeParser.invoker(target.target, attribute, property, target.targetType);
-                    }
-                    else
-                    {
-                        attributeParser.parser.Invoke(target.target, new object[]{target.target, attribute, property, target.targetType});
-                    }
+                    InvokeParser(attributeParser, target.target, match.attributes[i], members[i], targetType);
                 }
             }
 

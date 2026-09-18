@@ -26,6 +26,7 @@
 using System;
 using SimplifyIoC.Contexts;
 using SimplifyIoC.Injectors;
+using SimplifyIoC.Utils;
 using UnityEngine;
 
 namespace SimplifyIoC.Mediations
@@ -61,18 +62,53 @@ namespace SimplifyIoC.Mediations
         
         public bool shouldRegister => enabled && gameObject.activeInHierarchy;
 
+        /// 4.1：解析只跑一次的哨兵。UnityEvent.AddListener 不去重，二次解析会让回调执行两次。
+        private bool _attributesInitialized;
+
         /// A MonoBehaviour Awake handler.
         /// The View will attempt to connect to the Context at this moment.
         protected virtual void Awake()
         {
-            InitAttributes();
+            //4.1：解析时机从"Awake 最早处"挪到"注入完成之后"（由 MediationBinder 调用
+            //EnsureAttributesInitialized）。原因是 [BindEvent(nameof(x))] 的 x 可能是 [Inject] 成员，
+            //Awake 时尚未注入。
+            //4.7：因此 Awake 只对"明确不向 Context 注册"的 View 兜底解析——这类 View 拿不到
+            //注入，也不会有人替它解析。其余 View 交给框架：有 Context 时由 MediationBinder 在
+            //注入后解析，无 Context 时由 Start 兜底（见下）。
+            if (!autoRegisterWithContext)
+                EnsureAttributesInitialized();
+
             if (autoRegisterWithContext && !registeredWithContext && shouldRegister)
                 BubbleToContext(BubbleType.Add, false);
         }
 
+        /// <summary>
+        /// 4.1：声明式绑定解析。框架在注入完成后自动调用一次（见 MediationBinder）。
+        /// 子类覆写此方法即可扩展解析内容，无需关心调用时机。
+        /// </summary>
         protected virtual void InitAttributes()
         {
-            // 阶段 4 将在此启用声明式绑定解析（[BindEvent]/[BindMethod]/[Child]/[MainThread]）。
+            //4.4：[BindMethod] 已随静态注册表治理（Dictionary → ConditionalWeakTable）一并接入。
+            //顺序约束：必须先把表换成弱引用，否则自动解析会把"偶发泄漏"变成"必然泄漏"。
+            var bindMethodParser = this.GetBindMethodParser();
+            var reflected = this.AddAttributeParser(this.GetEventMethodParser())
+                .AddAttributeParser(this.GetChildParser())
+                .AddAttributeParser(this.GetMainThreadParser());
+            //判空是防御性的：GetBindMethodParser 现恒返回委托，但 null 委托传给
+            //AddAttributeParser 会在 CreateParser 里因 parser.Method 立即 NRE，不值得赌。
+            if (bindMethodParser != null)
+                reflected = reflected.AddAttributeParser(bindMethodParser);
+            reflected.ParseAttributes();
+        }
+
+        /// <summary>
+        /// 4.1：InitAttributes 的幂等包装。注入完成后由框架调用；Awake 兜底路径也走这里。
+        /// </summary>
+        internal void EnsureAttributesInitialized()
+        {
+            if (_attributesInitialized) return;
+            _attributesInitialized = true;
+            InitAttributes();
         }
 
         /// A MonoBehaviour Start handler
@@ -82,6 +118,13 @@ namespace SimplifyIoC.Mediations
         {
             if (autoRegisterWithContext && !registeredWithContext && shouldRegister)
                 BubbleToContext(BubbleType.Add, true);
+
+            //4.7：走到这里仍未注册到任何 Context ⇒ 不会有任何人替它做"注入后解析"。
+            //自行兜底一次（幂等），使 View 在没有 Mediator / 没有 Context 时，
+            //[Child] / [BindEvent] / [BindMethod] / [MainThread] 依然照常生效。
+            //（requiresContext 为 true 的 View 在上一行就会抛异常，走不到这里——这是既有契约。）
+            if (!registeredWithContext)
+                EnsureAttributesInitialized();
         }
 
         /// A MonoBehaviour OnDestroy handler
@@ -89,6 +132,9 @@ namespace SimplifyIoC.Mediations
         /// destroyed.
         protected virtual void OnDestroy()
         {
+            //4.4：立即释放本组件的 [BindMethod] 静态注册表条目（不依赖 GC 时机）。
+            //静态表本身已改为 ConditionalWeakTable，这里是"及时性"而非"正确性"的补充。
+            this.UnbindMethods();
             BubbleToContext(BubbleType.Remove, false);
         }
 
