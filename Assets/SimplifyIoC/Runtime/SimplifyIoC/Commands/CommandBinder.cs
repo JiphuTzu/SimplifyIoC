@@ -165,78 +165,96 @@ namespace SimplifyIoC.Commands
             ExecuteCommand(command);
             return command;
         }
-        /// Create a Command and bind its injectable parameters to the Signal types
+        /// Create a Command and pass the Signal payload to it through a call-local scope
         protected Command CreateCommandForSignal(Type cmd, object data, List<Type> signalTypes)
         {
-            if (data != null)
-            {
-                var signalData = (object[])data;
+            //3.4.a：载荷不再临时 Bind 进全局容器（原 Bind(type).ToValue(value).ToInject(false)
+            //→ 用完 Unbind）。改为构建调用级 InjectionScope 沿调用栈显式传递：
+            //  - 嵌套/并发派发各自持有自己的载荷，互不覆盖；
+            //  - 与用户已有的全局同名绑定不再产生冲突（原实现会直接把 Binder 打进 conflicted 状态）；
+            //  - 池化与临时绑定两条命令创建路径共用同一个入口。
+            var scope = BuildScopeFromSignal(signalTypes, data, cmd);
 
-                //Iterate each signal type, in order. 
-                //Iterate values and find a match
-                //If we cannot find a match, throw an error
-                var injectedTypes = new HashSet<Type>();
-                var values = new List<object>(signalData);
-
-                foreach (var type in signalTypes)
-                {
-                    if (!injectedTypes.Contains(type)) // Do not allow more than one injection of the same Type
-                    {
-                        var foundValue = false;
-                        foreach (var value in values)
-                        {
-                            if (value != null)
-                            {
-                                if (type.IsAssignableFrom(value.GetType())) //IsAssignableFrom lets us test interfaces as well
-                                {
-                                    injectionBinder.Bind(type).ToValue(value).ToInject(false);
-                                    injectedTypes.Add(type);
-                                    values.Remove(value);
-                                    foundValue = true;
-                                    break;
-                                }
-                            }
-                            else //Do not allow null injections
-                            {
-                                throw new Exception("SignalCommandBinder attempted to bind a null value from a signal to Command: " + cmd.GetType() + " to type: " + type);
-                            }
-                        }
-                        if (!foundValue)
-                        {
-                            throw new Exception("Could not find an unused injectable value to inject in to Command: " + cmd.GetType() + " for Type: " + type);
-                        }
-                    }
-                    else
-                    {
-                        throw new Exception("SignalCommandBinder: You have attempted to map more than one value of type: " + type +
-                            " in Command: " + cmd.GetType() + ". Only the first value of a type will be injected. You may want to place your values in a VO, instead.");
-                    }
-                }
-            }
-            var command = GetCommand(cmd);
+            var command = GetCommand(cmd, scope);
             command.data = data;
-
-            foreach (var typeToRemove in signalTypes) //clean up these bindings
-                injectionBinder.Unbind(typeToRemove);
             return command;
         }
-        
-        protected Command GetCommand(Type type)
+
+        /// <summary>
+        /// 3.4.a：把信号声明类型与载荷配成调用级作用域。
+        /// 配对规则与原"逐类型临时 Bind"的逻辑逐条对齐（顺序、去重、未匹配即报错、null 载荷即报错），
+        /// 只是落点由全局容器改为调用级 Scope——所以报错行为保持不变。
+        /// 另：P0#9 守卫——key 非信号时 signalTypes 为 null，原实现在此处 foreach null 直接 NRE；
+        /// 原错误信息里的 cmd.GetType() 恒为 System.RuntimeType，一并改为直接输出 cmd。
+        /// </summary>
+        private static InjectionScope BuildScopeFromSignal(List<Type> signalTypes, object data, Type cmd)
+        {
+            if (data == null || signalTypes == null || signalTypes.Count == 0)
+            {
+                return null;
+            }
+
+            var injectedTypes = new HashSet<Type>();
+            var types = new List<Type>();
+            var values = new List<object>((object[])data);
+            var matched = new List<object>();
+
+            //Iterate each signal type, in order.
+            //Iterate values and find a match
+            //If we cannot find a match, throw an error
+            foreach (var type in signalTypes)
+            {
+                if (injectedTypes.Contains(type)) // Do not allow more than one injection of the same Type
+                {
+                    throw new Exception("SignalCommandBinder: You have attempted to map more than one value of type: " + type +
+                        " in Command: " + cmd + ". Only the first value of a type will be injected. You may want to place your values in a VO, instead.");
+                }
+
+                var foundValue = false;
+                foreach (var value in values)
+                {
+                    if (value == null) //Do not allow null injections
+                    {
+                        throw new Exception("SignalCommandBinder attempted to bind a null value from a signal to Command: " + cmd + " to type: " + type);
+                    }
+
+                    if (type.IsAssignableFrom(value.GetType())) //IsAssignableFrom lets us test interfaces as well
+                    {
+                        types.Add(type);
+                        matched.Add(value);
+                        injectedTypes.Add(type);
+                        values.Remove(value);
+                        foundValue = true;
+                        break;
+                    }
+                }
+
+                if (!foundValue)
+                {
+                    throw new Exception("Could not find an unused injectable value to inject in to Command: " + cmd + " for Type: " + type);
+                }
+            }
+
+            return new InjectionScope(types.ToArray(), matched.ToArray());
+        }
+
+        protected Command GetCommand(Type type, InjectionScope scope = null)
         {
             if (usePooling && pools.TryGetValue(type, out var pool))
             {
-                if (pool.GetInstance() is not Command command) return null;
+                if (pool.GetInstance(scope) is not Command command) return null;
                 if (!command.isClean) return command;
                 //P0#6 修复：池中实例已由 Unity/工厂构造完成，构造注入会凭空多造一个实例
                 //且新实例不在池的使用名单里、归还时被静默丢弃。回收实例只做 setter/PostConstruct 注入。
-                injectionBinder.injector.Inject(command, false);
+                injectionBinder.injector.Inject(command, false, scope);
                 command.isClean = false;
                 return command;
             }
             else
             {
                 injectionBinder.Bind<Command>().To(type);
-                var command = injectionBinder.GetInstance<Command>();
+                //保持原 GetInstance<Command>() 的强转语义（类型不符时抛 InvalidCastException 而非静默 null）
+                var command = (Command)injectionBinder.GetInstance(typeof(Command), false, scope);
                 injectionBinder.Unbind<Command>();
                 return command;
             }

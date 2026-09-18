@@ -40,6 +40,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using SimplifyIoC.Framework;
 using SimplifyIoC.Reflectors;
 
 namespace SimplifyIoC.Injectors
@@ -55,7 +56,11 @@ namespace SimplifyIoC.Injectors
         public IInjectionBinder binder { get; set; }
         public ReflectionBinder reflector { get; set; }
 
-        public object Instantiate(IInjectionBinding binding, bool tryInjectHere)
+        /// <summary>
+        /// 3.4：新增可选的调用级作用域。scope 里的参数优先于全局绑定被解析，
+        /// 传 null 时行为与改造前完全一致（既有调用点无需改动）。
+        /// </summary>
+        public object Instantiate(IInjectionBinding binding, bool tryInjectHere, InjectionScope scope = null)
         {
             FailIf(binder == null, "Attempt to instantiate from Injector without a Binder");
             FailIf(factory == null, "Attempt to inject into Injector without a Factory");
@@ -105,13 +110,13 @@ namespace SimplifyIoC.Injectors
                     var args = aa == 0 ? Array.Empty<object>() : new object[aa];
                     for (var a = 0; a < aa; a++)
                     {
-                        args[a] = GetValueInjection(parameterTypes[a] as Type, parameterNames[a], reflectionType, null);
+                        args[a] = GetValueInjection(parameterTypes[a] as Type, parameterNames[a], reflectionType, null, scope);
                     }
                     retv = factory.Get(binding, args);
 
                     if (tryInjectHere)
                     {
-                        TryInject(binding, retv);
+                        TryInject(binding, retv, scope);
                     }
                 }
 
@@ -129,14 +134,14 @@ namespace SimplifyIoC.Injectors
             }
         }
 
-        public object TryInject(IInjectionBinding binding, object target)
+        public object TryInject(IInjectionBinding binding, object target, InjectionScope scope = null)
         {
             //If the InjectorFactory returns null, just return it. Otherwise inject the retv if it needs it
             //This could happen if Activator.CreateInstance returns null
             if (target == null) return null;
             if (binding.toInject)
             {
-                target = Inject(target, false);
+                target = Inject(target, false, scope);
             }
 
             if (binding.type == InjectionBindingType.Singleton || binding.type == InjectionBindingType.Value)
@@ -152,7 +157,7 @@ namespace SimplifyIoC.Injectors
             return Inject(target, true);
         }
 
-        public object Inject(object target, bool attemptConstructorInjection)
+        public object Inject(object target, bool attemptConstructorInjection, InjectionScope scope = null)
         {
             FailIf(binder == null, "Attempt to inject into Injector without a Binder");
             FailIf(reflector == null, "Attempt to inject without a reflector");
@@ -169,9 +174,9 @@ namespace SimplifyIoC.Injectors
 
             if (attemptConstructorInjection)
             {
-                target = PerformConstructorInjection(target, reflection);
+                target = PerformConstructorInjection(target, reflection, scope);
             }
-            PerformSetterInjection(target, reflection);
+            PerformSetterInjection(target, reflection, scope);
             PostInject(target, reflection);
             return target;
         }
@@ -193,7 +198,7 @@ namespace SimplifyIoC.Injectors
             PerformUninjection(target, reflection);
         }
 
-        private object PerformConstructorInjection(object target, ReflectedClass reflection)
+        private object PerformConstructorInjection(object target, ReflectedClass reflection, InjectionScope scope)
         {
             FailIf(target == null, "Attempt to perform constructor injection into a null object");
             FailIf(reflection == null, "Attempt to perform constructor injection without a reflection");
@@ -222,7 +227,7 @@ namespace SimplifyIoC.Injectors
             var i = 0;
             foreach (var type in parameterTypes)
             {
-                values[i] = GetValueInjection(type, parameterNames[i], target, null);
+                values[i] = GetValueInjection(type, parameterNames[i], target, null, scope);
                 i++;
             }
 
@@ -230,20 +235,27 @@ namespace SimplifyIoC.Injectors
             return (constructedObj == null) ? target : constructedObj;
         }
 
-        private void PerformSetterInjection(object target, ReflectedClass reflection)
+        private void PerformSetterInjection(object target, ReflectedClass reflection, InjectionScope scope)
         {
             FailIf(target == null, "Attempt to inject into a null object");
             FailIf(reflection == null, "Attempt to inject without a reflection");
 
             foreach (var attr in reflection.setters)
             {
-                var value = GetValueInjection(attr.type, attr.name, target, attr.propertyInfo);
+                var value = GetValueInjection(attr.type, attr.name, target, attr.propertyInfo, scope);
                 InjectValueIntoPoint(value, target, attr);
             }
         }
 
-        private object GetValueInjection(Type t, object name, object target, PropertyInfo propertyInfo)
+        private object GetValueInjection(Type t, object name, object target, PropertyInfo propertyInfo, InjectionScope scope)
         {
+            //3.4.a：调用级作用域优先——信号载荷这类"仅本次调用有效"的参数由 Scope 显式传递，
+            //不再临时 Bind 进全局容器。作用域内不含 null 值（构建阶段已排除），故命中即返回。
+            if (scope != null && scope.TryGet(t, out var scopedValue))
+            {
+                return scopedValue;
+            }
+
             IInjectionBinding suppliedBinding = null;
             if (target != null)
             {

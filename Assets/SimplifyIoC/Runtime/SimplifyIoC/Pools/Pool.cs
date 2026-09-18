@@ -121,6 +121,17 @@ namespace SimplifyIoC.Pools
 
 		public virtual object GetInstance ()
 		{
+			return GetInstance (null);
+		}
+
+		/// <summary>
+		/// 3.4.a：带调用级作用域的取用。
+		/// 池按需惰性创建实例，创建动作发生在本方法内，所以作用域必须一并传下去——
+		/// 否则"信号载荷 → 池化 Command"的首次注入会在构造阶段因查不到绑定而报错。
+		/// 作用域为 null 时与无参重载完全等价。
+		/// </summary>
+		public virtual object GetInstance (InjectionScope scope)
+		{
 			// Is an instance available?
 			if (instancesAvailable.Count > 0)
 			{
@@ -171,10 +182,10 @@ namespace SimplifyIoC.Pools
 
 				for (var a = 0; a < instancesToCreate; a++)
 				{
-					var newInstance = instanceProvider.GetInstance(poolType,false);
+					var newInstance = instanceProvider.GetInstance(poolType,false, scope);
 					Add (newInstance);
 				}
-				return GetInstance ();
+				return GetInstance (scope);
 			}
 
 			//If not, return null

@@ -83,6 +83,53 @@ namespace SimplifyIoC.Tests
     /// 带一个载荷的信号
     public class TestValueSignal : Signal<int> { }
 
+    /// 3.4.a：带一个引用类型载荷的信号（池化用例需要引用类型，见 PayloadVO 注释）
+    public class PayloadSignal : Signal<PayloadVO> { }
+
+    // ---- 3.4.a 调用级作用域夹具 ----
+
+    /// 载荷载体。用引用类型而非 int：池化命令归还时 Command.Restore 会 Uninject，
+    /// 而反射把值类型属性置 null 会抛异常，这是值类型载荷不适合池化路径的既有约束。
+    public class PayloadVO
+    {
+        public int value;
+    }
+
+    /// 池化命令：每次取用都必须拿到本次派发的载荷
+    public class PooledPayloadCommand : Command
+    {
+        public static readonly System.Collections.Generic.List<PayloadVO> Received = new();
+
+        [Inject] public PayloadVO payload { get; set; }
+
+        public override void Execute() => Received.Add(payload);
+    }
+
+    /// 嵌套派发：在 Execute 内再次派发同一信号，验证内外层载荷互不覆盖
+    public class ReentrantValueCommand : Command
+    {
+        public static readonly System.Collections.Generic.List<int> Received = new();
+        public static bool reentered;
+
+        [Inject] public int value { get; set; }
+
+        public override void Execute()
+        {
+            Received.Add(value);
+            if (reentered) return;
+            reentered = true;
+            injectionBinder.GetInstance<TestValueSignal>().Dispatch(77);
+        }
+    }
+
+    /// 请求一个载荷中并未声明的类型，用于钉住"不静默注入 null"
+    public class StringConsumerCommand : Command
+    {
+        [Inject] public string text { get; set; }
+
+        public override void Execute() { }
+    }
+
     // ---- Command 夹具 ----
 
     public class TestCommand : Command
