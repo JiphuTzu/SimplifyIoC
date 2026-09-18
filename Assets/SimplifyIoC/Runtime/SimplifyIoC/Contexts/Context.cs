@@ -65,7 +65,7 @@ namespace SimplifyIoC.Contexts
      * In a typical Unity3D setup, an extension of MVCSContext should be instantiated from the ContextView.
      */
     
-    public class Context : Binder
+    public class Context : Binder, IDisposable
     {
         /// In a multi-Context app, this represents the first Context to instantiate.
         public static Context firstContext;
@@ -76,6 +76,9 @@ namespace SimplifyIoC.Contexts
 
         /// If false, the `Launch()` method won't fire.
         private readonly bool _autoStartup;
+
+        /// 3.1：Dispose 幂等标志
+        private bool _disposed;
         
         /// A Binder that handles dependency injection binding and instantiation
         /// All cross-context capable contexts must implement an injectionBinder
@@ -144,6 +147,7 @@ namespace SimplifyIoC.Contexts
         /// Call this from your Root to set everything in action.
         public void Start()
         {
+            ThrowIfDisposed();
             InstantiateCoreComponents();
             MapBindings();
             PostBindings();
@@ -153,7 +157,10 @@ namespace SimplifyIoC.Contexts
 
         /// The final method to fire after mappings.
         /// If autoStartup is false, you need to call this manually.
-        public virtual void Launch() { }
+        public virtual void Launch()
+        {
+            ThrowIfDisposed();
+        }
 
         /// Override to map project-specific bindings
         protected virtual void MapBindings() { }
@@ -170,6 +177,7 @@ namespace SimplifyIoC.Contexts
         /// Add another Context to this one.
         public virtual void AddContext(Context context)
         {
+            ThrowIfDisposed();
             context.injectionBinder.crossContextBinder = injectionBinder.crossContextBinder;
         }
 
@@ -177,11 +185,42 @@ namespace SimplifyIoC.Contexts
         public void RemoveContext(Context context)
         {
             context.injectionBinder.crossContextBinder = null;
-            //If we're removing firstContext, set firstContext to null
+            //3.1 修复：原 firstContext 分支不调用 OnRemove，
+            //主 Context 销毁时 commandBinder 信号监听等清理链路从根上断裂
             if (context == firstContext)
                 firstContext = null;
-            else
-                context.OnRemove();
+            context.OnRemove();
+        }
+
+        /// <summary>
+        /// 3.1：销毁契约（幂等）。脱离 Context 链、执行 OnRemove 清理
+        /// （信号监听移除、命令池释放、三个 Binder 注册表清空）。
+        /// Dispose 后再 Start/Launch/AddContext/RemoveContext 抛 ObjectDisposedException；
+        /// 再经 injectionBinder GetInstance 因注册表已空按既有行为抛"no binding"异常。
+        /// </summary>
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+
+            //脱离 Context 链：firstContext 静态引用与 crossContextBinder 共享桥接
+            if (firstContext == this)
+            {
+                firstContext = null;
+            }
+            else if (firstContext != null)
+            {
+                injectionBinder.crossContextBinder = null;
+            }
+
+            OnRemove();
+            commandBinder = null;
+            mediationBinder = null;
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(Context));
         }
 
         /// Register a View with this Context
@@ -217,7 +256,12 @@ namespace SimplifyIoC.Contexts
         public override void OnRemove()
         {
             base.OnRemove();
+            //3.1：三个组件 Binder 各自执行真实清理（信号监听/命令池/suppliers/注册表）。
+            //injectionBinder 的静态类型是 ICrossContextInjectionBinder（未继承 IBinder），
+            //但实际实例必为 Binder 派生类，向下转型恒成立
+            (injectionBinder as IBinder)?.OnRemove();
             commandBinder?.OnRemove();
+            mediationBinder?.OnRemove();
         }
 
         protected virtual void MediateViewCache()

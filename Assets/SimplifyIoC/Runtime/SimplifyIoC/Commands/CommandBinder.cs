@@ -95,6 +95,9 @@ namespace SimplifyIoC.Commands
                 if (key is BaseSignal signal)
                     signal.RemoveListener(ReactTo);
             }
+            //3.1：释放命令池实例与绑定注册表（base.OnRemove 清 bindings/_conflicts）
+            pools.Clear();
+            base.OnRemove();
         }
 
         public override IBinding GetRawBinding()

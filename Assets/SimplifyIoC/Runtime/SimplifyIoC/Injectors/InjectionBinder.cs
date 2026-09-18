@@ -194,6 +194,16 @@ namespace SimplifyIoC.Injectors
             Unsupply(typeof(T), typeof(U));
         }
 
+        /// <summary>
+        /// 3.1：真实清理——清空 suppliers 双注册表并经 base.OnRemove() 清空绑定注册表。
+        /// 注意只清自身：crossContextBinder 是共享引用（通常指向 firstContext 的注册表），不可触碰。
+        /// </summary>
+        public override void OnRemove()
+        {
+            suppliers.Clear();
+            base.OnRemove();
+        }
+
         protected override void Resolver(IBinding binding)
         {
             if (binding is IInjectionBinding iBinding)
