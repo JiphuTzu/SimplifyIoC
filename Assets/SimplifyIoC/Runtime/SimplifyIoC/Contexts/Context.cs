@@ -29,6 +29,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using SimplifyIoC.Commands;
 using SimplifyIoC.Framework;
 using SimplifyIoC.Injectors;
@@ -71,8 +72,17 @@ namespace SimplifyIoC.Contexts
     public class Context : IDisposable
     {
         /// In a multi-Context app, this represents the first Context to instantiate.
-        public static Context firstContext;
-        
+        /// 3.5：由静态强引用改为静态弱引用——不再长期持有 Context（连同其注入容器、
+        /// 单例、订阅）不放；"全局唯一入口"的语义保留，供 View 兜底与链根判定使用。
+        private static WeakReference<Context> _firstContextRef;
+
+        /// 3.5：读写入口保持原 API 形状（字段 → 属性），调用方零改动。
+        public static Context firstContext
+        {
+            get => _firstContextRef != null && _firstContextRef.TryGetTarget(out var c) ? c : null;
+            set => _firstContextRef = value == null ? null : new WeakReference<Context>(value);
+        }
+
         /// The top of the View hierarchy.
         /// This is your top-level GameObject
         protected Bootstrap bootstrap;
@@ -81,7 +91,18 @@ namespace SimplifyIoC.Contexts
         private readonly bool _autoStartup;
 
         /// 3.1：Dispose 幂等标志
-        private bool _disposed;
+        protected bool _disposed;
+
+        /// 3.5：子 Context 列表（Composite）。父 Dispose 时级联释放，实现成链回收。
+        /// protected 以便派生类（含测试夹具）检查链结构。
+        protected readonly List<Context> _children = new List<Context>();
+
+        /// 3.5：父 Context 引用。子 Dispose 时据此从父的子列表摘除自己，实现双向解绑。
+        private Context _parentContext;
+
+        /// 3.5：本 Context 是否为链根——只有链根持有共享 crossContextBinder
+        /// （CrossContextBridge 单例与所有 .CrossContext() 绑定的宿主）。
+        private bool _isRoot;
         
         /// A Binder that handles dependency injection binding and instantiation
         /// All cross-context capable contexts must implement an injectionBinder
@@ -126,8 +147,13 @@ namespace SimplifyIoC.Contexts
             injectionBinder.crossContextBinder ??= new CrossContextInjectionBinder();
 
             if (firstContext == this)
+            {
+                //3.5：只有链根创建并持有共享的跨域根 binder（CrossContextBridge 单例宿主）。
+                //级联释放时由它负责清理，见 Dispose。
+                _isRoot = true;
                 injectionBinder.Bind<CrossContextBridge>().ToSingleton ().CrossContext();
-            
+            }
+
             injectionBinder.Bind<IInstanceProvider>().Bind<IInjectionBinder>().ToValue(injectionBinder);
             injectionBinder.Bind<Context>().ToValue(this).ToName(ContextKeys.Context);
             injectionBinder.Bind<ICommandBinder>().To<CommandBinder>().ToSingleton();
@@ -180,15 +206,28 @@ namespace SimplifyIoC.Contexts
         }
 
         /// Add another Context to this one.
+        /// 3.5：显式登记父子关系（Composite）——父持有子引用，子持有父引用，
+        /// 并在两端共享同一个跨域根 binder。这样父 Dispose 可级联释放子，
+        /// 子 Dispose 也可把自己从父的链上摘除。
         public virtual void AddContext(Context context)
         {
             ThrowIfDisposed();
+            if (context == null || context == this) return;
+            //已登记则只保证共享桥接仍然成立（幂等）
+            if (!_children.Contains(context))
+                _children.Add(context);
+            context._parentContext = this;
             context.injectionBinder.crossContextBinder = injectionBinder.crossContextBinder;
         }
 
         /// Remove a context from this one.
         public void RemoveContext(Context context)
         {
+            if (context == null) return;
+            //3.5：双向解绑——从子列表摘除并断开子的父引用
+            _children.Remove(context);
+            if (context._parentContext == this)
+                context._parentContext = null;
             context.injectionBinder.crossContextBinder = null;
             //3.1 修复：原 firstContext 分支不调用 OnRemove，
             //主 Context 销毁时 commandBinder 信号监听等清理链路从根上断裂
@@ -208,15 +247,36 @@ namespace SimplifyIoC.Contexts
             if (_disposed) return;
             _disposed = true;
 
-            //脱离 Context 链：firstContext 静态引用与 crossContextBinder 共享桥接
+            //3.5：级联释放子 Context（Composite 成链回收）。
+            //倒序 + 先断开子侧的父引用，避免子 Dispose 时反向再操作本对象。
+            for (var i = _children.Count - 1; i >= 0; i--)
+            {
+                var child = _children[i];
+                if (child == null) continue;
+                child._parentContext = null;
+                child.Dispose();
+            }
+            _children.Clear();
+
+            //3.5：双向解绑的另一半——把自己从父的子列表摘除
+            if (_parentContext != null)
+            {
+                _parentContext._children.Remove(this);
+                _parentContext = null;
+            }
+
+            //脱离 Context 链：firstContext 静态弱引用
             if (firstContext == this)
-            {
                 firstContext = null;
-            }
-            else if (firstContext != null)
-            {
-                injectionBinder.crossContextBinder = null;
-            }
+
+            //3.5：无论角色如何都断开共享桥接。
+            //链根额外负责清空共享的跨域根 binder —— 它是 CrossContextBridge 单例与
+            //所有 .CrossContext() 绑定的宿主，不清空则整条链的跨域单例都会泄漏
+            //（子已在上方全部级联释放，此处清空不会影响其它存活 Context）。
+            var sharedBinder = injectionBinder.crossContextBinder;
+            if (_isRoot && sharedBinder != null)
+                (sharedBinder as IBinder)?.OnRemove();
+            injectionBinder.crossContextBinder = null;
 
             OnRemove();
             commandBinder = null;

@@ -50,6 +50,10 @@ namespace SimplifyIoC.Tests
         [Test]
         public void DisposingOneContextDoesNotAffectAnother()
         {
+            //3.5：先建一个链根，让 A/B 都挂在它下面成为兄弟——级联释放只沿父子链向下，
+            //这样 dispose 一个同级 Context 不会波及另一个（本用例要钉住的是 ViewCache
+            //的实例级隔离，而不是成链释放）。
+            var root = CreateContext();
             var contextA = CreateContext();
             var contextB = CreateContext();
 
@@ -61,6 +65,7 @@ namespace SimplifyIoC.Tests
             //3.2 之前：static 缓存被 A 清空，B 的视图随之丢失
             Assert.That(contextA.ExposedViewCache.Count, Is.EqualTo(0));
             Assert.That(contextB.ExposedViewCache.Count, Is.EqualTo(1));
+            Assert.That(root.ExposedViewCache.Count, Is.EqualTo(0));
         }
 
         [Test]
