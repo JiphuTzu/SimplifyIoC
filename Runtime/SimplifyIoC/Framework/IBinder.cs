@@ -90,9 +90,6 @@ namespace SimplifyIoC.Framework
 		/// Override this method to clean up remaining bindings
 		void OnRemove();
 
-		/// For consumed bindings, provide a secure whitelist of legal bindings
-		void WhitelistBindings(List<object> list);
-
 		/// <summary>
 		/// Places individual Bindings into the bindings Dictionary as part of the resolving process
 		/// </summary>

@@ -64,8 +64,6 @@ namespace SimplifyIoC.Framework
 
         private readonly Dictionary<object, Dictionary<IBinding, object>> _conflicts = new();
 
-        protected List<object> bindingWhitelist;
-
         /// A handler for resolving the nature of a binding during chained commands
         public delegate void BindingResolver(IBinding binding);
 
@@ -309,28 +307,6 @@ namespace SimplifyIoC.Framework
 
             //Add (or override) our new binding!
             dict.TryAdd(bindingName, binding);
-        }
-
-        /// <summary>
-        /// For consumed bindings, provide a secure whitelist of legal bindings.
-        /// </summary>
-        /// <param name="list"> A List of fully-qualified classnames eligible to be consumed during dynamic runtime binding.</param>
-        public virtual void WhitelistBindings(List<object> list)
-        {
-            bindingWhitelist = list;
-        }
-
-        /// <summary>
-        /// Override this method in subclasses to add special-case SYNTACTICAL SUGAR for Runtime JSON bindings.
-        /// For example, if your Binder needs a special JSON tag BindView, such that BindView is simply
-        /// another way of expressing 'Bind', override this method conform the sugar to
-        /// match the base definition (BindView becomes Bind).
-        /// </summary>
-        /// <returns>The conformed Dictionary.</returns>
-        /// <param name="dictionary">A Dictionary representing the options for a Binding.</param>
-        protected virtual Dictionary<string, object> ConformRuntimeItem(Dictionary<string, object> dictionary)
-        {
-            return dictionary;
         }
 
         /// Take note of bindings that are in conflict.

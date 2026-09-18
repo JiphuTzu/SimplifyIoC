@@ -116,8 +116,5 @@ namespace SimplifyIoC.Injectors
 		void Unbind (object key);
 		void Unbind (object key, object name);
 		void Unbind (IBinding binding);
-
-		/// For consumed bindings, provide a secure whitelist of legal bindings
-		void WhitelistBindings(List<object> list);
 	}
 }
