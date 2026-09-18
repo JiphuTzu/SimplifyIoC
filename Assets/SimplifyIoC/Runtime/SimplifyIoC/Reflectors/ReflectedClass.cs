@@ -86,8 +86,43 @@ namespace SimplifyIoC.Reflectors
         public Type[] constructorParameters { get; set; }
         public object[] constructorParameterNames { get; set; }
         public MethodInfo[] postConstructors { get; set; }
+
+        /// <summary>
+        /// 2.3.c：与 postConstructors 一一对应的缓存调用委托（Action&lt;object&gt;）。
+        /// AOT 不安全场景（目标为值类型、或方法签名非无参 void）对应槽位为 null，
+        /// 由调用方回落 method.Invoke；不使用 Expression.Compile / Reflection.Emit。
+        /// </summary>
+        public Action<object>[] postConstructorActions { get; set; }
         public ReflectedAttribute[] setters { get; set; }
         public bool preGenerated { get; set; }
         public KeyValuePair<MethodInfo, Attribute>[] attrMethods { get; set; }
+
+        /// <summary>
+        /// 2.3.c：为 PostConstruct 无参方法构建 Action&lt;object&gt; 开放实例委托。
+        /// 实现：泛型辅助方法 + Delegate.CreateDelegate（MethodInfo 兼容，与构造函数不同）。
+        /// 委托的泛型实参取 method.DeclaringType，目标为派生类实例时由闭包内引用转换承接。
+        /// </summary>
+        internal static Action<object> BuildPostConstructorDelegate(MethodInfo method)
+        {
+            if (method == null) return null;
+
+            var declaringType = method.DeclaringType;
+            if (declaringType == null || declaringType.IsValueType) return null;
+            //私有方法同样可委托绑定（CreateDelegate 不做可见性检查），
+            //与原反射路径保持一致——MapMethods 扫描 NonPublic 方法
+            if (method.ReturnType != typeof(void)) return null;
+            if (method.GetParameters().Length != 0) return null;
+
+            var helper = typeof(ReflectedClass).GetMethod(nameof(BuildPostConstructor),
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            var closed = helper.MakeGenericMethod(declaringType);
+            return (Action<object>)closed.Invoke(null, new object[] { method });
+        }
+
+        private static Action<object> BuildPostConstructor<TTarget>(MethodInfo method) where TTarget : class
+        {
+            var action = (Action<TTarget>)Delegate.CreateDelegate(typeof(Action<TTarget>), method);
+            return target => action((TTarget)target);
+        }
     }
 }

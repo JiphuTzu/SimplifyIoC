@@ -301,9 +301,19 @@ namespace SimplifyIoC.Injectors
             var postConstructors = reflection.postConstructors;
             if (postConstructors != null)
             {
-                foreach (var method in postConstructors)
+                //2.3.c：委托优先（反射缓存 Action<object>）；AOT 不安全槽位为 null，回落 method.Invoke
+                var actions = reflection.postConstructorActions;
+                for (var i = 0; i < postConstructors.Length; i++)
                 {
-                    method.Invoke(target, null);
+                    var action = (actions != null && i < actions.Length) ? actions[i] : null;
+                    if (action != null)
+                    {
+                        action(target);
+                    }
+                    else
+                    {
+                        postConstructors[i].Invoke(target, null);
+                    }
                 }
             }
         }
