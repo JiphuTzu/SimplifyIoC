@@ -21,7 +21,6 @@
  */
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using SimplifyIoC.Framework;
 using UnityEngine;
@@ -48,7 +47,7 @@ namespace SimplifyIoC.Pools
 		public IInstanceProvider instanceProvider { get; set; }
 
 		/// Stack of instances still in the Pool.
-		protected Stack instancesAvailable = new Stack ();
+		protected Stack<object> instancesAvailable = new Stack<object> ();
 
 		/// A HashSet of the objects checked out of the Pool.
 		protected HashSet<object> instancesInUse = new HashSet<object> ();
@@ -67,7 +66,8 @@ namespace SimplifyIoC.Pools
 
 		public virtual IManagedList Add (object value)
 		{
-			FailIf(value.GetType () != poolType, "Pool Type mismatch. Pools must consist of a common concrete type.\n\t\tPool type: " + poolType + "\n\t\tMismatch type: " + value.GetType ());
+			//2.2 优化：消息拼接改为惰性求值，Add 高频路径不再白构造字符串
+			FailIf(value.GetType () != poolType, () => "Pool Type mismatch. Pools must consist of a common concrete type.\n\t\tPool type: " + poolType + "\n\t\tMismatch type: " + value.GetType ());
 			instanceCount++;
 			instancesAvailable.Push(value);
 			return this;
@@ -265,6 +265,15 @@ namespace SimplifyIoC.Pools
 			if (condition)
 			{
 				throw new Exception(message);
+			}
+		}
+
+		/// 2.2 优化：接受消息工厂，仅失败时才构造字符串
+		private void FailIf(bool condition, Func<string> messageFactory)
+		{
+			if (condition)
+			{
+				throw new Exception(messageFactory());
 			}
 		}
 	}
