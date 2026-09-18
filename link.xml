@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SimplifyIoC 链接保留配置（IL2CPP / Managed Stripping）
+
+  背景（见 .workbuddy/review/design-and-aot-2026-09-18.md §11）：
+  本包在运行期使用 MakeGenericType：
+    - CommandBinder.MakePoolFromType:  typeof(Pool<>).MakeGenericType(命令类型)
+    - ChildAttribute:                  List<>.MakeGenericType + 反射调 Add/ToArray
+  若 Managed Stripping 开启且闭包泛型未被判为"已使用"，IL2CPP（iOS/主机）会在
+  运行期直接抛异常。本文件把包内程序集整体保留，是成本最低的兜底方案。
+
+  使用者注意：
+  - 你的 Command/Signal 等类型在自己的程序集里，若你的工程也开了裁剪，
+    建议在你的 Assembly Definition 对应程序集上也加 preserve，或把
+    Managed Stripping Level 固定在 Low 并在真机上回归一遍命令池路径。
+  - ignoreIfMissing="1" 使本文件在包未被引用时不会报错。
+-->
+<linker>
+  <assembly fullname="UMa.SimplifyIoC" preserve="all" ignoreIfMissing="1" />
+
+  <!-- MakeGenericType 涉及的 BCL 泛型容器兜底（按需可自行增删） -->
+  <assembly fullname="mscorlib" ignoreIfMissing="1">
+    <type fullname="System.Collections.Generic.List`1" preserve="all" />
+  </assembly>
+  <assembly fullname="netstandard" ignoreIfMissing="1">
+    <type fullname="System.Collections.Generic.List`1" preserve="all" />
+  </assembly>
+</linker>
