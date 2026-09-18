@@ -25,7 +25,6 @@
  */
 
 using System.Collections.Generic;
-using System.Linq;
 using System;
 using System.Reflection;
 
@@ -51,13 +50,7 @@ namespace SimplifyIoC.Reflectors
         public object[] constructorParameterNames { get; set; }
         public MethodInfo[] postConstructors { get; set; }
         public ReflectedAttribute[] setters { get; set; }
-        public object[] setterNames { get; set; }
         public bool preGenerated { get; set; }
         public KeyValuePair<MethodInfo, Attribute>[] attrMethods { get; set; }
-
-        public bool HasSetterFor(Type type)
-        {
-            return setters.Any(attr => attr.type == type);
-        }
     }
 }

@@ -299,14 +299,6 @@ namespace SimplifyIoC.Commands
 
         public bool usePooling { get; set; }
 
-        public Pool<T> GetPool<T>()
-        {
-            var t = typeof(T);
-            if (pools.TryGetValue(t, out var pool))
-                return pool as Pool<T>;
-            return null;
-        }
-        
         private void RemoveSequence(Command command)
         {
             if (!activeSequences.ContainsKey(command)) return;

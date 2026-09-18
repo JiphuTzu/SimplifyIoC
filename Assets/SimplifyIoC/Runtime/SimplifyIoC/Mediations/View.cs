@@ -72,17 +72,8 @@ namespace SimplifyIoC.Mediations
 
         protected virtual void InitAttributes()
         {
-            // this.AddAttributeParser(this.GetEventFieldParser())
-            //     .AddAttributeParser(this.GetEventPropertyParser())
-            //     .AddAttributeParser(this.GetEventMethodParser())
-            //     .AddAttributeParser(this.GetMainThreadParser())
-            //     .ParseAttributes();
+            // 阶段 4 将在此启用声明式绑定解析（[BindEvent]/[BindMethod]/[Child]/[MainThread]）。
         }
-
-        // protected T Get<T>() where T : BaseSignal
-        // {
-        //     return injectionBinder.GetInstance<T>();
-        // }
 
         /// A MonoBehaviour Start handler
         /// If the View is not yet registered with the Context, it will 
