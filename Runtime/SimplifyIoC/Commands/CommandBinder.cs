@@ -365,12 +365,15 @@ namespace SimplifyIoC.Commands
 
         protected virtual Pool MakePoolFromType(Type type)
         {
-            var poolType = typeof(Pool<>).MakeGenericType(type);
+            //2.5 勘误：设计文档建议的 PoolOf<T> 静态泛型缓存帮不上忙——type 是运行期类型，
+            //泛型实参无法静态写死。真正的消除路径：Pool<T> 相对非泛型 Pool 仅多
+            //"ctor 里 poolType=typeof(T)"与编译期转换糖 new T GetInstance()，
+            //直接构造非泛型 Pool 并显式设 poolType，彻底消除 MakeGenericType 的
+            //IL2CPP closed-generic 裁剪风险（原 Bind<Pool>/GetInstance/Unbind 临时绑定也一并省去）。
             injectionBinder.Bind(type).To(type);
-            const string POOL_NAME = "COMMAND_POOL";
-            injectionBinder.Bind<Pool>().To(poolType).ToName(POOL_NAME);
-            var pool = injectionBinder.GetInstance<Pool>(POOL_NAME);
-            injectionBinder.Unbind<Pool>(POOL_NAME);
+            var pool = new Pool { poolType = type };
+            //原路径经 injector 构造 Pool<T> 时会做 setter 注入（instanceProvider），补上等价注入
+            injectionBinder.injector.Inject(pool);
             return pool;
         }
 
