@@ -387,6 +387,12 @@ namespace SimplifyIoC.Framework
             return SpliceValueAt<object>(splicePos, objectValue);
         }
 
-        public virtual void OnRemove() { }
+        public virtual void OnRemove()
+        {
+            //3.1：由空实现改为真实清理——清空绑定注册表与冲突表。
+            //子类 override 时应调用 base.OnRemove() 以获得注册表清理。
+            bindings.Clear();
+            _conflicts.Clear();
+        }
     }
 }

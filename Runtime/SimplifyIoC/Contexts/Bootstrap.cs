@@ -43,12 +43,13 @@ namespace SimplifyIoC.Contexts
 		public Context context { get; protected set; }
 
 		/// <summary>
-		/// When a ContextView is Destroyed, automatically removes the associated Context.
+		/// When a ContextView is Destroyed, automatically disposes the associated Context.
+		/// 3.1：改为 Dispose 契约——原实现依赖 firstContext 存活（firstContext 为 null 时
+		/// context 的清理永远不执行）；Dispose 自身幂等且不依赖 Context 链。
 		/// </summary>
 		protected virtual void OnDestroy()
 		{
-			if (context != null && Context.firstContext != null)
-				Context.firstContext.RemoveContext(context);
+			context?.Dispose();
 		}
 
 		#region IView implementation
