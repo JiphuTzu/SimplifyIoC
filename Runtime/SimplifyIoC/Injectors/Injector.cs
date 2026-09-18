@@ -227,7 +227,7 @@ namespace SimplifyIoC.Injectors
             foreach (var attr in reflection.setters)
             {
                 var value = GetValueInjection(attr.type, attr.name, target, attr.propertyInfo);
-                InjectValueIntoPoint(value, target, attr.propertyInfo);
+                InjectValueIntoPoint(value, target, attr);
             }
         }
 
@@ -264,13 +264,21 @@ namespace SimplifyIoC.Injectors
         }
 
         //Inject the value into the target at the specified injection point
-        private void InjectValueIntoPoint(object value, object target, PropertyInfo point)
+        private void InjectValueIntoPoint(object value, object target, ReflectedAttribute point)
         {
             FailIf(target == null, "Attempt to inject into a null target");
             FailIf(point == null, "Attempt to inject into a null point");
             FailIf(value == null, "Attempt to inject null into a target object");
 
-            point.SetValue(target, value, null);
+            //2.3.a：优先走缓存的 setter 委托；值类型等 AOT 不安全场景 setter 为 null，回落反射
+            if (point.setter != null)
+            {
+                point.setter(target, value);
+            }
+            else
+            {
+                point.propertyInfo.SetValue(target, value, null);
+            }
         }
 
         //After injection, call any methods labelled with the [PostConstruct] tag
@@ -293,7 +301,17 @@ namespace SimplifyIoC.Injectors
         private void PerformUninjection(object target, ReflectedClass reflection)
         {
             foreach (var attr in reflection.setters)
-                attr.propertyInfo.SetValue(target, null, null);
+            {
+                //2.3.a：与注入路径同策略——委托优先，值类型回落反射
+                if (attr.setter != null)
+                {
+                    attr.setter(target, null);
+                }
+                else
+                {
+                    attr.propertyInfo.SetValue(target, null, null);
+                }
+            }
         }
 
         private void FailIf(bool condition, string message)

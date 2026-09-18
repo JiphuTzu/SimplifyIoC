@@ -30,17 +30,54 @@ using System.Reflection;
 
 namespace SimplifyIoC.Reflectors
 {
-    public struct ReflectedAttribute
+    /// <summary>
+    /// 2.3.a：由 struct 改为 class（避免携带委托字段后频繁复制），
+    /// 并为每个 setter 缓存强类型委托，注入路径不再走 PropertyInfo.SetValue。
+    /// </summary>
+    public class ReflectedAttribute
     {
         public Type type;
         public object name;
         public PropertyInfo propertyInfo;
 
-        public ReflectedAttribute(Type type, PropertyInfo propertyInfo, object name )
+        /// 缓存的 setter 委托；涉及值类型时为 null（回落反射，保证 IL2CPP/AOT 安全）
+        public Action<object, object> setter;
+
+        public ReflectedAttribute(Type type, PropertyInfo propertyInfo, object name)
         {
             this.type = type;
             this.propertyInfo = propertyInfo;
             this.name = name;
+            setter = BuildSetterDelegate(propertyInfo);
+        }
+
+        /// <summary>
+        /// 为属性 setter 构建 Action&lt;object,object&gt; 委托。
+        /// 实现：泛型辅助方法 + Delegate.CreateDelegate 生成开放实例委托，再包一层 object 适配。
+        /// AOT 约束：IL2CPP 的泛型共享仅覆盖引用类型，涉及值类型（含 Nullable）时返回 null，
+        /// 由调用方回落 PropertyInfo.SetValue；不使用 Expression.Compile / Reflection.Emit。
+        /// </summary>
+        private static Action<object, object> BuildSetterDelegate(PropertyInfo property)
+        {
+            if (property == null) return null;
+            var setMethod = property.GetSetMethod(true);
+            if (setMethod == null || !setMethod.IsPublic) return null;
+
+            var declaringType = property.DeclaringType;
+            if (declaringType == null || declaringType.IsValueType || property.PropertyType.IsValueType)
+            {
+                return null;
+            }
+
+            var helper = typeof(ReflectedAttribute).GetMethod(nameof(BuildSetter), System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            var closed = helper.MakeGenericMethod(declaringType, property.PropertyType);
+            return (Action<object, object>)closed.Invoke(null, new object[] { setMethod });
+        }
+
+        private static Action<object, object> BuildSetter<TTarget, TValue>(MethodInfo setMethod) where TTarget : class
+        {
+            var setter = (Action<TTarget, TValue>)Delegate.CreateDelegate(typeof(Action<TTarget, TValue>), setMethod);
+            return (target, value) => setter((TTarget)target, (TValue)value);
         }
     }
     public class ReflectedClass
