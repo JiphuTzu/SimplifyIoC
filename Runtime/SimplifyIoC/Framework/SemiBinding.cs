@@ -80,16 +80,14 @@ namespace SimplifyIoC.Framework
 
         public IManagedList Remove(object o)
         {
-            if (o.Equals(objectValue) || objectValue == null)
-            {
-                objectValue = null;
-                return this;
-            }
+            //P0#9 修复：原来先 o.Equals(objectValue)（与内部数组比引用，无意义且 o 为 null 时 NRE）
+            if (objectValue == null) return this;
             var aa = objectValue.Length;
             for (var a = 0; a < aa; a++)
             {
                 var currVal = objectValue[a];
-                if (o.Equals(currVal))
+                var matched = (o == null) ? (currVal == null) : o.Equals(currVal);
+                if (matched)
                 {
                     SpliceValueAt(a);
                     return this;

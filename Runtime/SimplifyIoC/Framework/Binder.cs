@@ -149,17 +149,20 @@ namespace SimplifyIoC.Framework
         public virtual void RemoveValue(IBinding binding, object value)
         {
             if (binding == null || value == null) return;
-            
+
             var key = binding.key;
-            if (!bindings.TryGetValue(key, out var dict) || dict.ContainsKey(binding.name)) return;
-            var useBinding = dict[binding.name];
+            //P0#2 修复：原条件写反（存在时 return、不存在时直索引抛异常）
+            if (!bindings.TryGetValue(key, out var dict)) return;
+            var name = binding.name ?? NULL_BINDING;
+            if (!dict.TryGetValue(name, out var useBinding)) return;
+
             useBinding.RemoveValue(value);
 
             //If result is empty, clean it out
             var values = useBinding.value as object[];
             if (values == null || values.Length == 0)
             {
-                dict.Remove(useBinding.name);
+                dict.Remove(name);
             }
         }
 
@@ -196,7 +199,8 @@ namespace SimplifyIoC.Framework
                 key = keys[0];
             }
 
-            var dict = bindings[key];
+            //P0#9 修复：key 不存在时直索引会抛 KeyNotFoundException
+            if (!bindings.TryGetValue(key, out var dict)) return;
             if (!dict.TryGetValue(name, out var useBinding)) return;
             useBinding.RemoveName(name);
         }

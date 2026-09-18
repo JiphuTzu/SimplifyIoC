@@ -108,10 +108,9 @@ namespace SimplifyIoC.Contexts
             }
         }
 
-        public Context(Bootstrap view, bool autoMapping)
-            : this(view, autoMapping ? ContextStartupFlags.ManualMapping : ContextStartupFlags.ManualLaunch | ContextStartupFlags.ManualMapping)
-        {
-        }
+        // 原 Context(Bootstrap, bool autoMapping) 重载已删除（P0#1）：
+        // 其两个取值无论怎么传都不会执行 Start()（ManualMapping 标志恒被设置），
+        // 语义反了且无任何调用方。需要手动控制时请使用 ContextStartupFlags。
 
         protected virtual void AddCoreComponents()
         {
@@ -197,25 +196,28 @@ namespace SimplifyIoC.Contexts
         /// Remove a View from this Context
         public virtual void RemoveView(View view)
         {
+            if (mediationBinder == null) return; //场景卸载期 binder 可能已销毁（P0#9）
             mediationBinder.Trigger(MediationEvent.Destroyed, view);
         }
 
         /// Enable a View from this Context
         public virtual void EnableView(View view)
         {
+            if (mediationBinder == null) return;
             mediationBinder.Trigger(MediationEvent.Enabled, view);
         }
 
         /// Disable a View from this Context
         public virtual void DisableView(View view)
         {
+            if (mediationBinder == null) return;
             mediationBinder.Trigger(MediationEvent.Disabled, view);
         }
 
         public override void OnRemove()
         {
             base.OnRemove();
-            commandBinder.OnRemove();
+            commandBinder?.OnRemove();
         }
 
         protected virtual void MediateViewCache()

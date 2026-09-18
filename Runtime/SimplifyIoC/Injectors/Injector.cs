@@ -48,6 +48,8 @@ namespace SimplifyIoC.Injectors
     {
         private Dictionary<IInjectionBinding, int> _infinityLock;
         private const int _INFINITY_LIMIT = 10;
+        //P0#5 修复：用递归深度决定锁的清空时机，避免内层 Instantiate 返回时清掉外层的计数
+        private int _instantiationDepth;
 
         public InjectorFactory factory { get; set; } = new InjectorFactory();
         public IInjectionBinder binder { get; set; }
@@ -58,53 +60,72 @@ namespace SimplifyIoC.Injectors
             FailIf(binder == null, "Attempt to instantiate from Injector without a Binder");
             FailIf(factory == null, "Attempt to inject into Injector without a Factory");
 
-            ArmorAgainstInfiniteLoops(binding);
-
-            object retv = null;
-            Type reflectionType = null;
-
-            if (binding.value is Type type)
+            _instantiationDepth++;
+            try
             {
-                reflectionType = type;
-            }
-            else if (binding.value == null)
-            {
-                var tl = binding.key as object[];
-                reflectionType = tl[0] as Type;
-                if (reflectionType.IsPrimitive || reflectionType == typeof(Decimal) || reflectionType == typeof(string))
+                ArmorAgainstInfiniteLoops(binding);
+
+                object retv = null;
+                Type reflectionType = null;
+
+                if (binding.value is Type type)
+                {
+                    reflectionType = type;
+                }
+                else if (binding.value == null)
+                {
+                    var tl = binding.key as object[];
+                    reflectionType = tl[0] as Type;
+                    //P0#9 修复：基元类型分支原来只赋 null 又继续反射 int/string，
+                    //现直接返回类型默认值（string 无默认构造，保持 null）并立即返回
+                    if (reflectionType != null && (reflectionType.IsPrimitive || reflectionType == typeof(Decimal)))
+                    {
+                        return Activator.CreateInstance(reflectionType);
+                    }
+                    if (reflectionType == typeof(string))
+                    {
+                        return null;
+                    }
+                }
+                else
                 {
                     retv = binding.value;
                 }
-            }
-            else
-            {
-                retv = binding.value;
-            }
 
-            if (retv == null) //If we don't have an existing value, go ahead and create one.
-            {
-
-                var reflection = reflector.Get(reflectionType);
-
-                var parameterTypes = reflection.constructorParameters;
-                var parameterNames = reflection.constructorParameterNames;
-
-                var aa = parameterTypes.Length;
-                var args = new object[aa];
-                for (var a = 0; a < aa; a++)
+                if (retv == null) //If we don't have an existing value, go ahead and create one.
                 {
-                    args[a] = GetValueInjection(parameterTypes[a] as Type, parameterNames[a], reflectionType, null);
-                }
-                retv = factory.Get(binding, args);
 
-                if (tryInjectHere)
+                    var reflection = reflector.Get(reflectionType);
+
+                    var parameterTypes = reflection.constructorParameters;
+                    var parameterNames = reflection.constructorParameterNames;
+
+                    var aa = parameterTypes.Length;
+                    var args = new object[aa];
+                    for (var a = 0; a < aa; a++)
+                    {
+                        args[a] = GetValueInjection(parameterTypes[a] as Type, parameterNames[a], reflectionType, null);
+                    }
+                    retv = factory.Get(binding, args);
+
+                    if (tryInjectHere)
+                    {
+                        TryInject(binding, retv);
+                    }
+                }
+
+                return retv;
+            }
+            finally
+            {
+                _instantiationDepth--;
+                //仅当最外层 Instantiate 结束时才清空循环依赖计数，
+                //递归内层返回时保留，环形依赖才能累计到阈值被检出
+                if (_instantiationDepth == 0)
                 {
-                    TryInject(binding, retv);
+                    _infinityLock = null;
                 }
             }
-            _infinityLock = null; //Clear our infinity lock so the next time we instantiate we don't consider this a circular dependency
-
-            return retv;
         }
 
         public object TryInject(IInjectionBinding binding, object target)

@@ -128,7 +128,8 @@ namespace SimplifyIoC.Utils
                 return;
             }
 
-            targetAttributes.Sort((a, b) => a.order.CompareTo(a.order));
+            //P0#3 修复：原为 a.order.CompareTo(a.order)，恒为 0，order 失效
+            targetAttributes.Sort((a, b) => a.order.CompareTo(b.order));
             var attributes = targetAttributes.ToArray();
             
             foreach (var attribute in attributes)

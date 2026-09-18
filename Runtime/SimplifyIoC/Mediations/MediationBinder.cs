@@ -107,7 +107,8 @@ namespace SimplifyIoC.Mediations
 
             var typeToInject = binding.abstraction == null || binding.abstraction.Equals(Binder.NULL_BINDING) ? viewType : binding.abstraction as Type;
             injectionBinder.Bind(typeToInject).ToValue(view).ToInject(false);
-            injectionBinder.injector.Inject(mediator);
+            //P0#6：mediator 是 MonoBehaviour，已由 Unity 构造，构造注入会凭空多造一个实例。只做 setter/PostConstruct 注入。
+            injectionBinder.injector.Inject(mediator, false);
             injectionBinder.Unbind(typeToInject);
             if (isTrueMediator && mediator is Mediator m1)
                 m1.OnRegister();
@@ -379,30 +380,32 @@ namespace SimplifyIoC.Mediations
         /// Remove any existing ListensTo Delegates
         private void RemoveDelegate(object target, ISignal signal, MethodInfo method)
         {
-            var memberInfo = signal.GetType().BaseType;
-            if (memberInfo != null && memberInfo.IsGenericType) //e.g. Signal<T>, Signal<T,U> etc.
+            //P0#4 修复：原用 BaseType.IsGenericType 判断，直接使用 Signal<T> 或二级继承会走错分支。
+            //改为：无载荷 Signal（及其子类）走 Action 路径，其余（Signal<T,...> 及任意子类）走委托路径。
+            if (signal is Signal plainSignal)
             {
-                var toRemove = Delegate.CreateDelegate(signal.listener.GetType(), target, method);
-                signal.listener = Delegate.Remove(signal.listener, toRemove);
+                var toRemove = (Action)Delegate.CreateDelegate(typeof(Action), target, method);
+                plainSignal.RemoveListener(toRemove);
             }
             else
             {
-                ((Signal)signal).RemoveListener((Action)Delegate.CreateDelegate(typeof(Action), target, method)); //Assign and cast explicitly for Type == Signal case
+                var toRemove = Delegate.CreateDelegate(signal.listener.GetType(), target, method);
+                signal.listener = Delegate.Remove(signal.listener, toRemove);
             }
         }
 
         /// Apply ListensTo delegates
         private void AssignDelegate(object target, ISignal signal, MethodInfo method)
         {
-            var memberInfo = signal.GetType().BaseType;
-            if (memberInfo != null && memberInfo.IsGenericType)
+            //P0#4 修复：判别逻辑同 RemoveDelegate
+            if (signal is Signal plainSignal)
             {
-                var toAdd = Delegate.CreateDelegate(signal.listener.GetType(), target, method); //e.g. Signal<T>, Signal<T,U> etc.
-                signal.listener = Delegate.Combine(signal.listener, toAdd);
+                plainSignal.AddListener((Action)Delegate.CreateDelegate(typeof(Action), target, method));
             }
             else
             {
-                ((Signal)signal).AddListener((Action)Delegate.CreateDelegate(typeof(Action), target, method)); //Assign and cast explicitly for Type == Signal case
+                var toAdd = Delegate.CreateDelegate(signal.listener.GetType(), target, method); //e.g. Signal<T>, Signal<T,U> etc.
+                signal.listener = Delegate.Combine(signal.listener, toAdd);
             }
         }
     }
