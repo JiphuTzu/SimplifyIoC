@@ -67,3 +67,5 @@ boot.config
 # Crashlytics generated file
 crashlytics-build.properties
 
+.workbuddy/
+
