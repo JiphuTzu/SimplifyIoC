@@ -130,6 +130,43 @@ namespace SimplifyIoC.Tests
         public override void Execute() { }
     }
 
+    // ---- 3.4.b 命令创建期间的重入夹具 ----
+
+    /// 在 [PostConstruct] 里做两件事：
+    /// ① 探测此刻全局 key `Command` 上是否存在临时绑定（旧实现为真，3.4.b 后应恒为假）；
+    /// ② 视开关再派发一次同一信号——即"命令尚未创建完成时又创建命令"，
+    ///    旧实现会与外层临时绑定冲突并把 Binder 打进 conflicted 状态。
+    public class CreateProbeCommand : Command
+    {
+        public static int Executions;
+        public static bool sawGlobalCommandBinding;
+        public static bool nestedDispatch;
+
+        private static int _depth;
+
+        [PostConstruct]
+        public void Probe()
+        {
+            if (injectionBinder.GetBinding(typeof(Command)) != null)
+            {
+                sawGlobalCommandBinding = true;
+            }
+
+            if (!nestedDispatch || _depth > 0) return;
+            _depth++;
+            try
+            {
+                injectionBinder.GetInstance<TestSignal>().Dispatch();
+            }
+            finally
+            {
+                _depth--;
+            }
+        }
+
+        public override void Execute() => Executions++;
+    }
+
     // ---- Command 夹具 ----
 
     public class TestCommand : Command

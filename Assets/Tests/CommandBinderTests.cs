@@ -33,6 +33,9 @@ namespace SimplifyIoC.Tests
             PooledPayloadCommand.Received.Clear();
             ReentrantValueCommand.Received.Clear();
             ReentrantValueCommand.reentered = false;
+            CreateProbeCommand.Executions = 0;
+            CreateProbeCommand.sawGlobalCommandBinding = false;
+            CreateProbeCommand.nestedDispatch = false;
         }
 
         // ---- 基本派发 ----
@@ -142,7 +145,7 @@ namespace SimplifyIoC.Tests
         // ---- 池化关闭 ----
 
         [Test]
-        public void UsePoolingFalseKeepsTempBindUnbindPath()
+        public void UsePoolingFalseStillExecutesCommand()
         {
             _commandBinder.usePooling = false;
             _binder.Bind<TestSignal>().ToSingleton();
@@ -152,7 +155,7 @@ namespace SimplifyIoC.Tests
             signal.Dispatch();
 
             Assert.AreEqual(1, TestCommand.ExecutionCount);
-            // 非池化路径的临时 Command 绑定应已清理
+            // 3.4.b：非池化路径不再使用全局临时绑定，dispatch 前后 key `Command` 都应无绑定
             Assert.IsNull(_binder.GetBinding<Command>());
         }
 
@@ -224,6 +227,41 @@ namespace SimplifyIoC.Tests
 
             Assert.Throws<Exception>(() => signal.Dispatch(42),
                 "载荷中没有 string，注入必须显式报错而不是静默注入 null");
+        }
+
+        // ---- 3.4.b 命令创建不再使用全局临时绑定 ----
+        // 两条用例在改造前必然为红：非池化路径用全局固定 key Command 做临时绑定。
+
+        [Test]
+        public void NonPooledCommandCreationLeavesNoGlobalCommandBinding()
+        {
+            _commandBinder.usePooling = false;
+            _binder.Bind<TestSignal>().ToSingleton();
+            _commandBinder.Bind<TestSignal>().To<CreateProbeCommand>();
+            var signal = _binder.GetInstance<TestSignal>();
+
+            signal.Dispatch();
+
+            Assert.AreEqual(1, CreateProbeCommand.Executions);
+            Assert.IsFalse(CreateProbeCommand.sawGlobalCommandBinding,
+                "命令创建期间（[PostConstruct] 时）全局 key Command 上不应有任何临时绑定");
+            Assert.IsNull(_binder.GetBinding<Command>());
+        }
+
+        [Test]
+        public void NestedCommandCreationDuringInjectionIsSupported()
+        {
+            _commandBinder.usePooling = false;
+            CreateProbeCommand.nestedDispatch = true;
+            _binder.Bind<TestSignal>().ToSingleton();
+            _commandBinder.Bind<TestSignal>().To<CreateProbeCommand>();
+            var signal = _binder.GetInstance<TestSignal>();
+
+            Assert.DoesNotThrow(() => signal.Dispatch(),
+                "命令创建期间再创建命令不得把 Binder 打进 conflicted 状态");
+
+            Assert.AreEqual(2, CreateProbeCommand.Executions, "内外两层命令都应执行完成");
+            Assert.IsNull(_binder.GetBinding<Command>(), "容器中不应残留任何 Command 临时绑定");
         }
     }
 }
