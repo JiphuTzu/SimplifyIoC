@@ -33,7 +33,8 @@ namespace SimplifyIoC.Injectors
     public class InjectionBinder : Binder, IInjectionBinder
     {
         private Injector _injector;
-        protected Dictionary<Type, Dictionary<Type, IInjectionBinding>> suppliers = new Dictionary<Type, Dictionary<Type, IInjectionBinding>>();
+        //3.3：原 suppliers 反向索引已删除——供给关系改由 InjectionBinding 自身持有
+        //（唯一数据源），本类不再维护第二份注册表。
 
         public InjectionBinder()
         {
@@ -167,72 +168,43 @@ namespace SimplifyIoC.Injectors
             return count;
         }
 
-        public IInjectionBinding GetSupplier(Type injectionType, Type targetType)
+        /// <summary>
+        /// 3.3：改为查绑定自身的供给集合（原为 suppliers 反向索引的直接读取）。
+        /// 行为对齐：仍不区分 name——原 suppliers 注册表在登记时就丢掉了 name 维度，
+        /// 这里同样取该 key 下第一个承诺供给 targetType 的绑定。
+        /// </summary>
+        public virtual IInjectionBinding GetSupplier(Type injectionType, Type targetType)
         {
-            if (suppliers.ContainsKey(targetType))
+            if (injectionType == null || targetType == null) return null;
+            return FindSupplied(bindings.TryGetValue(injectionType, out var dict) ? dict : null, targetType);
+        }
+
+        private static IInjectionBinding FindSupplied(Dictionary<object, IBinding> dict, Type targetType)
+        {
+            if (dict == null) return null;
+            foreach (var pair in dict)
             {
-                if (suppliers[targetType].ContainsKey(injectionType))
+                if (pair.Value is IInjectionBinding injectionBinding && injectionBinding.SuppliesTo(targetType))
                 {
-                    return suppliers[targetType][injectionType];
+                    return injectionBinding;
                 }
             }
             return null;
         }
 
+        /// <summary>
+        /// 3.3：供给关系随绑定走，Unsupply 只需改绑定自身；
+        /// 绑定被 Unbind 后 GetSupplier 自然查不到（不再需要手工同步第二份注册表）。
+        /// </summary>
         public void Unsupply(Type injectionType, Type targetType)
         {
             var binding = GetSupplier(injectionType, targetType);
-            if (binding != null)
-            {
-                suppliers[targetType].Remove(injectionType);
-                binding.Unsupply(targetType);
-            }
+            binding?.Unsupply(targetType);
         }
 
         public void Unsupply<T, U>()
         {
             Unsupply(typeof(T), typeof(U));
-        }
-
-        /// <summary>
-        /// 3.1：真实清理——清空 suppliers 双注册表并经 base.OnRemove() 清空绑定注册表。
-        /// 注意只清自身：crossContextBinder 是共享引用（通常指向 firstContext 的注册表），不可触碰。
-        /// </summary>
-        public override void OnRemove()
-        {
-            suppliers.Clear();
-            base.OnRemove();
-        }
-
-        protected override void Resolver(IBinding binding)
-        {
-            if (binding is IInjectionBinding iBinding)
-            {
-                var supply = iBinding.GetSupply();
-
-                if (supply != null)
-                {
-                    foreach (var a in supply)
-                    {
-                        if (a is not Type aType) continue;
-                        if (!suppliers.ContainsKey(aType))
-                        {
-                            suppliers[aType] = new Dictionary<Type, IInjectionBinding>();
-                        }
-                        var keys = iBinding.key as object[];
-                        foreach (var key in keys)
-                        {
-                            var keyType = key as Type;
-                            if (!suppliers[aType].ContainsKey(keyType))
-                            {
-                                suppliers[aType][keyType] = iBinding;
-                            }
-                        }
-                    }
-                }
-            }
-
-            base.Resolver(binding);
         }
     }
 }

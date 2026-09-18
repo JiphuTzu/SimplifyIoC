@@ -24,6 +24,7 @@
  * @see SimplifyIoC.Injectors.IInjectionBinder
  * @see SimplifyIoC.Injectors.ICrossContextInjectionBinder
  */
+using System;
 using SimplifyIoC.Framework;
 namespace SimplifyIoC.Injectors
 {
@@ -88,6 +89,17 @@ namespace SimplifyIoC.Injectors
                 return crossContextBinder.injector;
             }
             return injector;
+        }
+
+        /// <summary>
+        /// 3.3：供给关系改由绑定自身持有后，跨域绑定由 ResolveBinding 转交到根 binder，
+        /// 本地 bindings 里查不到 → 按"本地优先、跨域次之"（同 GetBinding 策略）回落一次。
+        /// </summary>
+        public override IInjectionBinding GetSupplier(Type injectionType, Type targetType)
+        {
+            var binding = base.GetSupplier(injectionType, targetType);
+            if (binding != null) return binding;
+            return crossContextBinder?.GetSupplier(injectionType, targetType);
         }
 
         public override void Unbind(object key, object name)
