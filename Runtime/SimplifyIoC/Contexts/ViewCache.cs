@@ -36,9 +36,21 @@ namespace SimplifyIoC.Contexts
             if (binder == null)
                 throw new Exception("MVCSContext cannot mediate views without a mediationBinder");
 
+            ForEach(v => binder.Trigger(MediationEvent.Awake, v));
+        }
+
+        /// <summary>
+        /// 4.7：对缓存中的每个 View 执行一次给定动作，然后清空缓存。
+        /// 供"没有 mediationBinder"的 Context 走兜底路径（注入 + 声明式解析）使用，
+        /// 不再只能依赖 Mediator 机制把缓存耗尽。
+        /// </summary>
+        public void ForEach(Action<View> action)
+        {
+            if (action == null) return;
+
             for (var i = 0; i < _views.Count; i++)
             {
-                binder.Trigger(MediationEvent.Awake, _views[i]);
+                action(_views[i]);
             }
 
             _views.Clear();

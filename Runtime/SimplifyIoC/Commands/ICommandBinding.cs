@@ -25,6 +25,7 @@
  * - a marker for running multiple commands in parallel (default) or sequentially.
  */
 
+using System;
 using SimplifyIoC.Framework;
 
 namespace SimplifyIoC.Commands
@@ -52,6 +53,30 @@ namespace SimplifyIoC.Commands
 
 		/// Get/set the property set by Pooled()
 		bool isPooled{ get; set;}
+
+		// ---- 4.3：信号直达处理器的短路通路 ----
+		// 与 To<T>() / InSequence() / Pooled() 互斥，混用会在绑定期抛异常（早失败）。
+
+		/// <summary>把信号直接绑到一个无载荷处理委托：Bind&lt;S&gt;().ToHandler&lt;TService&gt;(svc =&gt; svc.Do())</summary>
+		ICommandBinding ToHandler<TService>(Action<TService> handler);
+
+		/// <summary>一个信号载荷：ToHandler&lt;TService, T1&gt;((svc, v) =&gt; svc.Do(v))</summary>
+		ICommandBinding ToHandler<TService, T1>(Action<TService, T1> handler);
+
+		/// <summary>两个信号载荷</summary>
+		ICommandBinding ToHandler<TService, T1, T2>(Action<TService, T1, T2> handler);
+
+		/// <summary>三个信号载荷</summary>
+		ICommandBinding ToHandler<TService, T1, T2, T3>(Action<TService, T1, T2, T3> handler);
+
+		/// <summary>四个信号载荷（Signal 支持的上限）</summary>
+		ICommandBinding ToHandler<TService, T1, T2, T3, T4>(Action<TService, T1, T2, T3, T4> handler);
+
+		/// <summary>
+		/// 弱类型兜底（逃生门）：载荷以 object[] 原样交给处理委托，不做个数/类型校验。
+		/// 服务类型不可静态确定、或载荷形状多变时使用。
+		/// </summary>
+		ICommandBinding ToHandler<TService>(Action<TService, object[]> handler);
 
 		new ICommandBinding Bind<T>();
 		new ICommandBinding Bind(object key);

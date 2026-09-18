@@ -117,6 +117,12 @@ namespace SimplifyIoC.Contexts
         /// 也不再因 static 长期持有 View 引用而跨场景泄漏。
         protected readonly ViewCache _viewCache = new ViewCache();
 
+        /// 4.7：核心组件是否已实例化（Start 走过 InstantiateCoreComponents 之后）。
+        /// 用于区分两种"没有 mediationBinder"：
+        ///   ① Context 尚未就绪（早到的 View）——先缓存，等 PostBindings 统一处理；
+        ///   ② Context 本就不使用 Mediator 机制——直接给 View 走注入 + 声明式解析的兜底路径。
+        private bool _coreInstantiated;
+
         public Context() { }
 
         public Context(Bootstrap view, ContextStartupFlags flags = ContextStartupFlags.Automatic)
@@ -165,7 +171,12 @@ namespace SimplifyIoC.Contexts
         {
             injectionBinder.Bind<Bootstrap>().ToValue(bootstrap).ToName(ContextKeys.Bootstrap);
             commandBinder = injectionBinder.GetInstance<ICommandBinder>();
-            mediationBinder = injectionBinder.GetInstance<IMediationBinder>();
+            //4.7：mediationBinder 允许缺失。不使用 Mediator 机制的 Context（派生类未绑定
+            //IMediationBinder）不再在这里因"no binding"抛异常，而是留 null，
+            //由 View 的兜底路径接管（见 AddView / MediateViewCache）。
+            mediationBinder = injectionBinder.GetBinding<IMediationBinder>() != null
+                ? injectionBinder.GetInstance<IMediationBinder>()
+                : null;
         }
 
         /// Set the object that represents the top of the Context hierarchy.
@@ -180,6 +191,7 @@ namespace SimplifyIoC.Contexts
         {
             ThrowIfDisposed();
             InstantiateCoreComponents();
+            _coreInstantiated = true;
             MapBindings();
             PostBindings();
             if (_autoStartup)
@@ -289,10 +301,20 @@ namespace SimplifyIoC.Contexts
         }
 
         /// Register a View with this Context
+        /// 4.7：View 的注入与声明式解析（[Child]/[BindEvent]/[BindMethod]/[MainThread]）
+        /// 都不依赖 Mediator——没有 mediationBinder 时走兜底路径，View 照常可用。
         public virtual void AddView(View view)
         {
             if (mediationBinder != null)
+            {
                 mediationBinder.Trigger(MediationEvent.Awake, view);
+                return;
+            }
+
+            //Context 已就绪却仍无 mediationBinder ⇒ 本 Context 不使用 Mediator 机制。
+            //尚未就绪则说明是"早到的 View"，照旧缓存，等 PostBindings 统一处理。
+            if (_coreInstantiated)
+                InjectViewWithoutMediation(view);
             else
                 CacheView(view);
         }
@@ -300,22 +322,38 @@ namespace SimplifyIoC.Contexts
         /// Remove a View from this Context
         public virtual void RemoveView(View view)
         {
-            if (mediationBinder == null) return; //场景卸载期 binder 可能已销毁（P0#9）
+            if (mediationBinder == null) return; //场景卸载期 binder 可能已销毁（P0#9）；无 Mediator 机制时也无需处理
             mediationBinder.Trigger(MediationEvent.Destroyed, view);
         }
 
         /// Enable a View from this Context
         public virtual void EnableView(View view)
         {
-            if (mediationBinder == null) return;
+            if (mediationBinder == null) return; //无 Mediator 时没有 mediator 需要 enable
             mediationBinder.Trigger(MediationEvent.Enabled, view);
         }
 
         /// Disable a View from this Context
         public virtual void DisableView(View view)
         {
-            if (mediationBinder == null) return;
+            if (mediationBinder == null) return; //无 Mediator 时没有 mediator 需要 disable
             mediationBinder.Trigger(MediationEvent.Disabled, view);
+        }
+
+        /// <summary>
+        /// 4.7：无 Mediator 机制时 View 的兜底处理——只做 View 自身必需的两件事：
+        /// 容器注入 + 声明式解析。不涉及任何 Mediator 概念，也不递归子视图
+        /// （子视图各自走自己的 AddView / Awake 兜底路径，避免重复注入）。
+        ///
+        /// 这正是"没有 Mediator 的 View 也能正常工作"的实现点：
+        /// 4.1 之后 View 的解析由框架触发，若只在 MediationBinder 里触发，
+        /// 不使用 Mediator 的项目就永远解析不到 [Child]/[BindEvent]。
+        /// </summary>
+        protected virtual void InjectViewWithoutMediation(View view)
+        {
+            if (view == null) return;
+            injectionBinder.injector.Inject(view, false);
+            view.EnsureAttributesInitialized();
         }
 
         public virtual void OnRemove()
@@ -333,11 +371,16 @@ namespace SimplifyIoC.Contexts
 
         protected virtual void MediateViewCache()
         {
-            if (mediationBinder == null)
-                throw new Exception("MVCSContext cannot mediate views without a mediationBinder");
-
             //3.2：补挂 + 清空由 ViewCache 负责（原实现操作全局 static 缓存）
-            _viewCache.MediateWith(mediationBinder);
+            //4.7：没有 mediationBinder 时不再抛异常——View 的注入与声明式解析本就
+            //不依赖 Mediator，改走兜底路径，使"不使用 Mediator 机制"的 Context 也能驱动 View。
+            if (mediationBinder != null)
+            {
+                _viewCache.MediateWith(mediationBinder);
+                return;
+            }
+
+            _viewCache.ForEach(InjectViewWithoutMediation);
         }
         /// Caches early-riser Views.
         /// 

@@ -29,6 +29,7 @@ using System.Reflection;
 using SimplifyIoC.Injectors;
 using SimplifyIoC.Framework;
 using SimplifyIoC.Signals;
+using SimplifyIoC.Utils;
 using UnityEngine;
 using Binder = SimplifyIoC.Framework.Binder;
 
@@ -118,7 +119,15 @@ namespace SimplifyIoC.Mediations
             //P0#6：mediator 是 MonoBehaviour，已由 Unity 构造，构造注入会凭空多造一个实例。只做 setter/PostConstruct 注入。
             injectionBinder.injector.Inject(mediator, false, scope);
             if (isTrueMediator && mediator is Mediator m1)
+            {
+                //4.2：强类型视图直赋值。Mediator<TView> 覆写后由泛型参数直赋（零容器往返），
+                //非泛型 Mediator 为 no-op（view 已由上面的 scope 注入）。
+                m1.SetViewFromBinder(view);
+                //4.1：声明式解析放在注入完成之后、OnRegister 之前——
+                //[BindEvent(nameof(view))] 这类写法依赖已注入/已赋值的成员。
+                m1.EnsureAttributesInitialized();
                 m1.OnRegister();
+            }
         }
 
         /// Add Mediators to Views. We make this virtual to allow for different concrete
@@ -143,6 +152,8 @@ namespace SimplifyIoC.Mediations
                 }
             }
             injectionBinder.injector.Inject(view, false);
+            //4.1：注入完成后再解析声明式绑定，使 [BindEvent(nameof(注入成员))] 在 View 侧也可用。
+            view.EnsureAttributesInitialized();
             HandleDelegates(view, view.GetType(), true);
         }
 
@@ -241,6 +252,8 @@ namespace SimplifyIoC.Mediations
             if (mediator != null)
             {
                 mediator.OnRemove();
+                //4.4：Mediator 的 [BindMethod] 条目同步立即摘除（Mediator 没有 Unity 销毁钩子）
+                mediator.UnbindMethods();
                 HandleDelegates(mediator, mediatorType, false);
             }
             return mediator;
