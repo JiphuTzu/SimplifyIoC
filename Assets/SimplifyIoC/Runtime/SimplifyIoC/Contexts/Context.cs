@@ -65,7 +65,10 @@ namespace SimplifyIoC.Contexts
      * In a typical Unity3D setup, an extension of MVCSContext should be instantiated from the ContextView.
      */
     
-    public class Context : Binder, IDisposable
+    // 3.2：不再继承 Binder——Context 自带的绑定注册表从未被使用（Context 的绑定
+    // 都走 injectionBinder/commandBinder/mediationBinder 三个组件 Binder），
+    // 继承只会把 Binder 的公开面错误地暴露成 Context 的 API。
+    public class Context : IDisposable
     {
         /// In a multi-Context app, this represents the first Context to instantiate.
         public static Context firstContext;
@@ -89,7 +92,9 @@ namespace SimplifyIoC.Contexts
         /// A Binder that maps Views to Mediators
         protected IMediationBinder mediationBinder { get; set; }
         /// A list of Views Awake before the Context is fully set up.
-        private static ISemiBinding _viewCache = new SemiBinding();
+        /// 3.2：由 static SemiBinding 改为实例级 ViewCache——多 Context 互不干扰，
+        /// 也不再因 static 长期持有 View 引用而跨场景泄漏。
+        protected readonly ViewCache _viewCache = new ViewCache();
 
         public Context() { }
 
@@ -253,15 +258,17 @@ namespace SimplifyIoC.Contexts
             mediationBinder.Trigger(MediationEvent.Disabled, view);
         }
 
-        public override void OnRemove()
+        public virtual void OnRemove()
         {
-            base.OnRemove();
+            //3.2：不再有 base.OnRemove()——Context 已不继承 Binder。
             //3.1：三个组件 Binder 各自执行真实清理（信号监听/命令池/suppliers/注册表）。
             //injectionBinder 的静态类型是 ICrossContextInjectionBinder（未继承 IBinder），
             //但实际实例必为 Binder 派生类，向下转型恒成立
             (injectionBinder as IBinder)?.OnRemove();
             commandBinder?.OnRemove();
             mediationBinder?.OnRemove();
+            //未被 Mediate 的残留视图引用一并释放
+            _viewCache.Clear();
         }
 
         protected virtual void MediateViewCache()
@@ -269,17 +276,8 @@ namespace SimplifyIoC.Contexts
             if (mediationBinder == null)
                 throw new Exception("MVCSContext cannot mediate views without a mediationBinder");
 
-            var values = _viewCache.value as object[];
-            if (values == null)
-            {
-                return;
-            }
-            var aa = values.Length;
-            for (var a = 0; a < aa; a++)
-            {
-                mediationBinder.Trigger(MediationEvent.Awake, values[a] as View);
-            }
-            _viewCache = new SemiBinding();
+            //3.2：补挂 + 清空由 ViewCache 负责（原实现操作全局 static 缓存）
+            _viewCache.MediateWith(mediationBinder);
         }
         /// Caches early-riser Views.
         /// 
@@ -289,10 +287,7 @@ namespace SimplifyIoC.Contexts
         /// until the Context is ready to mediate them.
         protected virtual void CacheView(View view)
         {
-            if (_viewCache.constraint.Equals(BindingConstraintType.One))
-            {
-                _viewCache.constraint = BindingConstraintType.Many;
-            }
+            //3.2：原 SemiBinding 的 One→Many 约束逻辑随 static 缓存一并移除
             _viewCache.Add(view);
         }
     }
