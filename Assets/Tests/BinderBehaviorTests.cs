@@ -152,20 +152,7 @@ namespace SimplifyIoC.Tests
             Assert.IsNotNull(_binder.GetBinding("k2"));
         }
 
-        // ---- RemoveValue 现状快照（已知缺陷 P0#2）----
-        // 阶段 1 修复 RemoveValue 后，本测试会失败——届时删除本测试，
-        // 并启用 KnownDefectsTests.RemoveValueShouldRemoveValueFromBinding。
-
-        [Test]
-        public void RemoveValueCurrentBehaviorSnapshotDoesNotRemove()
-        {
-            var binding = _binder.Bind("rk").To("a").To("b");
-
-            _binder.RemoveValue(binding, "a");
-
-            var values = _binder.GetBinding("rk").value as object[];
-            Assert.AreEqual(new[] { "a", "b" }, values,
-                "现状快照：RemoveValue 因条件写反而什么都不删（P0#2）");
-        }
+        // ---- RemoveValue（P0#2 已于阶段 1 修复，现状快照已删除，
+        // 回归测试见 KnownDefectsTests.RemoveValueShouldRemoveValueFromBinding）----
     }
 }

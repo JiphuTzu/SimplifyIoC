@@ -214,8 +214,10 @@ namespace SimplifyIoC.Utils
             if (type is 2 or 3) return (value as Array).Length > 0;
             if (type is 4 or 5) return ((IList)value).Count > 0;
 
-            //TODO：当类型为Transform或者RectTransform时，value的值会是"null"
-            return value != null && "" + value != "null";
+            //P0#9 修复：原用 "" + value != "null" 字符串比较判存活，脆弱。
+            //UnityEngine.Object 有伪 null 语义（已销毁对象 == null 为 true），直接利用它。
+            if (value is UnityEngine.Object unityObject) return unityObject != null;
+            return value != null;
         }
 #if UNITY_EDITOR && MAP_CHILDREN_ON_SELECT
         [UnityEditor.InitializeOnLoadMethod]

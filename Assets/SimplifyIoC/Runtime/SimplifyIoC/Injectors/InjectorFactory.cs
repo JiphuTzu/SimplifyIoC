@@ -109,23 +109,13 @@ namespace SimplifyIoC.Injectors
         protected object CreateFromValue(object o, object[] args)
         {
             var value = (o is Type) ? o as Type : o.GetType();
-            object retv = null;
-            try
+            //P0#7 修复：原为裸 catch 静默吞掉构造异常并返回 null，
+            //下游只看到莫名其妙的 NRE。现让异常直接上抛，由调用方决定如何处理。
+            if (args == null || args.Length == 0)
             {
-                if (args == null || args.Length == 0)
-                {
-                    retv = Activator.CreateInstance(value);
-                }
-                else
-                {
-                    retv = Activator.CreateInstance(value, args);
-                }
+                return Activator.CreateInstance(value);
             }
-            catch
-            {
-                //No-op
-            }
-            return retv;
+            return Activator.CreateInstance(value, args);
         }
     }
 }

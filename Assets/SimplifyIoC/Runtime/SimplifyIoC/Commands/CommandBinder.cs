@@ -83,16 +83,17 @@ namespace SimplifyIoC.Commands
 
             if (bindings.ContainsKey(key)) //If this key already exists, don't bind this again
             {
-                var signal = (BaseSignal)key;
-                signal.AddListener(ReactTo); //Do normal bits, then assign the commandlistener to be reactTo
+                //P0#9 修复：key 未必是信号（字符串/枚举也可作 key），无条件强转会崩
+                if (key is BaseSignal signal)
+                    signal.AddListener(ReactTo);
             }
         }
         public override void OnRemove()
         {
             foreach (var key in bindings.Keys)
             {
-                var signal = (BaseSignal)key;
-                signal?.RemoveListener(ReactTo);
+                if (key is BaseSignal signal)
+                    signal.RemoveListener(ReactTo);
             }
         }
 
@@ -153,8 +154,9 @@ namespace SimplifyIoC.Commands
 
         protected virtual Command InvokeCommand(Type cmd, ICommandBinding binding, object data, int depth)
         {
-            var signal = (BaseSignal)binding.key;
-            var command = CreateCommandForSignal(cmd, data, signal.GetTypes()); //Special signal-only command creation
+            //P0#9 修复：key 未必是信号，改用 as 判别；载荷类型只在有信号时解析
+            var signal = binding.key as BaseSignal;
+            var command = CreateCommandForSignal(cmd, data, signal?.GetTypes()); //Special signal-only command creation
             command.sequenceId = depth;
             TrackCommand(command, binding);
             ExecuteCommand(command);
@@ -222,7 +224,9 @@ namespace SimplifyIoC.Commands
             {
                 if (pool.GetInstance() is not Command command) return null;
                 if (!command.isClean) return command;
-                injectionBinder.injector.Inject(command);
+                //P0#6 修复：池中实例已由 Unity/工厂构造完成，构造注入会凭空多造一个实例
+                //且新实例不在池的使用名单里、归还时被静默丢弃。回收实例只做 setter/PostConstruct 注入。
+                injectionBinder.injector.Inject(command, false);
                 command.isClean = false;
                 return command;
             }
@@ -272,6 +276,8 @@ namespace SimplifyIoC.Commands
 
         public virtual void ReleaseCommand(Command command)
         {
+            //P0#9 修复：Next 在绑定值为空等情况下会传入 null
+            if (command == null) return;
             if (command.retain) return;
             var t = command.GetType();
             if (usePooling && pools.ContainsKey(t))

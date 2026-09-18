@@ -234,9 +234,10 @@ namespace SimplifyIoC.Reflectors
 
         private int GetPriority(MethodInfo methodInfo)
         {
-            var attr = methodInfo.GetCustomAttributes(true)[0] as PostConstruct;
-            var priority = attr.priority;
-            return priority;
+            //P0#8 修复：原来取 GetCustomAttributes[0] 再 as PostConstruct，
+            //方法上其他特性（如 [ListensTo]）写在前面时拿到 null，访问 priority 即 NRE
+            var attr = methodInfo.GetCustomAttribute<PostConstruct>(true);
+            return attr?.priority ?? 0;
         }
     }
 }
