@@ -64,12 +64,22 @@ namespace SimplifyIoC.Utils
 
     public static class BindMethodExtension
     {
-        private static readonly Dictionary<Component, Dictionary<object, List<BindMethodAttribute>>> _methods = new();
+        /// <summary>
+        /// 2.3.e：InvokeBind 是运行期可重复调用的入口，原实现每次都 Sort + ToArray（分配 + 比较开销）。
+        /// 排序结果在解析完成后不再变化，首次调用后缓存为快照。
+        /// </summary>
+        private sealed class BindGroup
+        {
+            public readonly List<BindMethodAttribute> attributes = new();
+            public BindMethodAttribute[] sorted;
+        }
+
+        private static readonly Dictionary<Component, Dictionary<object, BindGroup>> _methods = new();
 
         public static Action<T,BindMethodAttribute, MethodInfo, Type> GetBindMethodParser<T>(this T target) where T : Component
         {
             if (_methods.ContainsKey(target)) return null;
-            var methods = new Dictionary<object, List<BindMethodAttribute>>();
+            var methods = new Dictionary<object, BindGroup>();
             _methods.Add(target, methods);
             return MethodParser;
         }
@@ -89,11 +99,16 @@ namespace SimplifyIoC.Utils
                 //
                 attribute.method = method;
                 //var sn = name.ToString().ToLower();
-                if (methods.ContainsKey(name)) methods[name].Add(attribute);
-                else methods.Add(name, new List<BindMethodAttribute> { attribute });
+                if (methods.TryGetValue(name, out var group)) group.attributes.Add(attribute);
+                else
+                {
+                    group = new BindGroup();
+                    group.attributes.Add(attribute);
+                    methods.Add(name, group);
+                }
             }
         }
-    
+
         public static void UnbindMethods(this Component target)
         {
             var keys = new Component[_methods.Count];
@@ -109,7 +124,7 @@ namespace SimplifyIoC.Utils
             }
             //Debug.Log($"unbind methods for {count} target(s) and {_methods.Count} left");
         }
-    
+
 
         public static void InvokeBind(this Component target, object name, params object[] parameters)
         {
@@ -122,20 +137,28 @@ namespace SimplifyIoC.Utils
                 return;
             }
 
-            if (attributeMap == null || !attributeMap.TryGetValue(name,out var targetAttributes))
+            if (attributeMap == null || !attributeMap.TryGetValue(name, out var group))
             {
                 Debug.Log($"{target} has no method bound to {name}()");
                 return;
             }
 
-            //P0#3 修复：原为 a.order.CompareTo(a.order)，恒为 0，order 失效
-            targetAttributes.Sort((a, b) => a.order.CompareTo(b.order));
-            var attributes = targetAttributes.ToArray();
-            
+            var attributes = group.sorted;
+            if (attributes == null)
+            {
+                //P0#3 修复：原为 a.order.CompareTo(a.order)，恒为 0，order 失效
+                group.attributes.Sort((a, b) => a.order.CompareTo(b.order));
+                attributes = group.sorted = group.attributes.ToArray();
+            }
+
             foreach (var attribute in attributes)
             {
                 try
                 {
+                    //2.3.e 勘误：method.Invoke 无法安全委托化——绑定方法签名任意，
+                    //CreateDelegate 需与委托类型精确匹配，按参数类型 MakeGenericMethod 遇到
+                    //int 等值类型时泛型共享不安全（同 2.3.b 构造函数的结论），
+                    //留待 v2 源生成器（preGenerated 钩子）在编译期生成
                     attribute.method.Invoke(target, parameters);
                 }
                 catch (Exception e)
@@ -145,12 +168,12 @@ namespace SimplifyIoC.Utils
             }
         }
 
-        private static void ClearBinds(Dictionary<object, List<BindMethodAttribute>> attributeMap)
+        private static void ClearBinds(Dictionary<object, BindGroup> attributeMap)
         {
             if (attributeMap == null) return;
             foreach (var pair in attributeMap)
             {
-                pair.Value?.Clear();
+                pair.Value?.attributes.Clear();
             }
 
             attributeMap.Clear();

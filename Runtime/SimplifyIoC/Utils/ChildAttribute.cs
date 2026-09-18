@@ -139,23 +139,28 @@ namespace SimplifyIoC.Utils
             {
                 var et = ft == 3 ? field.FieldType.GetElementType() : field.FieldType.GetGenericArguments()[0];
                 var list = Activator.CreateInstance(_TOL.MakeGenericType(et));
-                var add = list.GetType().GetMethod("Add");
+                //2.3.e：原 GetMethod("Add")+Invoke 逐元素反射；改走 IList.Add（非泛型接口），
+                //元素均为 Component 引用类型，无装箱，零反射
+                var add = (IList)list;
                 if (attribute.includeParent)
                 {
                     var element = t.GetComponent(et);
-                    if (element != null) add.Invoke(list, new object[] { element });
+                    if (element != null) add.Add(element);
                 }
 
                 foreach (Transform c in t)
                 {
                     var element = c.GetComponent(et);
-                    if (element != null) add.Invoke(list, new object[] { element });
+                    if (element != null) add.Add(element);
                 }
 
                 if (ft == 3)
                 {
-                    var toArray = list.GetType().GetMethod("ToArray");
-                    field.SetValue(target, toArray.Invoke(list, new object[] { }));
+                    //2.3.e：原 GetMethod("ToArray")+Invoke；改为 Array.CreateInstance + ICollection.CopyTo
+                    //（List<T> 需物化为 et[]，object[] 无法直接赋给 T[] 字段）
+                    var arr = Array.CreateInstance(et, add.Count);
+                    ((ICollection)add).CopyTo(arr, 0);
+                    field.SetValue(target, arr);
                 }
                 else // if (ft == 5)
                 {

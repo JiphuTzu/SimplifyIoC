@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine.Events;
@@ -80,9 +81,8 @@ namespace SimplifyIoC.Utils
                     if (fieldInfo.FieldType.IsGenericType &&
                              fieldInfo.FieldType.GetGenericTypeDefinition() == typeof(List<>))
                     {
-                        var toArray = fieldInfo.FieldType.GetMethod("ToArray");
-                        // ReSharper disable once PossibleNullReferenceException
-                        var arr = toArray.Invoke(fieldInfo.GetValue(target), new object[] { }) as object[];
+                        //2.3.e：原走 GetMethod("ToArray")+Invoke 反射，改为 IList 拷贝，零反射
+                        var arr = MaterializeArray(fieldInfo.GetValue(target));
                         TryAddListener(arr,attribute.eventName, target, method);
                         return;
                     }
@@ -101,9 +101,8 @@ namespace SimplifyIoC.Utils
                 if (propertyInfo.PropertyType.IsGenericType &&
                     propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
                 {
-                    var toArray = propertyInfo.PropertyType.GetMethod("ToArray");
-                    // ReSharper disable once PossibleNullReferenceException
-                    var arr = toArray.Invoke(propertyInfo.GetValue(target), new object[] { }) as object[];
+                    //2.3.e：同上，IList 拷贝替代反射 ToArray
+                    var arr = MaterializeArray(propertyInfo.GetValue(target));
                     TryAddListener(arr, attribute.eventName, target, method);
                     return;
                 }
@@ -152,9 +151,8 @@ namespace SimplifyIoC.Utils
                 else if (field.FieldType.IsGenericType &&
                     field.FieldType.GetGenericTypeDefinition() == typeof(List<>))
                 {
-                    var toArray = field.FieldType.GetMethod("ToArray");
-                    // ReSharper disable once PossibleNullReferenceException
-                    var arr = toArray.Invoke(field.GetValue(target), new object[] { }) as object[];
+                    //2.3.e：IList 拷贝替代反射 ToArray
+                    var arr = MaterializeArray(field.GetValue(target));
                     TryAddListener(arr,attribute.eventName, target, methodInfo);
                 } 
                 else
@@ -185,9 +183,8 @@ namespace SimplifyIoC.Utils
                 else if (property.PropertyType.IsGenericType &&
                          property.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
                 {
-                    var toArray = property.PropertyType.GetMethod("ToArray");
-                    // ReSharper disable once PossibleNullReferenceException
-                    var arr = toArray.Invoke(property.GetValue(target), new object[] { }) as object[];
+                    //2.3.e：IList 拷贝替代反射 ToArray
+                    var arr = MaterializeArray(property.GetValue(target));
                     TryAddListener(arr, attribute.eventName, target, methodInfo);
                 }
                 else
@@ -197,31 +194,53 @@ namespace SimplifyIoC.Utils
             }
         }
 
+        /// <summary>
+        /// 2.3.e：把 List&lt;T&gt; 物化为 object[]。原实现 GetMethod("ToArray") + Invoke（反射），
+        /// 现走 IList.CopyTo，零反射；元素均为引用类型，无装箱。
+        /// </summary>
+        private static object[] MaterializeArray(object source)
+        {
+            if (source is object[] arr) return arr;
+            var il = (IList)source;
+            var res = new object[il.Count];
+            il.CopyTo(res, 0);
+            return res;
+        }
+
+        //2.3.e：AddListener 的 MethodInfo 按事件类型缓存（原每次调用都 GetMethod）
+        private static readonly Dictionary<Type, MethodInfo> _addListenerCache = new();
+
         private static void AddListener(UnityEventBase ue, object target, MethodInfo method)
         {
             var type = ue.GetType();
-            var ual = type.GetMethod("AddListener", BindingFlags.Instance | BindingFlags.NonPublic);
+            if (!_addListenerCache.TryGetValue(type, out var ual))
+            {
+                ual = type.GetMethod("AddListener", BindingFlags.Instance | BindingFlags.NonPublic);
+                _addListenerCache[type] = ual;
+            }
             ual?.Invoke(ue, new[] { target, method });
         }
+
+        //2.3.e：事件成员查找按 (类型, 名称) 缓存；MemberInfo 为 null 表示确认无此成员
+        private static readonly Dictionary<(Type, string), MemberInfo> _eventMemberCache = new();
 
         private static UnityEventBase GetEvent(object target, string name)
         {
             if (target == null) return null;
             var type = target.GetType();
-            var fieldInfo = type.GetField(name, BindingFlags.Instance | BindingFlags.Public);
-            if (fieldInfo != null)
+            var key = (type, name);
+            if (!_eventMemberCache.TryGetValue(key, out var member))
             {
-                if (fieldInfo.GetValue(target) is UnityEventBase ue)
-                    return ue;
+                member = type.GetField(name, BindingFlags.Instance | BindingFlags.Public)
+                         ?? (MemberInfo)type.GetProperty(name, BindingFlags.Instance | BindingFlags.Public);
+                _eventMemberCache[key] = member;
             }
-            else
+            switch (member)
             {
-                var propInfo = type.GetProperty(name, BindingFlags.Instance | BindingFlags.Public);
-                if (propInfo != null && propInfo.GetValue(target) is UnityEventBase ue)
-                    return ue;
+                case FieldInfo fieldInfo: return fieldInfo.GetValue(target) as UnityEventBase;
+                case PropertyInfo propInfo: return propInfo.GetValue(target) as UnityEventBase;
+                default: return null;
             }
-
-            return null;
         }
     }
 }
