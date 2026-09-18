@@ -143,24 +143,33 @@ namespace SimplifyIoC.Reflectors
                                           BindingFlags.InvokeMethod);
             //2.2 优化：ArrayList+IComparer → 泛型 List；priority 在收集时记录，
             //排序不再对每个元素反复反射取特性（原 PriorityComparer 每次比较调两次 GetCustomAttribute）
+            //2.4 优化：原每方法 2 次 GetCustomAttributes（PostConstruct/ListensTo 各一次），
+            //改为一次取全量再按类型分桶（GetCustomAttributes(typeof(X), true) 内部本就是
+            //全量获取后过滤，合并后元数据扫描减半）
             var methodList = new List<KeyValuePair<MethodInfo, int>>();
             var attrMethods = new List<KeyValuePair<MethodInfo, Attribute>>();
             foreach (var method in methods)
             {
-                var tagged = method.GetCustomAttributes(typeof(PostConstruct), true);
-                if (tagged.Length > 0)
+                var attributes = method.GetCustomAttributes(true);
+                PostConstruct postConstructAttr = null;
+                foreach (var attr in attributes)
                 {
-                    var postConstructAttr = (PostConstruct)tagged[0];
+                    if (attr is PostConstruct pc)
+                    {
+                        postConstructAttr = pc;
+                        break;
+                    }
+                }
+                if (postConstructAttr != null)
+                {
                     methodList.Add(new KeyValuePair<MethodInfo, int>(method, postConstructAttr.priority));
                     attrMethods.Add(new KeyValuePair<MethodInfo, Attribute>(method, postConstructAttr));
                 }
-                var listensToAttr = method.GetCustomAttributes(typeof(ListensTo), true);
-                if (listensToAttr.Length > 0)
+                foreach (var attr in attributes)
                 {
-
-                    for (var i = 0; i < listensToAttr.Length; i++)
+                    if (attr is ListensTo listensTo)
                     {
-                        attrMethods.Add(new KeyValuePair<MethodInfo, Attribute>(method, (ListensTo)listensToAttr[i]));
+                        attrMethods.Add(new KeyValuePair<MethodInfo, Attribute>(method, listensTo));
                     }
                 }
             }

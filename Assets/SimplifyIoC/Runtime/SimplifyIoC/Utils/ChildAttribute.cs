@@ -185,7 +185,18 @@ namespace SimplifyIoC.Utils
         private static readonly Type _TOG = typeof(GameObject);
         private static readonly Type _TOL = typeof(List<>);
 
+        //2.4：字段类型分类按 FieldInfo 缓存（含类型层级判断，同一字段的分类结果不变）
+        private static readonly Dictionary<FieldInfo, int> _fieldTypeCache = new();
+
         private static int GetFieldType(FieldInfo field)
+        {
+            if (_fieldTypeCache.TryGetValue(field, out var cached)) return cached;
+            var result = ComputeFieldType(field);
+            _fieldTypeCache[field] = result;
+            return result;
+        }
+
+        private static int ComputeFieldType(FieldInfo field)
         {
             var fieldType = field.FieldType;
             //Debug.Log($"{fieldType.Name} has element type: {fieldType.HasElementType}");

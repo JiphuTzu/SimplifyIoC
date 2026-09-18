@@ -67,7 +67,7 @@ namespace SimplifyIoC.Utils
             };
         }
         //BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase
-        public static void ParseAttributes<TTarget>(this ReflectedTarget<TTarget> target,BindingFlags flags = BindingFlags.Instance 
+        public static void ParseAttributes<TTarget>(this ReflectedTarget<TTarget> target,BindingFlags flags = BindingFlags.Instance
             | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.IgnoreCase) where TTarget:Component
         {
             target.ParseFields(flags)
@@ -76,10 +76,49 @@ namespace SimplifyIoC.Utils
                 .Clear();
         }
 
+        //2.4：Type+flags → 成员表缓存。ParseAttributes 每组件实例都会调用，
+        //同一类型的成员枚举结果不变，按 (Type, flags) 只枚举一次
+        private static readonly Dictionary<(Type, BindingFlags), MethodInfo[]> _methodsTable = new();
+        private static readonly Dictionary<(Type, BindingFlags), FieldInfo[]> _fieldsTable = new();
+        private static readonly Dictionary<(Type, BindingFlags), PropertyInfo[]> _propertiesTable = new();
+
+        private static MethodInfo[] GetMethodsCached(Type type, BindingFlags flags)
+        {
+            var key = (type, flags);
+            if (!_methodsTable.TryGetValue(key, out var value))
+            {
+                value = type.GetMethods(flags);
+                _methodsTable[key] = value;
+            }
+            return value;
+        }
+
+        private static FieldInfo[] GetFieldsCached(Type type, BindingFlags flags)
+        {
+            var key = (type, flags);
+            if (!_fieldsTable.TryGetValue(key, out var value))
+            {
+                value = type.GetFields(flags);
+                _fieldsTable[key] = value;
+            }
+            return value;
+        }
+
+        private static PropertyInfo[] GetPropertiesCached(Type type, BindingFlags flags)
+        {
+            var key = (type, flags);
+            if (!_propertiesTable.TryGetValue(key, out var value))
+            {
+                value = type.GetProperties(flags);
+                _propertiesTable[key] = value;
+            }
+            return value;
+        }
+
         public static ReflectedTarget<TTarget> ParseMethods<TTarget>(this ReflectedTarget<TTarget> target, BindingFlags flags)  where TTarget:Component
         {
             if (target.methodParsers.Count == 0) return target;
-            var methods = target.targetType.GetMethods(flags);
+            var methods = GetMethodsCached(target.targetType, flags);
             foreach (var method in methods)
             {
                 foreach (var attributeParser in target.methodParsers)
@@ -104,7 +143,7 @@ namespace SimplifyIoC.Utils
         public static ReflectedTarget<TTarget> ParseFields<TTarget>(this ReflectedTarget<TTarget> target, BindingFlags flags)  where TTarget:Component
         {
             if (target.fieldParsers.Count == 0) return target;
-            var fields = target.targetType.GetFields(flags);
+            var fields = GetFieldsCached(target.targetType, flags);
             foreach (var field in fields)
             {
                 foreach (var attributeParser in target.fieldParsers)
@@ -129,7 +168,7 @@ namespace SimplifyIoC.Utils
         public static ReflectedTarget<TTarget> ParseProperties<TTarget>(this ReflectedTarget<TTarget> target, BindingFlags flags)  where TTarget:Component
         {
             if (target.propertyParsers.Count == 0) return target;
-            var properties = target.targetType.GetProperties(flags);
+            var properties = GetPropertiesCached(target.targetType, flags);
             foreach (var property in properties)
             {
                 foreach (var attributeParser in target.propertyParsers)
