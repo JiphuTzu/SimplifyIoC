@@ -113,7 +113,7 @@ namespace SimplifyIoC.Utils
             if (HasValue(ft, field, target)) return;
             //根据路径查找对象
             var t = string.IsNullOrEmpty(attribute.path)
-                ? (attribute.sameAsField ? GetChild(target.transform, field.Name.ToLower()) : target.transform)
+                ? (attribute.sameAsField ? GetChild(target.transform, field.Name.ToLower().TrimStart('_')) : target.transform)
                 : target.transform.Find(attribute.path);
 
             if (t == null) return;
