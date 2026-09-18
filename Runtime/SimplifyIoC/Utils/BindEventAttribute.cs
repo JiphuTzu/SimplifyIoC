@@ -35,6 +35,46 @@ namespace SimplifyIoC.Utils
 
     public static class BindEventExtension
     {
+        //2.4：成员查找按 (Type, name) 缓存（三个解析器的 FLAGS 完全相同，可共用常量）
+        private const BindingFlags LOOKUP_FLAGS = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
+                                                  BindingFlags.IgnoreCase;
+        private static readonly Dictionary<(Type, string), FieldInfo> _fieldLookup = new();
+        private static readonly Dictionary<(Type, string), PropertyInfo> _propertyLookup = new();
+        private static readonly Dictionary<(Type, string), MethodInfo> _methodLookup = new();
+
+        private static FieldInfo GetFieldCached(Type type, string name)
+        {
+            var key = (type, name);
+            if (!_fieldLookup.TryGetValue(key, out var value))
+            {
+                value = type.GetField(name, LOOKUP_FLAGS);
+                _fieldLookup[key] = value;
+            }
+            return value;
+        }
+
+        private static PropertyInfo GetPropertyCached(Type type, string name)
+        {
+            var key = (type, name);
+            if (!_propertyLookup.TryGetValue(key, out var value))
+            {
+                value = type.GetProperty(name, LOOKUP_FLAGS);
+                _propertyLookup[key] = value;
+            }
+            return value;
+        }
+
+        private static MethodInfo GetMethodCached(Type type, string name)
+        {
+            var key = (type, name);
+            if (!_methodLookup.TryGetValue(key, out var value))
+            {
+                value = type.GetMethod(name, LOOKUP_FLAGS);
+                _methodLookup[key] = value;
+            }
+            return value;
+        }
+
         public static Action<T, BindEventAttribute, MethodInfo, Type> GetEventMethodParser<T>(this T target,
             BindUsage usage = BindUsage.Method)
         {
@@ -64,11 +104,9 @@ namespace SimplifyIoC.Utils
         {
             if (string.IsNullOrWhiteSpace(attribute.eventName)
                 || attribute.targetNames.Length == 0) return;
-            const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
-                                       BindingFlags.IgnoreCase;
             foreach (var targetName in attribute.targetNames)
             {
-                var fieldInfo = targetType.GetField(targetName, FLAGS);
+                var fieldInfo = GetFieldCached(targetType, targetName);
                 if (fieldInfo != null)
                 {
                     if (fieldInfo.FieldType.HasElementType)
@@ -89,7 +127,7 @@ namespace SimplifyIoC.Utils
                     TryAddListener(fieldInfo.GetValue(target), attribute.eventName, target, method);
                     return;
                 }
-                var propertyInfo = targetType.GetProperty(targetName, FLAGS);
+                var propertyInfo = GetPropertyCached(targetType, targetName);
                 if (propertyInfo == null) return;
                 if (propertyInfo.PropertyType.HasElementType)
                 {
@@ -136,11 +174,9 @@ namespace SimplifyIoC.Utils
             if (string.IsNullOrWhiteSpace(attribute.eventName)) return;
             var targetNames = attribute.targetNames;
             if (targetNames.Length == 0) targetNames = new []{$"on{field.Name}"};
-            const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
-                                       BindingFlags.IgnoreCase;
             foreach (var targetName in targetNames)
             {
-                var methodInfo = targetType.GetMethod(targetName, FLAGS);
+                var methodInfo = GetMethodCached(targetType, targetName);
                 if (methodInfo == null) continue;
                 if (field.FieldType.HasElementType)
                 {
@@ -169,11 +205,9 @@ namespace SimplifyIoC.Utils
             if (string.IsNullOrWhiteSpace(attribute.eventName)) return;
             var targetNames = attribute.targetNames;
             if (targetNames.Length == 0) targetNames = new []{$"on{property.Name}"};
-            const BindingFlags FLAGS = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
-                                       BindingFlags.IgnoreCase;
             foreach (var targetName in targetNames)
             {
-                var methodInfo = targetType.GetMethod(targetName, FLAGS);
+                var methodInfo = GetMethodCached(targetType, targetName);
                 if (methodInfo == null) continue;
                 if (property.PropertyType.HasElementType)
                 {
