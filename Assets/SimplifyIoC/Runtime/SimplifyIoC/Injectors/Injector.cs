@@ -271,7 +271,7 @@ namespace SimplifyIoC.Injectors
                 {
                     return binding.value;
                 }
-                var retv = Inject(binding.value, false);
+                var retv = Inject(binding.value, false, scope);
                 binding.ToInject(false);
                 return retv;
             }
@@ -279,11 +279,14 @@ namespace SimplifyIoC.Injectors
             {
                 if (binding.value is Type || binding.value == null)
                 {
-                    Instantiate(binding, true);
+                    Instantiate(binding, true, scope);
                 }
                 return binding.value;
             }
-            return Instantiate(binding, true);
+            //3.4.c 连带修复：作用域必须继续下钻——依赖对象的构造/注入与本次调用同属一个作用域。
+            //旧实现把参数临时绑进全局容器，嵌套构造链全程可见；若这里丢掉 scope，
+            //「mediator/command → 依赖服务 → view/载荷」这类链路就会查不到绑定而失败。
+            return Instantiate(binding, true, scope);
         }
 
         //Inject the value into the target at the specified injection point
