@@ -101,8 +101,10 @@ namespace SimplifyIoC.Injectors
             {
                 return CreateFromValue(binding.value, args);
             }
-            var value = GenerateImplicit((binding.key as object[])[0], args);
-            return CreateFromValue(value, args);
+            //2.3.b 修复：原实现 GenerateImplicit 已构造出实例，
+            //随后又把【实例】传回 CreateFromValue 再构造一次并丢弃第一个（双重构造）。
+            //该路径仅存在于 value==null 的绑定（现行绑定机制下不会入库，属死路径），但保留即暗雷。
+            return GenerateImplicit((binding.key as object[])[0], args);
         }
 
         /// Call the Activator to attempt instantiation the given object
