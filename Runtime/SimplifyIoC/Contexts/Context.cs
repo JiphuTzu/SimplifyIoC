@@ -261,7 +261,7 @@ namespace SimplifyIoC.Contexts
         public virtual void OnRemove()
         {
             //3.2：不再有 base.OnRemove()——Context 已不继承 Binder。
-            //3.1：三个组件 Binder 各自执行真实清理（信号监听/命令池/suppliers/注册表）。
+            //3.1：三个组件 Binder 各自执行真实清理（信号监听/命令池/绑定注册表；3.3 起 suppliers 已并入绑定自身）。
             //injectionBinder 的静态类型是 ICrossContextInjectionBinder（未继承 IBinder），
             //但实际实例必为 Binder 派生类，向下转型恒成立
             (injectionBinder as IBinder)?.OnRemove();

@@ -23,6 +23,7 @@
  */
 
 using System;
+using System.Collections.Generic;
 using SimplifyIoC.Framework;
 
 namespace SimplifyIoC.Injectors
@@ -30,14 +31,17 @@ namespace SimplifyIoC.Injectors
     public class InjectionBinding : Binding, IInjectionBinding
     {
 
-        private readonly ISemiBinding _supplyList = new SemiBinding();
+        /// 3.3：承诺供给的目标类型集合。
+        /// 原实现是 SemiBinding，且 InjectionBinder 另有一份 suppliers 反向索引——
+        /// 同一事实存两处，Unbind 只碰 bindings、Unsupply 只碰 suppliers，长期必然不一致。
+        /// 现在以本集合为唯一数据源，绑定没了供给关系自然消失。
+        private readonly HashSet<Type> _suppliedTo = new HashSet<Type>();
 
         public InjectionBinding(Binder.BindingResolver resolver)
         {
             this.resolver = resolver;
             keyConstraint = BindingConstraintType.Many;
             valueConstraint = BindingConstraintType.One;
-            _supplyList.constraint = BindingConstraintType.Many;
         }
 
         public InjectionBindingType type { get; set; } = InjectionBindingType.Default;
@@ -133,7 +137,8 @@ namespace SimplifyIoC.Injectors
         /// Promise this Binding to any instance of Type type
         public IInjectionBinding SupplyTo(Type type)
         {
-            _supplyList.Add(type);
+            if (type != null) _suppliedTo.Add(type);
+            //保留 resolver 调用：与旧行为一致（SupplyTo 会重新解析一次绑定）
             resolver?.Invoke(this);
             return this;
         }
@@ -147,13 +152,29 @@ namespace SimplifyIoC.Injectors
         /// Remove the promise to supply this binding to Type type
         public IInjectionBinding Unsupply(Type type)
         {
-            _supplyList.Remove(type);
+            if (type != null) _suppliedTo.Remove(type);
             return this;
         }
 
         public object[] GetSupply()
         {
-            return _supplyList.value as object[];
+            if (_suppliedTo.Count == 0) return null;
+            var supply = new object[_suppliedTo.Count];
+            var i = 0;
+            foreach (var type in _suppliedTo)
+            {
+                supply[i++] = type;
+            }
+            return supply;
+        }
+
+        /// <summary>
+        /// 3.3：本绑定是否承诺供给 <paramref name="targetType"/>。
+        /// InjectionBinder.GetSupplier 直接查这里，不再维护反向索引。
+        /// </summary>
+        public bool SuppliesTo(Type targetType)
+        {
+            return targetType != null && _suppliedTo.Contains(targetType);
         }
 
         public new IInjectionBinding Bind<T>()

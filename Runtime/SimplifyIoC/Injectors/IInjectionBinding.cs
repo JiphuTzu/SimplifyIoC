@@ -78,6 +78,12 @@ namespace SimplifyIoC.Injectors
         /// Get the list of promised supply types
         object[] GetSupply();
 
+        /// <summary>
+        /// 3.3：本绑定是否承诺供给 <paramref name="targetType"/>。
+        /// 供给关系的唯一数据源，InjectionBinder.GetSupplier 直接查这里。
+        /// </summary>
+        bool SuppliesTo(Type targetType);
+
         /// Promise this Binding to any instance of Type <T>
         IInjectionBinding SupplyTo<T>();
 
