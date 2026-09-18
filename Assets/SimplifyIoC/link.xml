@@ -3,11 +3,12 @@
   SimplifyIoC 链接保留配置（IL2CPP / Managed Stripping）
 
   背景（见 .workbuddy/review/design-and-aot-2026-09-18.md §11）：
-  本包在运行期使用 MakeGenericType：
-    - CommandBinder.MakePoolFromType:  typeof(Pool<>).MakeGenericType(命令类型)
-    - ChildAttribute:                  List<>.MakeGenericType + 反射调 Add/ToArray
-  若 Managed Stripping 开启且闭包泛型未被判为"已使用"，IL2CPP（iOS/主机）会在
-  运行期直接抛异常。本文件把包内程序集整体保留，是成本最低的兜底方案。
+  2.5 之后框架内部已消除 MakeGenericType（命令池直接构造非泛型 Pool；
+  ChildAttribute 用字段声明的闭泛型 / 静态容器收集 + Array.CreateInstance）。
+  本文件的保留配置降级为双保险：
+    - Pool<T> / Pool 等 public 泛型 API 仍可能被使用方以 typeof(Pool<>).MakeGenericType
+      等方式使用，整体保留包程序集可兜底。
+    - List`1 兜底保留（使用者代码可能对 BCL 泛型容器做运行期实例化）。
 
   使用者注意：
   - 你的 Command/Signal 等类型在自己的程序集里，若你的工程也开了裁剪，

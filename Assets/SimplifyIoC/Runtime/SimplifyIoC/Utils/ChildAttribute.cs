@@ -121,51 +121,67 @@ namespace SimplifyIoC.Utils
             //赋值
             if (ft == 0) field.SetValue(target, t.gameObject);
             else if (ft == 1) field.SetValue(target, t.GetComponent(field.FieldType));
-            else if (ft is 2 or 4)
+            else if (ft == 2)
             {
+                //2.5：GameObject 数组——静态具体类型直接构造，无泛型反射
                 var list = new List<GameObject>();
                 if (attribute.includeParent) list.Add(t.gameObject);
                 foreach (Transform c in t)
                 {
                     list.Add(c.gameObject);
                 }
-
-                if (ft == 2)
-                    field.SetValue(target, list.ToArray());
-                else //if(ft == 4) 
-                    field.SetValue(target, list);
+                field.SetValue(target, list.ToArray());
             }
-            else if (ft is 3 or 5)
+            else if (ft == 4)
             {
-                var et = ft == 3 ? field.FieldType.GetElementType() : field.FieldType.GetGenericArguments()[0];
-                var list = Activator.CreateInstance(_TOL.MakeGenericType(et));
-                //2.3.e：原 GetMethod("Add")+Invoke 逐元素反射；改走 IList.Add（非泛型接口），
-                //元素均为 Component 引用类型，无装箱，零反射
-                var add = (IList)list;
+                //2.5：List<GameObject>——具体闭泛型直接 new，无泛型反射
+                var list = new List<GameObject>();
+                if (attribute.includeParent) list.Add(t.gameObject);
+                foreach (Transform c in t)
+                {
+                    list.Add(c.gameObject);
+                }
+                field.SetValue(target, list);
+            }
+            else if (ft == 3)
+            {
+                var et = field.FieldType.GetElementType();
+                //2.5 勘误：设计文档建议的 ListOf<T> 静态缓存帮不上忙（et 是运行期类型）。
+                //改为静态 List<Component> 收集 + Array.CreateInstance 物化为 et[]，
+                //不再对 List<et> 做 MakeGenericType（组件为引用类型，无装箱）
+                var list = new List<Component>();
                 if (attribute.includeParent)
                 {
                     var element = t.GetComponent(et);
-                    if (element != null) add.Add(element);
+                    if (element != null) list.Add(element);
                 }
-
                 foreach (Transform c in t)
                 {
                     var element = c.GetComponent(et);
-                    if (element != null) add.Add(element);
+                    if (element != null) list.Add(element);
                 }
-
-                if (ft == 3)
+                var arr = Array.CreateInstance(et, list.Count);
+                ((ICollection)list).CopyTo(arr, 0);
+                field.SetValue(target, arr);
+            }
+            else //if (ft == 5)
+            {
+                var et = field.FieldType.GetGenericArguments()[0];
+                //2.5：List<et> 的闭泛型在字段声明中静态可见（GetFieldType 已确认
+                //field.FieldType 就是 List<et>），Activator.CreateInstance(field.FieldType)
+                //即可让 IL2CPP 走已编译的实例化，无需 MakeGenericType；填充走 IList.Add
+                var list = (IList)Activator.CreateInstance(field.FieldType);
+                if (attribute.includeParent)
                 {
-                    //2.3.e：原 GetMethod("ToArray")+Invoke；改为 Array.CreateInstance + ICollection.CopyTo
-                    //（List<T> 需物化为 et[]，object[] 无法直接赋给 T[] 字段）
-                    var arr = Array.CreateInstance(et, add.Count);
-                    ((ICollection)add).CopyTo(arr, 0);
-                    field.SetValue(target, arr);
+                    var element = t.GetComponent(et);
+                    if (element != null) list.Add(element);
                 }
-                else // if (ft == 5)
+                foreach (Transform c in t)
                 {
-                    field.SetValue(target, list);
+                    var element = c.GetComponent(et);
+                    if (element != null) list.Add(element);
                 }
+                field.SetValue(target, list);
             }
         }
 
