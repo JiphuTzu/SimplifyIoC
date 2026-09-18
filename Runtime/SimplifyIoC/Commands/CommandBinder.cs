@@ -252,10 +252,16 @@ namespace SimplifyIoC.Commands
             }
             else
             {
-                injectionBinder.Bind<Command>().To(type);
+                //3.4.b：不再用全局固定 key Command 做 Bind→GetInstance→Unbind 往返。
+                //原实现在"命令创建过程中又创建命令"（典型场景：命令的 [PostConstruct] 里再派发信号）
+                //会与外层同 key 的临时绑定判为冲突，把整个 Binder 打进 conflicted 状态——
+                //此后任何 GetBinding 都抛异常；即便不冲突，内层的 Unbind<Command>() 也会误删外层绑定。
+                //改为构造一个不入库的一次性绑定直接交给注入器，容器注册表全程不被触碰。
+                var transient = new InjectionBinding(null);
+                transient.Bind(typeof(Command)).To(type);
                 //保持原 GetInstance<Command>() 的强转语义（类型不符时抛 InvalidCastException 而非静默 null）
-                var command = (Command)injectionBinder.GetInstance(typeof(Command), false, scope);
-                injectionBinder.Unbind<Command>();
+                var command = (Command)injectionBinder.injector.Instantiate(transient, false, scope);
+                injectionBinder.injector.TryInject(transient, command, scope);
                 return command;
             }
         }
