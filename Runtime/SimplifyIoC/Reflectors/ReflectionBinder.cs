@@ -167,11 +167,15 @@ namespace SimplifyIoC.Reflectors
 
             methodList.Sort((x, y) => x.Value.CompareTo(y.Value));
             var postConstructors = new MethodInfo[methodList.Count];
+            var postConstructorActions = new Action<object>[methodList.Count];
             for (var i = 0; i < methodList.Count; i++)
             {
                 postConstructors[i] = methodList[i].Key;
+                //2.3.c：委托化调用路径；签名/目标类型不合规时为 null，运行时回落 method.Invoke
+                postConstructorActions[i] = ReflectedClass.BuildPostConstructorDelegate(methodList[i].Key);
             }
             reflected.postConstructors = postConstructors;
+            reflected.postConstructorActions = postConstructorActions;
             reflected.attrMethods = attrMethods.ToArray();
         }
 
