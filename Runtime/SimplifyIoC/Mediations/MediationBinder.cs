@@ -106,10 +106,17 @@ namespace SimplifyIoC.Mediations
                 m0.PreRegister();
 
             var typeToInject = binding.abstraction == null || binding.abstraction.Equals(Binder.NULL_BINDING) ? viewType : binding.abstraction as Type;
-            injectionBinder.Bind(typeToInject).ToValue(view).ToInject(false);
+            //3.4.c：view 改走调用级作用域（3.4.a 定形的 InjectionScope），不再临时写进全局容器。
+            //原实现 Bind(typeToInject).ToValue(view).ToInject(false) → Inject → Unbind 有三个问题：
+            //  1) 容器里若已有同 key 的绑定，Bind 会触发 RegisterNameConflict，Binder 被打进 conflicted 状态，
+            //     此后任何 GetBinding 都抛异常（mediation 自身随即失败）；
+            //  2) 注入期间发生的嵌套 mediation（注入点 setter / PostConstruct 内再创建 View）会重复 Bind 同一 key，
+            //     同样触发冲突，且收尾的 Unbind 会把绑定整个删掉；
+            //  3) 收尾的 Unbind 会连带删掉用户本已存在的同 key 全局绑定。
+            //走 Scope 后容器全程不被触碰，且调用级参数优先于全局绑定（见 Injector.GetValueInjection 的解析顺序）。
+            var scope = new InjectionScope(new[] { typeToInject }, new object[] { view });
             //P0#6：mediator 是 MonoBehaviour，已由 Unity 构造，构造注入会凭空多造一个实例。只做 setter/PostConstruct 注入。
-            injectionBinder.injector.Inject(mediator, false);
-            injectionBinder.Unbind(typeToInject);
+            injectionBinder.injector.Inject(mediator, false, scope);
             if (isTrueMediator && mediator is Mediator m1)
                 m1.OnRegister();
         }
