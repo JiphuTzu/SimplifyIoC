@@ -24,7 +24,6 @@
  */
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -142,15 +141,18 @@ namespace SimplifyIoC.Reflectors
                                           BindingFlags.NonPublic |
                                           BindingFlags.Instance |
                                           BindingFlags.InvokeMethod);
-            var methodList = new ArrayList();
+            //2.2 优化：ArrayList+IComparer → 泛型 List；priority 在收集时记录，
+            //排序不再对每个元素反复反射取特性（原 PriorityComparer 每次比较调两次 GetCustomAttribute）
+            var methodList = new List<KeyValuePair<MethodInfo, int>>();
             var attrMethods = new List<KeyValuePair<MethodInfo, Attribute>>();
             foreach (var method in methods)
             {
                 var tagged = method.GetCustomAttributes(typeof(PostConstruct), true);
                 if (tagged.Length > 0)
                 {
-                    methodList.Add(method);
-                    attrMethods.Add(new KeyValuePair<MethodInfo, Attribute>(method, (Attribute)tagged[0]));
+                    var postConstructAttr = (PostConstruct)tagged[0];
+                    methodList.Add(new KeyValuePair<MethodInfo, int>(method, postConstructAttr.priority));
+                    attrMethods.Add(new KeyValuePair<MethodInfo, Attribute>(method, postConstructAttr));
                 }
                 var listensToAttr = method.GetCustomAttributes(typeof(ListensTo), true);
                 if (listensToAttr.Length > 0)
@@ -163,8 +165,13 @@ namespace SimplifyIoC.Reflectors
                 }
             }
 
-            methodList.Sort(new PriorityComparer());
-            reflected.postConstructors = (MethodInfo[])methodList.ToArray(typeof(MethodInfo));
+            methodList.Sort((x, y) => x.Value.CompareTo(y.Value));
+            var postConstructors = new MethodInfo[methodList.Count];
+            for (var i = 0; i < methodList.Count; i++)
+            {
+                postConstructors[i] = methodList[i].Key;
+            }
+            reflected.postConstructors = postConstructors;
             reflected.attrMethods = attrMethods.ToArray();
         }
 
@@ -218,26 +225,6 @@ namespace SimplifyIoC.Reflectors
                 }
             }
             reflected.setters = namedAttributes.Values.ToArray();
-        }
-    }
-
-    class PriorityComparer : IComparer
-    {
-        int IComparer.Compare(Object x, Object y)
-        {
-
-            var pX = GetPriority(x as MethodInfo);
-            var pY = GetPriority(y as MethodInfo);
-
-            return (pX < pY) ? -1 : (pX == pY) ? 0 : 1;
-        }
-
-        private int GetPriority(MethodInfo methodInfo)
-        {
-            //P0#8 修复：原来取 GetCustomAttributes[0] 再 as PostConstruct，
-            //方法上其他特性（如 [ListensTo]）写在前面时拿到 null，访问 priority 即 NRE
-            var attr = methodInfo.GetCustomAttribute<PostConstruct>(true);
-            return attr?.priority ?? 0;
         }
     }
 }
