@@ -100,8 +100,9 @@ namespace SimplifyIoC.Injectors
                     var parameterTypes = reflection.constructorParameters;
                     var parameterNames = reflection.constructorParameterNames;
 
+                    //2.3.b：无参构造复用共享空数组，避免每次实例化的分配
                     var aa = parameterTypes.Length;
-                    var args = new object[aa];
+                    var args = aa == 0 ? Array.Empty<object>() : new object[aa];
                     for (var a = 0; a < aa; a++)
                     {
                         args[a] = GetValueInjection(parameterTypes[a] as Type, parameterNames[a], reflectionType, null);
@@ -202,17 +203,27 @@ namespace SimplifyIoC.Injectors
 
             var parameterTypes = reflection.constructorParameters;
             var parameterNames = reflection.constructorParameterNames;
-            var values = new object[parameterTypes.Length];
+            var aa = parameterTypes.Length;
+
+            //2.3.b：无参构造提前返回，跳过参数数组分配
+            //（原逻辑在 aa==0 时也会先 new object[0] 再走 length 检查）
+            if (aa == 0)
+            {
+                return target;
+            }
+
+            //2.3.b 勘误说明：设计报告 §12 建议将 constructor.Invoke 换成 CreateDelegate，
+            //但 Delegate.CreateDelegate 只接受 MethodInfo，ConstructorInfo 无法使用；
+            //Expression.Compile（IL2CPP 解释执行）与 Reflection.Emit（不可用）均被排除，
+            //new T() 泛型工厂在 IL2CPP 下也退化回 Activator。参数化构造的委托化
+            //只能由 v2 源生成器（preGenerated 钩子）在编译期完成。
+            var values = new object[aa];
 
             var i = 0;
             foreach (var type in parameterTypes)
             {
                 values[i] = GetValueInjection(type, parameterNames[i], target, null);
                 i++;
-            }
-            if (values.Length == 0)
-            {
-                return target;
             }
 
             var constructedObj = constructor.Invoke(values);
