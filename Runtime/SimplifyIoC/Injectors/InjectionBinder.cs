@@ -45,10 +45,24 @@ namespace SimplifyIoC.Injectors
 
         public object GetInstance(Type key, bool ignoreException)
         {
-            return GetInstance(key, null, ignoreException);
+            return GetInstance(key, null, ignoreException, null);
+        }
+
+        /// <summary>
+        /// 3.4：带调用级作用域的实例获取（IInstanceProvider 的 scope 重载）。
+        /// 池化对象的首次构造会走到这里。
+        /// </summary>
+        public object GetInstance(Type key, bool ignoreException, InjectionScope scope)
+        {
+            return GetInstance(key, null, ignoreException, scope);
         }
 
         public virtual object GetInstance(Type key, object name, bool ignoreException)
+        {
+            return GetInstance(key, name, ignoreException, null);
+        }
+
+        public virtual object GetInstance(Type key, object name, bool ignoreException, InjectionScope scope)
         {
             var binding = GetBinding(key, name);
             if (binding == null)
@@ -56,8 +70,8 @@ namespace SimplifyIoC.Injectors
                 if (ignoreException) return null;
                 throw new Exception("InjectionBinder has no binding for:\n\tkey: " + key + "\nname: " + name);
             }
-            var instance = GetInjectorForBinding(binding).Instantiate(binding, false);
-            injector.TryInject(binding, instance);
+            var instance = GetInjectorForBinding(binding).Instantiate(binding, false, scope);
+            injector.TryInject(binding, instance, scope);
 
             return instance;
         }
