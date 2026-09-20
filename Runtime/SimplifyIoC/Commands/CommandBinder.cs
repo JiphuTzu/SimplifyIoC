@@ -73,10 +73,6 @@ namespace SimplifyIoC.Commands
         /// Tracker for sequences in progress
         protected Dictionary<Command, ICommandBinding> activeSequences = new Dictionary<Command, ICommandBinding>();
 
-        public CommandBinder()
-        {
-            usePooling = true;
-        }
         public override void ResolveBinding(IBinding binding, object key)
         {
             base.ResolveBinding(binding, key);
@@ -95,8 +91,15 @@ namespace SimplifyIoC.Commands
                 if (key is BaseSignal signal)
                     signal.RemoveListener(ReactTo);
             }
-            //3.1：释放命令池实例与绑定注册表（base.OnRemove 清 bindings/_conflicts）
+            //5.5：归还池持有的全部命令实例（统一池化后每条命令类型都常驻一个池），
+            //并清空两组"进行中命令"追踪集合——旧实现只 Clear() 了 pools 字典本身，
+            //实例与追踪集合都留着等 GC，Context 销毁后这些引用依然存在。
+            foreach (var pool in pools.Values)
+                pool.Clean();
             pools.Clear();
+            activeCommands.Clear();
+            activeSequences.Clear();
+            //3.1：释放绑定注册表与冲突表（放在最后：上面还要读 bindings）
             base.OnRemove();
         }
 
@@ -264,30 +267,56 @@ namespace SimplifyIoC.Commands
 
         protected Command GetCommand(Type type, InjectionScope scope = null)
         {
-            if (usePooling && pools.TryGetValue(type, out var pool))
+            if (type == null) return null;
+
+            //5.5：单一创建路径——无论绑定声明没声明 Pooled()，命令实例一律来自该命令类型的池。
+            //旧实现在这两条路径间分叉（池化 vs 一次性 new），分叉的存在又反过来要求
+            //usePooling / isPooled 两个开关的表达一致，是既难解释又难维护的一处状态。
+            var pool = GetOrCreatePool(type);
+            if (pool.GetInstance(scope) is not Command command) return null;
+            if (!command.isClean) return command;
+            //P0#6 修复：池中实例已由 Unity/工厂构造完成，构造注入会凭空多造一个实例
+            //且新实例不在池的使用名单里、归还时被静默丢弃。回收实例只做 setter/PostConstruct 注入。
+            injectionBinder.injector.Inject(command, false, scope);
+            command.isClean = false;
+            return command;
+        }
+
+        /// <summary>
+        /// 5.5：命令类型的池，按需创建。相对旧 <see cref="MakePoolFromType"/> 的两处关键差别：
+        /// ① 不再由 Resolver 在绑定期扫绑定值预先灌好，改为首次派发该命令类型时惰性创建——
+        ///    没跑到过的命令不再白占一个池；
+        /// ② 不再往 injectionBinder 里补那条 `Bind(cmdType).To(cmdType)`：
+        ///    它一旦与用户自己的同名绑定相遇就会把容器打进 conflicted 状态（此后任何 GetBinding 都抛异常）。
+        ///    改为由内建的 <see cref="CommandInstanceProvider"/> 供应实例，容器注册表全程不被触碰。
+        /// </summary>
+        protected Pool GetOrCreatePool(Type commandType)
+        {
+            if (pools.TryGetValue(commandType, out var existing)) return existing;
+
+            var pool = MakePoolFromType(commandType);
+            pools[commandType] = pool;
+            return pool;
+        }
+
+        /// <summary>
+        /// 5.5：保留为可扩展点（GetOrCreatePool 的唯一创建出口，override 它就换了全部命令的池实现）。
+        /// 相对旧实现的两处关键差别：
+        /// ① 不再往 injectionBinder 里补那条 `Bind(type).To(type)`：它一旦与用户自己的同名绑定相遇，
+        ///    就会把容器打进 conflicted 状态（此后任何 GetBinding 都抛异常）。
+        ///    改为显式指定 <see cref="CommandInstanceProvider"/>，容器注册表全程不被触碰；
+        /// ② 池不再经 injectionBinder.injector.Inject(pool) 去凑 instanceProvider——
+        ///    注入进来的本来就是 injectionBinder 自身，显式赋值把这层绕开了。
+        /// 2.5 的结论仍然有效：Pool&lt;T&gt; 相对非泛型 Pool 只多一层编译期转换糖，
+        /// 这里直接构造非泛型 Pool 并显式设 poolType，避免 MakeGenericType 的 IL2CPP 裁剪风险。
+        /// </summary>
+        protected virtual Pool MakePoolFromType(Type type)
+        {
+            return new Pool
             {
-                if (pool.GetInstance(scope) is not Command command) return null;
-                if (!command.isClean) return command;
-                //P0#6 修复：池中实例已由 Unity/工厂构造完成，构造注入会凭空多造一个实例
-                //且新实例不在池的使用名单里、归还时被静默丢弃。回收实例只做 setter/PostConstruct 注入。
-                injectionBinder.injector.Inject(command, false, scope);
-                command.isClean = false;
-                return command;
-            }
-            else
-            {
-                //3.4.b：不再用全局固定 key Command 做 Bind→GetInstance→Unbind 往返。
-                //原实现在"命令创建过程中又创建命令"（典型场景：命令的 [PostConstruct] 里再派发信号）
-                //会与外层同 key 的临时绑定判为冲突，把整个 Binder 打进 conflicted 状态——
-                //此后任何 GetBinding 都抛异常；即便不冲突，内层的 Unbind<Command>() 也会误删外层绑定。
-                //改为构造一个不入库的一次性绑定直接交给注入器，容器注册表全程不被触碰。
-                var transient = new InjectionBinding(null);
-                transient.Bind(typeof(Command)).To(type);
-                //保持原 GetInstance<Command>() 的强转语义（类型不符时抛 InvalidCastException 而非静默 null）
-                var command = (Command)injectionBinder.injector.Instantiate(transient, false, scope);
-                injectionBinder.injector.TryInject(transient, command, scope);
-                return command;
-            }
+                poolType = type,
+                instanceProvider = new CommandInstanceProvider(this)
+            };
         }
 
         protected void TrackCommand(Command command, ICommandBinding binding)
@@ -331,9 +360,10 @@ namespace SimplifyIoC.Commands
             if (command == null) return;
             if (command.retain) return;
             var t = command.GetType();
-            if (usePooling && pools.ContainsKey(t))
+            //5.5：不再分支——统一池化后该命令类型的池一定存在（不存在说明本 Binder 没创建过它，忽略即可）
+            if (pools.TryGetValue(t, out var pool))
             {
-                pools[t].ReturnInstance(command);
+                pool.ReturnInstance(command);
             }
             if (activeCommands.Contains(command))
             {
@@ -348,6 +378,13 @@ namespace SimplifyIoC.Commands
             }
         }
 
+        /// <summary>
+        /// 5.5：已废弃的开关，保留为 no-op。
+        /// 旧语义是"派发时是否回收命令实例"：false 时每次派发都新建实例，true 且绑定声明 Pooled() 时才走池。
+        /// 现在所有命令统一池化，两条路径合并成一条，本开关不再有任何作用；
+        /// 读写仍然编译通过，避免升级时出现大面积源码报错。计划在后续主版本中移除。
+        /// </summary>
+        [Obsolete("所有命令现已统一池化，usePooling 不再影响行为（非池化路径已移除）。")]
         public bool usePooling { get; set; }
 
         private void RemoveSequence(Command command)
@@ -399,39 +436,109 @@ namespace SimplifyIoC.Commands
                 signal.RemoveListener(ReactTo);
             }
             base.Unbind(key, name);
-        }
-
-        protected override void Resolver(IBinding binding)
-        {
-            base.Resolver(binding);
-            if (!usePooling || !((ICommandBinding)binding).isPooled) return;
-            if (binding.value is not object[] values) return;
-            foreach (Type value in values)
-            {
-                if (pools.ContainsKey(value)) continue;
-                var myPool = MakePoolFromType(value);
-                pools[value] = myPool;
-            }
-        }
-
-        protected virtual Pool MakePoolFromType(Type type)
-        {
-            //2.5 勘误：设计文档建议的 PoolOf<T> 静态泛型缓存帮不上忙——type 是运行期类型，
-            //泛型实参无法静态写死。真正的消除路径：Pool<T> 相对非泛型 Pool 仅多
-            //"ctor 里 poolType=typeof(T)"与编译期转换糖 new T GetInstance()，
-            //直接构造非泛型 Pool 并显式设 poolType，彻底消除 MakeGenericType 的
-            //IL2CPP closed-generic 裁剪风险（原 Bind<Pool>/GetInstance/Unbind 临时绑定也一并省去）。
-            injectionBinder.Bind(type).To(type);
-            var pool = new Pool { poolType = type };
-            //原路径经 injector 构造 Pool<T> 时会做 setter 注入（instanceProvider），补上等价注入
-            injectionBinder.injector.Inject(pool);
-            return pool;
+            //5.5：绑定已删，为它服务过的命令池若无人再引用就该归还（见 DropOrphanPools 注释）。
+            DropOrphanPools();
         }
 
         public new virtual ICommandBinding GetBinding<T>()
         {
             var signal = injectionBinder.GetInstance<T>();
             return base.GetBinding(signal) as ICommandBinding;
+        }
+
+        /// <summary>
+        /// 5.3：信号/命令成对入口，Bind&lt;MySignal, MyCommand&gt;() 等价于 Bind&lt;MySignal&gt;().To&lt;MyCommand&gt;()。
+        /// 两条约束是这一步真正的收益：
+        /// <c>where TSignal : BaseSignal</c> —— 旧写法里 Bind&lt;T&gt;() 会用 injectionBinder 去 GetInstance&lt;T&gt;()
+        /// 再把结果当信号用，T 不是信号时只能在运行期崩；
+        /// <c>where TCommand : Command</c> —— 命令一如既往做到了委托/强转校验之前就该明确的事。
+        /// </summary>
+        public ICommandBinding Bind<TSignal, TCommand>()
+            where TSignal : BaseSignal
+            where TCommand : Command
+        {
+            return Bind<TSignal>().To<TCommand>();
+        }
+
+        /// <summary>
+        /// 5.5：绑定消失后回收"只为它服务"的命令池。
+        /// 统一池化后每个命令类型都常驻一个池（默认 size=0 的池会按需膨胀并缓存峰值并发数的实例），
+        /// Once() 这类一次性绑定如果不清理，实例会被持有到 Context 销毁为止。
+        /// 实现上不回头看"刚刚删掉的是谁"，而是按当前还活着的绑定重新统计——
+        /// 这样也不用调 GetBinding（在有冲突未消解的 Binder 上它会抛异常）。
+        /// </summary>
+        protected void DropOrphanPools()
+        {
+            if (pools.Count == 0) return;
+
+            var referenced = CommandTypesInUse();
+            List<Type> orphans = null;
+            foreach (var pair in pools)
+            {
+                if (referenced.Contains(pair.Key)) continue;
+                orphans ??= new List<Type>();
+                orphans.Add(pair.Key);
+            }
+            if (orphans == null) return;
+
+            foreach (var type in orphans)
+            {
+                pools[type].Clean();
+                pools.Remove(type);
+            }
+        }
+
+        private HashSet<Type> CommandTypesInUse()
+        {
+            var types = new HashSet<Type>();
+            foreach (var dict in bindings.Values)
+            {
+                foreach (var binding in dict.Values)
+                {
+                    if (binding.value is not object[] values) continue;
+                    foreach (var value in values)
+                    {
+                        if (value is Type type) types.Add(type);
+                    }
+                }
+            }
+            return types;
+        }
+
+        /// <summary>
+        /// 5.5：池内命令实例的供应者。
+        /// 手法沿用 3.4.b：构造一个不入注册表的一次性绑定直接交给注入器，
+        /// 既不依赖容器里有没有该命令类型的绑定，也不会往容器里留下任何东西。
+        /// </summary>
+        private sealed class CommandInstanceProvider : IInstanceProvider
+        {
+            private readonly CommandBinder _binder;
+
+            public CommandInstanceProvider(CommandBinder binder)
+            {
+                _binder = binder;
+            }
+
+            public T GetInstance<T>()
+            {
+                return (T)GetInstance(typeof(T), false);
+            }
+
+            public object GetInstance(Type key, bool ignoreException)
+            {
+                return GetInstance(key, ignoreException, null);
+            }
+
+            public object GetInstance(Type key, bool ignoreException, InjectionScope scope)
+            {
+                var transient = new InjectionBinding(null);
+                transient.Bind(typeof(Command)).To(key);
+                var injector = _binder.injectionBinder.injector;
+                //保持原 GetInstance<Command>() 的强转语义（类型不符时抛 InvalidCastException 而非静默 null）
+                var instance = (Command)injector.Instantiate(transient, false, scope);
+                injector.TryInject(transient, instance, scope);
+                return instance;
+            }
         }
     }
 }

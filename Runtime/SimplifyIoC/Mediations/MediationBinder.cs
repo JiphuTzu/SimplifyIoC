@@ -172,6 +172,15 @@ namespace SimplifyIoC.Mediations
             return base.Bind<T>() as IMediationBinding;
         }
 
+        /// <summary>
+        /// 5.3：视图/中介者成对入口，Bind&lt;MyView, MyMediator&gt;() 等价于 Bind&lt;MyView&gt;().ToMediator&lt;MyMediator&gt;()。
+        /// <c>where TMediator : Mediator</c> 把"绑上去的不是中介者"从让人摸不着头脑的运行时行为提前到编译期。
+        /// </summary>
+        public IMediationBinding Bind<TView, TMediator>() where TMediator : Mediator
+        {
+            return Bind<TView>().ToMediator<TMediator>();
+        }
+
         /// Creates and registers one or more Mediators for a specific View instance.
         /// Takes a specific View instance and a binding and, if a binding is found for that type, creates and registers a Mediator.
         protected virtual void MapView(View view, IMediationBinding binding)

@@ -127,6 +127,51 @@ namespace SimplifyIoC.Injectors
             return base.Bind(key) as IInjectionBinding;
         }
 
+        #region 5.3 强类型入口
+
+        // 这一组方法全是语法糖：每一条都严格等价于某个既有链式写法，运行时语义（包括 resolver
+        // 触发顺序在内）不变——新增的价值只在编译期。
+        //
+        // 关于名字的一个刻意选择：Enum 名字按装箱枚举值存储，不做 ToString() 归一化。
+        // 框架自身的 `[Inject(ContextKeys.Bootstrap)]`、`ToName(SomeEnum.MY_ENUM)` 走的都是这条语义，
+        // 若在这里转成字符串，枚举与字符串写法会落进不同的名字槽位，既有代码会静默查不到绑定。
+        // 代价是"同一个语义既写成枚举又写成字符串"仍会错——属输入不规范，不是本层能拦住的。
+
+        /// <summary>以字符串给 Type 键的绑定命名，等价于 Bind&lt;T&gt;().ToName(name)。</summary>
+        public IInjectionBinding Bind<T>(string name)
+        {
+            return Bind<T>().ToName(name);
+        }
+
+        /// <summary>以枚举给 Type 键的绑定命名，等价于 Bind&lt;T&gt;().ToName(name)（名字按装箱枚举值存储）。</summary>
+        public IInjectionBinding Bind<T>(Enum name)
+        {
+            return Bind<T>().ToName(name);
+        }
+
+        /// <summary>
+        /// 键值成对入口：Bind&lt;IFoo, Impl&gt;() 等价于 Bind&lt;IFoo&gt;().To&lt;Impl&gt;()。
+        /// <c>where TValue : TKey</c> 是关键——把"值类型没实现键类型"从运行期异常提前到编译期报错。
+        /// </summary>
+        public IInjectionBinding Bind<TKey, TValue>() where TValue : TKey
+        {
+            return Bind<TKey>().To<TValue>();
+        }
+
+        /// <summary>键值成对 + 字符串命名，等价于 Bind&lt;TKey&gt;(name).To&lt;TValue&gt;()。</summary>
+        public IInjectionBinding Bind<TKey, TValue>(string name) where TValue : TKey
+        {
+            return Bind<TKey>(name).To<TValue>();
+        }
+
+        /// <summary>键值成对 + 枚举命名，等价于 Bind&lt;TKey&gt;(name).To&lt;TValue&gt;()。</summary>
+        public IInjectionBinding Bind<TKey, TValue>(Enum name) where TValue : TKey
+        {
+            return Bind<TKey>(name).To<TValue>();
+        }
+
+        #endregion
+
         public new virtual IInjectionBinding GetBinding<T>()
         {
             return base.GetBinding<T>() as IInjectionBinding;

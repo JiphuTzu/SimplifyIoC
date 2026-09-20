@@ -94,7 +94,10 @@ namespace SimplifyIoC.Commands
         {
             //5.1：回收前退订组内订阅。覆写本方法时记得调 base.Restore()。
             _subscriptions?.Dispose();
-            injectionBinder.injector.Uninject(this);
+            //5.5：统一池化后每条命令执行完都会走到这里，Restore 从"仅 Pooled() 命令才会触发"
+            //变成主路径上的常规动作。注入保证了 injectionBinder 非空，但派生类被回收的路径不止一条
+            //（例如注入中途失败后落到池里），这里守住 NRE——回收动作本身不该再抛异常。
+            injectionBinder?.injector.Uninject(this);
             isClean = true;
         }
 

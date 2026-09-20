@@ -34,13 +34,24 @@ namespace SimplifyIoC.Pools
 			poolType = typeof(T);
 		}
 
+		/// 5.2 勘误：下面的 `new GetInstance()` 与三套 Binder/Binding 的 new 是同一类问题——
+		/// 想把返回值从 object 收窄成 T 并同时 override，需要"协变返回"，
+		/// 而本项目的目标运行时（netstandard2.1 / Unity 2022.3）不支持，Roslyn 报 CS8830。
+		/// 因此这里保留隐藏，并把 <see cref="Pool"/> 做成唯一的真实实现，Pool&lt;T&gt; 只当门面。
 		public new T GetInstance()
 		{
 			return (T)base.GetInstance ();
 		}
 	}
 
-	public class Pool : IPool, IPoolable
+	/// <summary>
+	/// 5.5（design §6）：拆开"容器"与"元素"两种身份——池不再实现 <see cref="IPoolable"/>。
+	/// 旧实现里 Pool : IPool, IPoolable，且 Restore() 直接 Clean() 清空自己：
+	/// 把池放进另一个池（"you can employ Pools yourself" 就是这么用的）后，
+	/// 归还时的 `if (value is IPoolable) value.Restore()` 会把整个池抹成空——静态 retrieving 丢失。
+	/// 元素的清理契约由 <see cref="IPoolable"/> 独占，与容器无关。
+	/// </summary>
+	public class Pool : IPool
 	{
 
 		[Inject]
@@ -225,29 +236,6 @@ namespace SimplifyIoC.Pools
 		public virtual PoolOverflowBehavior overflowBehavior { get; set; }
 
 		public virtual PoolInflationType inflationType { get; set; }
-
-		#endregion
-
-		#region IPoolable implementation
-
-		public void Restore ()
-		{
-			Clean ();
-			size = 0;
-		}
-
-		public void Retain()
-		{
-			retain = true;
-		}
-
-		public void Release()
-		{
-			retain = false;
-		}
-
-
-		public bool retain{ get; set; }
 
 		#endregion
 
