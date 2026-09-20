@@ -99,6 +99,51 @@ namespace SimplifyIoC.Framework
         private bool _isWeak = false;
         public bool isWeak => _isWeak;
 
+        // ------------------------------------------------------------------
+        // 5.2：单一收口（single choke point）
+        //
+        // 背景：本机实测 netstandard2.1（Unity 2022.3 的脚本目标是同一套引用程序集）
+        // 下 Roslyn 报 CS8830「目标运行时不支持替代中的协变返回类型」——
+        // 派生类无法把返回类型由 IBinding 收窄为 ICommandBinding 的同时 override。
+        // 因此 <T> / <object> 两组外观只能继续用 new 隐藏来维持链式类型，改 override 是死路。
+        //
+        // 既然 new 消不掉，就要让它无害。做法是：**所有逻辑只存在于本区域这几个 Core 方法里**，
+        // 上面的 public 外观与派生类的强类型外观都不包含任何逻辑，只做调用与转换。
+        // 派生类要加语义（互斥守卫、校验、日志…）只需 override 对应的 Core，
+        // 于是"每新增一个入口签名都要记得补一遍"这类遗漏（4.3 的 ToHandler 守卫就是这么被绕过的）
+        // 在结构上不可能再发生。
+        // ------------------------------------------------------------------
+
+        /// 登记 key。入口：Bind&lt;T&gt;() / Bind(object)
+        protected virtual IBinding BindCore(object o)
+        {
+            _key.Add(o);
+            return this;
+        }
+
+        /// 登记 value 并通知 resolver。入口：To&lt;T&gt;() / To(object) / SetValue(...)
+        protected virtual IBinding ToCore(object o)
+        {
+            _value.Add(o);
+            resolver?.Invoke(this);
+            return this;
+        }
+
+        /// 登记 name 并通知 resolver。入口：ToName&lt;T&gt;() / ToName(object)
+        protected virtual IBinding ToNameCore(object o)
+        {
+            var toName = o ?? Binder.NULL_BINDING;
+            _name.Add(toName);
+            resolver?.Invoke(this);
+            return this;
+        }
+
+        /// 名字匹配。入口：Named&lt;T&gt;() / Named(object)。注意：不匹配时返回 null（既有语义，勿改）
+        protected virtual IBinding NamedCore(object o)
+        {
+            return _name.value == o ? this : null;
+        }
+
         public virtual IBinding Bind<T>()
         {
             return Bind(typeof(T));
@@ -106,8 +151,7 @@ namespace SimplifyIoC.Framework
 
         public virtual IBinding Bind(object o)
         {
-            _key.Add(o);
-            return this;
+            return BindCore(o);
         }
 
         public virtual IBinding To<T>()
@@ -117,10 +161,7 @@ namespace SimplifyIoC.Framework
 
         public virtual IBinding To(object o)
         {
-            _value.Add(o);
-            if (resolver != null)
-                resolver(this);
-            return this;
+            return ToCore(o);
         }
 
         public virtual IBinding ToName<T>()
@@ -130,11 +171,7 @@ namespace SimplifyIoC.Framework
 
         public virtual IBinding ToName(object o)
         {
-            var toName = o ?? Binder.NULL_BINDING;
-            _name.Add(toName);
-            if (resolver != null)
-                resolver(this);
-            return this;
+            return ToNameCore(o);
         }
 
         public virtual IBinding Named<T>()
@@ -144,7 +181,7 @@ namespace SimplifyIoC.Framework
 
         public virtual IBinding Named(object o)
         {
-            return _name.value == o ? this : null;
+            return NamedCore(o);
         }
 
         public virtual void RemoveKey(object o)

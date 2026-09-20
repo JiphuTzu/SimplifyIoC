@@ -177,17 +177,36 @@ namespace SimplifyIoC.Commands
 		}
 
 		/// <summary>
-		/// 4.3 勘误：To&lt;T&gt;() / ToName&lt;T&gt;() 在接口上被 new 重声明，这里也是 new（不是 override），
-		/// 只在 To(object) 上守卫并不能覆盖它们——链式 ToHandler(...).To&lt;C&gt;() 走的正是 To&lt;T&gt;()，
-		/// 原实现因此静默产出一个"既有 handler 又有命令值"的半配置绑定。统一走本方法守卫。
+		/// 5.2：ToHandler 互斥守卫，**收敛到 value / name 两个收口方法**。
+		///
+		/// 4.3 的写法是把 ThrowIfHandlerSet 逐个抄进 To&lt;T&gt;() / To(object) / ToName&lt;T&gt;() / ToName(object)，
+		/// 那是在"修补 coincidence 而不修补结构"：入口每多一个泛型/object 重载就要再抄一遍，
+		/// 漏一个就悄悄产出半配置绑定（当时正是这样翻的车）。
+		/// 现在两侧都只在这两个 Core 上设卡，任何入口（含将来新增的重载、
+		/// 以及 SetValue 绕过 To 直接进 ToCore 的路径）都必然经过。
 		/// </summary>
+		/// <param name="memberName">报错文案里的入口名。收口处已无法区分调用的是哪个重载，故统称。</param>
 		private void ThrowIfHandlerSet(string memberName)
 		{
 			if (handler != null)
 				throw new Exception($"{memberName} cannot be combined with ToHandler(...): the signal handler is invoked directly and there is no command to resolve.");
 		}
 
-		//Everything below this point is simply facade on Binding to ensure fluent interface
+		protected override IBinding ToCore(object o)
+		{
+			ThrowIfHandlerSet("To<T>() / To(value)");
+			return base.ToCore(o);
+		}
+
+		protected override IBinding ToNameCore(object o)
+		{
+			ThrowIfHandlerSet("ToName<T>() / ToName(value)");
+			return base.ToNameCore(o);
+		}
+
+		//Everything below this point is simply facade on Binding to ensure fluent interface.
+		//5.2：这些方法不含任何逻辑（守卫已在 ToCore/ToNameCore 上），只负责把返回类型收窄以便链式书写。
+		//不要往这里加语义——加了就等于重新引入一个可以被绕过得掉的入口。
 		public new ICommandBinding Bind<T>()
 		{
 			return base.Bind<T> () as ICommandBinding;
@@ -200,26 +219,21 @@ namespace SimplifyIoC.Commands
 
 		public new ICommandBinding To<T>()
 		{
-			ThrowIfHandlerSet("To<T>()");
 			return base.To<T> () as ICommandBinding;
 		}
 
 		public new ICommandBinding To(object o)
 		{
-			//4.3：ToHandler 之后不能再接 To<T>()/To(o)，反之亦然
-			ThrowIfHandlerSet("To<T>() / To(value)");
 			return base.To (o) as ICommandBinding;
 		}
 
 		public new ICommandBinding ToName<T>()
 		{
-			ThrowIfHandlerSet("ToName<T>()");
 			return base.ToName<T> () as ICommandBinding;
 		}
 
 		public new ICommandBinding ToName(object o)
 		{
-			ThrowIfHandlerSet("ToName(value)");
 			return base.ToName (o) as ICommandBinding;
 		}
 
