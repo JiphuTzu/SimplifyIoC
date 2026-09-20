@@ -1,5 +1,5 @@
 // 3.1：Context.Dispose 契约回归测试。
-// 覆盖：注册表清空、信号监听移除、幂等、firstContext 静态引用释放、
+// 覆盖：注册表清空、信号监听移除、幂等、成链释放与链根判定、
 //       Dispose 后使用抛 ObjectDisposedException。
 using System;
 using NUnit.Framework;
@@ -13,15 +13,12 @@ namespace SimplifyIoC.Tests
 {
     public class ContextDisposeTests
     {
-        private Context _previousFirstContext;
         private GameObject _bootstrapObject;
         private DisposeTestContext _context;
 
         [SetUp]
         public void SetUp()
         {
-            _previousFirstContext = Context.firstContext;
-            Context.firstContext = null;
             TestCommand.ExecutionCount = 0;
             _bootstrapObject = new GameObject("ContextDisposeTests.Bootstrap");
             _context = new DisposeTestContext(_bootstrapObject.AddComponent<Bootstrap>());
@@ -32,7 +29,6 @@ namespace SimplifyIoC.Tests
         {
             _context?.Dispose();
             if (_bootstrapObject != null) Object.DestroyImmediate(_bootstrapObject);
-            Context.firstContext = _previousFirstContext;
         }
 
         [Test]
@@ -58,14 +54,18 @@ namespace SimplifyIoC.Tests
         }
 
         [Test]
-        public void DisposeClearsFirstContextReference()
+        public void ContextUnderARootlessBootstrapIsItsOwnChainRoot()
         {
-            //SetUp 中 firstContext 已置 null → 本 context 成为 firstContext
-            Assert.That(Context.firstContext, Is.SameAs(_context));
+            //5.6：链根不再由"谁先构造"这种进程级全局状态决定——
+            //只看它有没有父 Bootstrap。本 Context 挂在场景根上，因此自任链根，
+            // Dispose 时无需与任何其它 Context 协商，也不留下任何跨测试用例的状态。
+            Assert.That(_context.isRoot, Is.True);
+            Assert.That(_context.parentContext, Is.Null);
 
             _context.Dispose();
 
-            Assert.That(Context.firstContext, Is.Null);
+            Assert.That(_context.ExposedInjectionBinder.crossContextBinder, Is.Null,
+                "链根 Dispose 要断开并清空共享跨域根 binder");
         }
 
         [Test]

@@ -22,7 +22,6 @@ namespace SimplifyIoC.Tests
 {
     public class ViewWithoutMediatorTests
     {
-        private Context _previousFirstContext;
         private GameObject _bootstrapObject;
         private PlainTestContext _context;
         private readonly List<GameObject> _objects = new List<GameObject>();
@@ -30,8 +29,6 @@ namespace SimplifyIoC.Tests
         [SetUp]
         public void SetUp()
         {
-            _previousFirstContext = Context.firstContext;
-            Context.firstContext = null;
             _bootstrapObject = new GameObject("ViewWithoutMediatorTests.Bootstrap");
             _objects.Add(_bootstrapObject);
             _context = new PlainTestContext(_bootstrapObject.AddComponent<Bootstrap>());
@@ -47,7 +44,6 @@ namespace SimplifyIoC.Tests
             }
 
             _objects.Clear();
-            Context.firstContext = _previousFirstContext;
             MainThreadProbe.Reset();
         }
 
@@ -165,8 +161,6 @@ namespace SimplifyIoC.Tests
         {
             //requiresContext=false 的 View：允许在 Context 之外存在。
             //它拿不到注入，但声明式绑定不该因此失效——由 Start 兜底解析。
-            Context.firstContext = null;
-
             var go = new GameObject("OrphanView");
             _objects.Add(go);
             var child = new GameObject("child");

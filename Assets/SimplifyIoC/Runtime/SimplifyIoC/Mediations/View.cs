@@ -63,6 +63,20 @@ namespace SimplifyIoC.Mediations
         
         public bool shouldRegister => enabled && gameObject.activeInHierarchy;
 
+        /// 5.6：本 View 的归属 Context，在注册成功那一刻确定（<see cref="Context.AddView"/>），
+        /// 之后 Remove / Enable / Disable 一律直接发给它，不再逐次向上遍历 Transform 链。
+        ///
+        /// 改前每次生命周期事件都要重新走一遍 100 层上限的向上查找，且查出来的 Context
+        /// 未必是当初做 Mediate 的那个（中途被重新挂到别的父节点下时尤其容易错），
+        /// 更有一条"找不到就挂到 Context.firstContext"的全局暗道——现与那条暗道一并删除。
+        public Context owningContext { get; private set; }
+
+        /// 5.6：由 Context 在一锤定音的注册点写入（不要从别处调用）。
+        internal void SetOwningContext(Context context)
+        {
+            owningContext = context;
+        }
+
         /// 4.1：解析只跑一次的哨兵。UnityEvent.AddListener 不去重，二次解析会让回调执行两次。
         private bool _attributesInitialized;
 
@@ -82,17 +96,29 @@ namespace SimplifyIoC.Mediations
         /// The View will attempt to connect to the Context at this moment.
         protected virtual void Awake()
         {
-            //4.1：解析时机从"Awake 最早处"挪到"注入完成之后"（由 MediationBinder 调用
-            //EnsureAttributesInitialized）。原因是 [BindEvent(nameof(x))] 的 x 可能是 [Inject] 成员，
-            //Awake 时尚未注入。
-            //4.7：因此 Awake 只对"明确不向 Context 注册"的 View 兜底解析——这类 View 拿不到
-            //注入，也不会有人替它解析。其余 View 交给框架：有 Context 时由 MediationBinder 在
-            //注入后解析，无 Context 时由 Start 兜底（见下）。
-            if (!autoRegisterWithContext)
-                EnsureAttributesInitialized();
-
             if (autoRegisterWithContext && !registeredWithContext && shouldRegister)
                 BubbleToContext(BubbleType.Add, false);
+
+            //4.1：解析时机在"注入完成之后"（由 MediationBinder 调用 EnsureAttributesInitialized）。
+            //4.7：只有明确不向 Context 注册、且此刻确实没有归属的 View 才在 Awake 兜底解析——
+            //5.6：判定挪到注册之后。"是否会注册"这件事到这里已经确定，
+            //不再靠"看一眼 autoRegisterWithContext 就猜"来决定要不要抢跑，
+            //消除了"声明不注册、事实上却被注册（例如被其它脚本改变 autoRegisterWithContext，
+            //或被显式 AddView）的 View 在注入之前就被抢先解析"这一类错配。
+            if (!autoRegisterWithContext && owningContext == null)
+                EnsureAttributesInitialized();
+        }
+
+        /// <summary>
+        /// 5.6：从 <see cref="injectionBinder"/> 取一个实例（绝大多数场景就是取信号单例）。
+        /// 等价于 injectionBinder.GetInstance&lt;T&gt;()，省掉每个 View 都要写一遍的容器往返。
+        ///
+        ///     [Inject] 之外的轻量写法：startSignal = Get&lt;StartSignal&gt;();
+        /// 没有归属容器时返回 null（孤儿 View 的既有契约，不抛）。
+        /// </summary>
+        protected T Get<T>() where T : BaseSignal
+        {
+            return injectionBinder != null ? injectionBinder.GetInstance<T>() : null;
         }
 
         /// <summary>
@@ -136,7 +162,7 @@ namespace SimplifyIoC.Mediations
             //自行兜底一次（幂等），使 View 在没有 Mediator / 没有 Context 时，
             //[Child] / [BindEvent] / [BindMethod] / [MainThread] 依然照常生效。
             //（requiresContext 为 true 的 View 在上一行就会抛异常，走不到这里——这是既有契约。）
-            if (!registeredWithContext)
+            if (owningContext == null)
                 EnsureAttributesInitialized();
         }
 
@@ -151,6 +177,9 @@ namespace SimplifyIoC.Mediations
             //静态表本身已改为 ConditionalWeakTable，这里是"及时性"而非"正确性"的补充。
             this.UnbindMethods();
             BubbleToContext(BubbleType.Remove, false);
+            //5.6：通知发出后断开归属引用，避免已销毁的 View 继续 root 住整个 Context 链
+            owningContext = null;
+            registeredWithContext = false;
         }
 
         /// A MonoBehaviour OnEnable handler
@@ -167,10 +196,40 @@ namespace SimplifyIoC.Mediations
             BubbleToContext(BubbleType.Disable, false);
         }
 
-        /// Recurses through Transform.parent to find the GameObject to which ContextView is attached
-        /// Has a loop limit of 100 levels.
-        /// By default, raises an Exception if no Context is found.
+        /// <summary>
+        /// 把生命周期事件交给所属的 Context。
+        ///
+        /// 5.6：只有 Add 会发生"向上查找"（归属尚未确定）；Remove / Enable / Disable
+        /// 一律发给注册时记下的 <see cref="owningContext"/>—— Mediate 是谁做的，通知就得回到谁那里，
+        /// 中间不管 GameObject 被挂到什么地方。
+        /// </summary>
         protected void BubbleToContext(BubbleType type, bool finalTry)
+        {
+            switch (type)
+            {
+                case BubbleType.Add:
+                    ResolveAndRegister(finalTry);
+                    return;
+                case BubbleType.Remove:
+                    owningContext?.RemoveView(this);
+                    return;
+                case BubbleType.Enable:
+                    owningContext?.EnableView(this);
+                    return;
+                case BubbleType.Disable:
+                    owningContext?.DisableView(this);
+                    return;
+                default:
+                    return;
+            }
+        }
+
+        /// <summary>
+        /// 沿 Transform 向上找最近一个已持有 Context 的 Bootstrap，注册并记下归属。
+        /// 找不到时：Awake 阶段不动声色（finalTry=false，Start 还有一次机会）；
+        /// Start 阶段若 requiresContext 则按既有契约抛异常。
+        /// </summary>
+        private void ResolveAndRegister(bool finalTry)
         {
             const int LOOP_MAX = 100;
             var loopLimiter = 0;
@@ -179,40 +238,21 @@ namespace SimplifyIoC.Mediations
             {
                 loopLimiter++;
                 trans = trans.parent;
-                var contextView = trans.GetComponent<Bootstrap>();
-                if (contextView != null && contextView.context != null)
+                var contextBootstrap = trans.GetComponent<Bootstrap>();
+                var context = contextBootstrap?.context;
+                if (context != null)
                 {
-                    var context = contextView.context;
-                    switch (type)
-                    {
-                        case BubbleType.Add:
-                            context.AddView(this);
-                            registeredWithContext = true;
-                            return;
-                        case BubbleType.Remove:
-                            context.RemoveView(this);
-                            return;
-                        case BubbleType.Enable:
-                            context.EnableView(this);
-                            return;
-                        case BubbleType.Disable:
-                            context.DisableView(this);
-                            return;
-                        default:
-                            return;
-                    }
+                    context.AddView(this);
+                    registeredWithContext = true;
+                    return;
                 }
             }
 
-            if (!requiresContext || !finalTry || type != BubbleType.Add) return;
-            //last ditch. If there's a Context anywhere, we'll use it!
-            if (Context.firstContext != null)
-            {
-                Context.firstContext.AddView(this);
-                registeredWithContext = true;
-                return;
-            }
-
+            if (!requiresContext || !finalTry) return;
+            //5.6：原实现在这里有一条"last ditch"——找不到任何 Context 时把 View 挂到
+            //Context.firstContext（谁先构造谁当兜底）。那条暗道让 View 的归属彻底失控：
+            //一个层级上毫无关系的 Context 会莫名其妙地 Mediate 这个 View，
+            //连级联 Dispose 与跨域单例都会被牵扯进来。已删除：找不到归属就按契约抛。
             var msg = loopLimiter == LOOP_MAX ?
                 "A view couldn't find a context. Loop limit reached." :
                 "A view was added with no context. Views must be added into the hierarchy of their ContextView lest all hell break loose.";

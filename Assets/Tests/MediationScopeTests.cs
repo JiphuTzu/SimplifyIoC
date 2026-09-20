@@ -18,7 +18,6 @@ namespace SimplifyIoC.Tests
 {
     public class MediationScopeTests
     {
-        private Context _previousFirstContext;
         private GameObject _bootstrapObject;
         private MediationScopeTestContext _context;
         private readonly List<GameObject> _objects = new List<GameObject>();
@@ -26,8 +25,6 @@ namespace SimplifyIoC.Tests
         [SetUp]
         public void SetUp()
         {
-            _previousFirstContext = Context.firstContext;
-            Context.firstContext = null;
             MediationScopeProbeMediator.onViewInjected = null;
             MediationScopeProbeMediator.InjectedViews.Clear();
             _bootstrapObject = new GameObject("MediationScopeTests.Bootstrap");
@@ -46,7 +43,6 @@ namespace SimplifyIoC.Tests
             }
 
             _objects.Clear();
-            Context.firstContext = _previousFirstContext;
         }
 
         private IMediationBinder MediationBinder => _context.ExposedMediationBinder;

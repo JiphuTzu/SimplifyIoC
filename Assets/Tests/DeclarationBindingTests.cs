@@ -20,7 +20,6 @@ namespace SimplifyIoC.Tests
 {
     public class DeclarationBindingTests
     {
-        private Context _previousFirstContext;
         private GameObject _bootstrapObject;
         private DeclarativeTestContext _context;
         private readonly List<GameObject> _objects = new List<GameObject>();
@@ -28,8 +27,6 @@ namespace SimplifyIoC.Tests
         [SetUp]
         public void SetUp()
         {
-            _previousFirstContext = Context.firstContext;
-            Context.firstContext = null;
             _bootstrapObject = new GameObject("DeclarationBindingTests.Bootstrap");
             _objects.Add(_bootstrapObject);
             _context = new DeclarativeTestContext(_bootstrapObject.AddComponent<Bootstrap>());
@@ -45,7 +42,6 @@ namespace SimplifyIoC.Tests
             }
 
             _objects.Clear();
-            Context.firstContext = _previousFirstContext;
             MainThreadProbe.Reset();
         }
 

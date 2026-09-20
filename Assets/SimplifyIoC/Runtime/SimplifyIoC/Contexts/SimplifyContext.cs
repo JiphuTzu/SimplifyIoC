@@ -18,6 +18,11 @@ namespace SimplifyIoC.Contexts
     {
 
         public SimplifyContext(Bootstrap view) : base(view, ContextStartupFlags.ManualLaunch) { }
+
+        /// <summary>
+        /// 5.6：带显式父 Context 的构造入口。跨场景 / 跨层级共享跨域绑定时用（父 Object 不在本 Transform 链上）。
+        /// </summary>
+        public SimplifyContext(Bootstrap view, Context parent) : base(view, parent, ContextStartupFlags.ManualLaunch) { }
         
         protected sealed override void MapBindings()
         {

@@ -20,7 +20,6 @@ namespace SimplifyIoC.Tests
     public class SignalSubscriptionTests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();
-        private Context _previousFirstContext;
 
         private int _counter;
         private readonly List<int> _payloads = new List<int>();
@@ -30,8 +29,6 @@ namespace SimplifyIoC.Tests
         {
             _counter = 0;
             _payloads.Clear();
-            _previousFirstContext = Context.firstContext;
-            Context.firstContext = null;
         }
 
         [TearDown]
@@ -42,7 +39,6 @@ namespace SimplifyIoC.Tests
                 if (go != null) Object.DestroyImmediate(go);
             }
             _objects.Clear();
-            Context.firstContext = _previousFirstContext;
         }
 
         private void Handler() => _counter++;

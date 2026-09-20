@@ -12,20 +12,14 @@ namespace SimplifyIoC.Tests
 {
     public class ViewCacheIsolationTests
     {
-        private Context _previousFirstContext;
         private readonly List<GameObject> _objects = new List<GameObject>();
 
-        [SetUp]
-        public void SetUp()
-        {
-            _previousFirstContext = Context.firstContext;
-            Context.firstContext = null;
-        }
+        //5.6：不再需要在 SetUp/TearDown 里重置全局 Context.firstContext——
+        //Context 的归属只由 GameObject 层级或显式 parent 决定，测试之间没有任何共享状态。
 
         [TearDown]
         public void TearDown()
         {
-            Context.firstContext = _previousFirstContext;
             foreach (var go in _objects)
             {
                 if (go != null) Object.DestroyImmediate(go);
@@ -50,12 +44,17 @@ namespace SimplifyIoC.Tests
         [Test]
         public void DisposingOneContextDoesNotAffectAnother()
         {
-            //3.5：先建一个链根，让 A/B 都挂在它下面成为兄弟——级联释放只沿父子链向下，
-            //这样 dispose 一个同级 Context 不会波及另一个（本用例要钉住的是 ViewCache
-            //的实例级隔离，而不是成链释放）。
+            //5.6：三个 Context 各自挂在独立的根 GameObject 上 → 彼此都是独立链根，互不隶属。
+            //这比原先"都挂在静态 firstContext 下面当兄弟"更能说明隔离性：
+            //连父子链都不存在，Dispose 一个也不会波及另一个。
             var root = CreateContext();
             var contextA = CreateContext();
             var contextB = CreateContext();
+
+            //顺带确认三者互不隶属（本用例的前提）
+            Assert.That(contextA.parentContext, Is.Null);
+            Assert.That(contextB.parentContext, Is.Null);
+            Assert.That(root.parentContext, Is.Null);
 
             contextA.CacheEarlyView(CreateView());
             contextB.CacheEarlyView(CreateView());
@@ -86,7 +85,6 @@ namespace SimplifyIoC.Tests
             _objects.Add(go);
             //ManualMapping：ctor 不调用 Start() → mediationBinder 为 null，
             //AddView/CacheView 走缓存分支（正是早期视图的路径）
-            //（SetUp 已把 firstContext 置 null → 首个 context 自动成为 firstContext，后继成为子 Context）
             return new CacheProbeContext(go.AddComponent<Bootstrap>());
         }
 
