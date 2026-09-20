@@ -252,6 +252,8 @@ namespace SimplifyIoC.Mediations
             if (mediator != null)
             {
                 mediator.OnRemove();
+                //5.1：OnRemove 之后由框架统一退订组内订阅（用户无需手写 RemoveListener）。
+                mediator.DisposeSubscriptions();
                 //4.4：Mediator 的 [BindMethod] 条目同步立即摘除（Mediator 没有 Unity 销毁钩子）
                 mediator.UnbindMethods();
                 HandleDelegates(mediator, mediatorType, false);

@@ -35,6 +35,7 @@
 
 using SimplifyIoC.Injectors;
 using SimplifyIoC.Pools;
+using SimplifyIoC.Signals;
 
 namespace SimplifyIoC.Commands
 {
@@ -56,6 +57,16 @@ namespace SimplifyIoC.Commands
 
         public int sequenceId { get; set; }
         public bool retain { get; set; }
+
+        /// 5.1：订阅组（惰性创建，从未订阅过则不分配）。
+        private SignalSubscriptionGroup _subscriptions;
+
+        /// <summary>
+        /// 5.1：随本 Command 生命周期的订阅组。Restore()（回收前清理）时自动退订组内全部订阅。
+        /// Retain() 的异步 Command 最容易漏解绑——它活得比 Execute 长，
+        /// 挂在长期存在的 Signal 上就是一条稳定的泄漏路径。
+        /// </summary>
+        protected SignalSubscriptionGroup subscriptions => _subscriptions ??= new SignalSubscriptionGroup();
 
         public Command()
         {
@@ -81,6 +92,8 @@ namespace SimplifyIoC.Commands
         /// Use/override this method to clean up the Command for recycling
         public virtual void Restore()
         {
+            //5.1：回收前退订组内订阅。覆写本方法时记得调 base.Restore()。
+            _subscriptions?.Dispose();
             injectionBinder.injector.Uninject(this);
             isClean = true;
         }

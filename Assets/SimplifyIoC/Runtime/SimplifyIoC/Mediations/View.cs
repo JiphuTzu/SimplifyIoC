@@ -26,6 +26,7 @@
 using System;
 using SimplifyIoC.Contexts;
 using SimplifyIoC.Injectors;
+using SimplifyIoC.Signals;
 using SimplifyIoC.Utils;
 using UnityEngine;
 
@@ -64,6 +65,18 @@ namespace SimplifyIoC.Mediations
 
         /// 4.1：解析只跑一次的哨兵。UnityEvent.AddListener 不去重，二次解析会让回调执行两次。
         private bool _attributesInitialized;
+
+        /// 5.1：订阅组（惰性创建，从未订阅过则不分配）。
+        private SignalSubscriptionGroup _subscriptions;
+
+        /// <summary>
+        /// 5.1：随本 View 生命周期的订阅组。OnDestroy 时自动退订组内全部订阅。
+        /// View 现在可以没有 Mediator（4.7 起的契约），因此这条回收不能挂在 Mediator 上——
+        /// 和 Mediator 的 subscriptions 是两条独立的组，各自负责自己的订阅。
+        ///
+        ///     subscriptions.Listen(someSignal, OnSomething);   //随 View 销毁自动退订
+        /// </summary>
+        protected SignalSubscriptionGroup subscriptions => _subscriptions ??= new SignalSubscriptionGroup();
 
         /// A MonoBehaviour Awake handler.
         /// The View will attempt to connect to the Context at this moment.
@@ -132,6 +145,8 @@ namespace SimplifyIoC.Mediations
         /// destroyed.
         protected virtual void OnDestroy()
         {
+            //5.1：先退订组内订阅（此处执行回调移除，避免后续 BubbleToContext 期间误触发）。
+            _subscriptions?.Dispose();
             //4.4：立即释放本组件的 [BindMethod] 静态注册表条目（不依赖 GC 时机）。
             //静态表本身已改为 ConditionalWeakTable，这里是"及时性"而非"正确性"的补充。
             this.UnbindMethods();

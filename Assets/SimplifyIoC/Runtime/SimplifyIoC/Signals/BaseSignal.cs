@@ -25,7 +25,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace SimplifyIoC.Signals
 {
@@ -55,37 +54,36 @@ namespace SimplifyIoC.Signals
         /// Adds a listener.
         /// </summary>
         /// <param name="callback">The method to be called when Dispatch fires.</param>
-        public void AddListener(Action<BaseSignal, object[]> callback)
+        /// <returns>5.1：订阅句柄，Dispose 即退订。旧写法忽略返回值照常编译。</returns>
+        public SignalSubscription AddListener(Action<BaseSignal, object[]> callback)
         {
-            _baseListener = AddUnique(_baseListener, callback);
+            _baseListener = (Action<BaseSignal, object[]>)CombineUnique(_baseListener, callback);
+            return new SignalSubscription(this, callback, false);
         }
 
         /// <summary>
         /// Adds a listener which will be removed immediately after the Signal fires.
         /// </summary>
         /// <param name="callback">The method to be called when Dispatch fires.</param>
-        public void AddOnce(Action<BaseSignal, object[]> callback)
+        /// <returns>5.1：订阅句柄，Dispose 可在派发前取消这条一次性订阅。</returns>
+        public SignalSubscription AddOnce(Action<BaseSignal, object[]> callback)
         {
-            _onceBaseListener = AddUnique(_onceBaseListener, callback);
-        }
-
-        private Action<T, U> AddUnique<T, U>(Action<T, U> listeners, Action<T, U> callback)
-        {
-            if (listeners == null || !listeners.GetInvocationList().Contains(callback))
-            {
-                listeners += callback;
-            }
-            return listeners;
+            _onceBaseListener = (Action<BaseSignal, object[]>)CombineUnique(_onceBaseListener, callback);
+            return new SignalSubscription(this, callback, true);
         }
 
         /// <summary>
         /// Removes the listener.
         /// </summary>
         /// <param name="callback">The callback to be removed.</param>
+        /// <remarks>
+        /// 5.1：重复通道与一次性通道都查。改前 AddOnce 挂上的回调无法显式摘除
+        /// （RemoveListener 只查 _baseListener），两条通道自此一致。
+        /// </remarks>
         public void RemoveListener(Action<BaseSignal, object[]> callback)
         {
-            if (_baseListener != null)
-                _baseListener -= callback;
+            RemoveCore(callback, false);
+            RemoveCore(callback, true);
         }
 
         /// <summary>
@@ -96,5 +94,62 @@ namespace SimplifyIoC.Signals
             _baseListener = null;
             _onceBaseListener = null;
         }
+
+        #region 5.1：订阅句柄内部通道
+
+        /// internal：回调是否仍在链上。子类先查自己的强类型通道，未命中再回落到此处。
+        internal virtual bool ContainsCore(Delegate callback, bool once)
+        {
+            return ContainsImpl(once ? (Delegate)_onceBaseListener : _baseListener, callback);
+        }
+
+        /// internal：退订实现。null / 类型不匹配都原样返回，不抛异常。
+        internal virtual void RemoveCore(Delegate callback, bool once)
+        {
+            if (once)
+                _onceBaseListener = (Action<BaseSignal, object[]>)RemoveImpl(_onceBaseListener, callback);
+            else
+                _baseListener = (Action<BaseSignal, object[]>)RemoveImpl(_baseListener, callback);
+        }
+
+        internal bool ContainsSubscription(Delegate callback, bool once) => ContainsCore(callback, once);
+        internal void RemoveSubscription(Delegate callback, bool once) => RemoveCore(callback, once);
+
+        #endregion
+
+        #region 委托链工具（5.1：收敛原先散落在 5 个 Signal 里的 AddUnique 实现）
+
+        /// 去重判定：引用相等优先，否则展开比对。Delegate.Equals 比的是 Target+Method，
+        /// 与旧实现的 GetInvocationList().Contains(callback) 语义等价。
+        internal static bool ContainsImpl(Delegate source, Delegate callback)
+        {
+            if (source == null || callback == null) return false;
+            if (ReferenceEquals(source, callback)) return true;
+            if (source.GetType() != callback.GetType()) return false;
+            var list = source.GetInvocationList();
+            for (var i = 0; i < list.Length; i++)
+            {
+                if (list[i].Equals(callback)) return true;
+            }
+            return false;
+        }
+
+        /// 摘除：类型不同、或压根没挂在链上时原样返回（Delegate.Remove 的既有语义）。
+        internal static Delegate RemoveImpl(Delegate source, Delegate callback)
+        {
+            if (source == null || callback == null) return source;
+            if (source.GetType() != callback.GetType()) return source;
+            return Delegate.Remove(source, callback);
+        }
+
+        /// 去重追加：保持旧 AddUnique 的"同一回调只挂一次"契约。
+        internal static Delegate CombineUnique(Delegate source, Delegate callback)
+        {
+            if (callback == null) return source;
+            if (ContainsImpl(source, callback)) return source;
+            return Delegate.Combine(source, callback);
+        }
+
+        #endregion
     }
 }
