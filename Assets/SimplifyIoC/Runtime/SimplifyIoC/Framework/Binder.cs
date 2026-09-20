@@ -79,6 +79,18 @@ namespace SimplifyIoC.Framework
             return binding;
         }
 
+        /// <summary>
+        /// 5.3：枚举键的强类型入口。.Bind(SomeEnum.VALUE) 原本只能匹配 Bind(object)，
+        /// 与字符串键、实例键在签名上完全无法区分。本重载把"键必须是枚举"这条约束前移到编译期。
+        /// 语义与 Bind(object) 一字不差（枚举按装箱值作键），因此历史上
+        /// `Bind(SomeEnum.VALUE)` / `GetBinding(SomeEnum.VALUE)` 的现有代码行为不变。
+        /// 注：为了不破坏 IBinder 的实现者，接口上暂不同声明——经接口调用仍走 Bind(object)，行为一致。
+        /// </summary>
+        public virtual IBinding Bind(Enum key)
+        {
+            return Bind((object)key);
+        }
+
         public virtual IBinding GetBinding<T>()
         {
             return GetBinding(typeof(T), null);
@@ -87,6 +99,14 @@ namespace SimplifyIoC.Framework
         public virtual IBinding GetBinding(object key)
         {
             return GetBinding(key, null);
+        }
+
+        /// <summary>
+        /// 5.3：与 <see cref="Bind(Enum)"/> 配套的取值入口，等价于 GetBinding(key, null)。
+        /// </summary>
+        public virtual IBinding GetBinding(Enum key)
+        {
+            return GetBinding((object)key, null);
         }
 
         public virtual IBinding GetBinding<T>(object name)
@@ -124,6 +144,14 @@ namespace SimplifyIoC.Framework
         public virtual void Unbind(object key)
         {
             Unbind(key, null);
+        }
+
+        /// <summary>
+        /// 5.3：与 <see cref="Bind(Enum)"/> 配套的解绑入口，等价于 Unbind(key, null)。
+        /// </summary>
+        public virtual void Unbind(Enum key)
+        {
+            Unbind((object)key, null);
         }
 
         public virtual void Unbind<T>(object name)

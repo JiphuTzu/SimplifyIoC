@@ -2,6 +2,7 @@
 // 注意：本文件只定义"形状"，不做任何断言；断言见各 *Tests.cs。
 // 阶段 0 原则：钉住现有行为，不为修复而写。
 using SimplifyIoC.Commands;
+using SimplifyIoC.Injectors;
 using SimplifyIoC.Pools;
 using SimplifyIoC.Signals;
 
@@ -175,11 +176,18 @@ namespace SimplifyIoC.Tests
         public static int ExecutionCount;
         public static Command LastInstance;
 
+        /// 5.5：命令执行完即被归还并 Restore（Uninject），注入值在 Dispatch 返回后就观测不到了。
+        /// 要断言"命令拿到了注入"，只能在 Execute 里留快照。
+        public static ICommandBinder LastCommandBinder;
+        public static IInjectionBinder LastInjectionBinder;
+
         public override void Execute()
         {
             ExecutionCount++;
             ExecutionLog.Add(nameof(TestCommand));
             LastInstance = this;
+            LastCommandBinder = commandBinder;
+            LastInjectionBinder = injectionBinder;
         }
     }
 

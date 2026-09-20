@@ -29,6 +29,8 @@ namespace SimplifyIoC.Tests
             TestCommand.ExecutionLog.Clear();
             TestCommand.ExecutionCount = 0;
             TestCommand.LastInstance = null;
+            TestCommand.LastCommandBinder = null;
+            TestCommand.LastInjectionBinder = null;
             ValueCommand.Received.Clear();
             PooledPayloadCommand.Received.Clear();
             ReentrantValueCommand.Received.Clear();
@@ -73,8 +75,10 @@ namespace SimplifyIoC.Tests
 
             signal.Dispatch();
 
-            Assert.IsNotNull(TestCommand.LastInstance.commandBinder);
-            Assert.IsNotNull(TestCommand.LastInstance.injectionBinder);
+            //5.5：命令执行完就被归还并 Restore（Uninject），Dispatch 返回后注入槽位已被清空，
+            //所以这里断言的是 Execute 时刻留下的快照，而不是 LastInstance 上的现值。
+            Assert.IsNotNull(TestCommand.LastCommandBinder);
+            Assert.IsNotNull(TestCommand.LastInjectionBinder);
         }
 
         // ---- Once ----
@@ -145,9 +149,9 @@ namespace SimplifyIoC.Tests
         // ---- 池化关闭 ----
 
         [Test]
-        public void UsePoolingFalseStillExecutesCommand()
+        public void CommandWithoutPooledDeclarationStillExecutes()
         {
-            _commandBinder.usePooling = false;
+            //5.5：统一池化后 usePooling 开关已移除（Obsolete no-op），是否声明 Pooled() 不再影响执行
             _binder.Bind<TestSignal>().ToSingleton();
             _commandBinder.Bind<TestSignal>().To<TestCommand>();
             var signal = _binder.GetInstance<TestSignal>();
@@ -155,7 +159,7 @@ namespace SimplifyIoC.Tests
             signal.Dispatch();
 
             Assert.AreEqual(1, TestCommand.ExecutionCount);
-            // 3.4.b：非池化路径不再使用全局临时绑定，dispatch 前后 key `Command` 都应无绑定
+            // 3.4.b：命令创建全程不入容器，dispatch 前后 key `Command` 都应无绑定
             Assert.IsNull(_binder.GetBinding<Command>());
         }
 
@@ -233,9 +237,8 @@ namespace SimplifyIoC.Tests
         // 两条用例在改造前必然为红：非池化路径用全局固定 key Command 做临时绑定。
 
         [Test]
-        public void NonPooledCommandCreationLeavesNoGlobalCommandBinding()
+        public void CommandCreationLeavesNoGlobalBinding()
         {
-            _commandBinder.usePooling = false;
             _binder.Bind<TestSignal>().ToSingleton();
             _commandBinder.Bind<TestSignal>().To<CreateProbeCommand>();
             var signal = _binder.GetInstance<TestSignal>();
@@ -246,12 +249,15 @@ namespace SimplifyIoC.Tests
             Assert.IsFalse(CreateProbeCommand.sawGlobalCommandBinding,
                 "命令创建期间（[PostConstruct] 时）全局 key Command 上不应有任何临时绑定");
             Assert.IsNull(_binder.GetBinding<Command>());
+            //5.5：旧实现为了给池制造实例，会补一条 Bind<CreateProbeCommand>().To<CreateProbeCommand>()，
+            //该绑定会与用户自己的同名绑定判为冲突；统一池化走 CommandInstanceProvider 后不再有任何痕迹。
+            Assert.IsNull(_binder.GetBinding<CreateProbeCommand>(),
+                "命令类型的池不得再往注入容器里补绑定");
         }
 
         [Test]
         public void NestedCommandCreationDuringInjectionIsSupported()
         {
-            _commandBinder.usePooling = false;
             CreateProbeCommand.nestedDispatch = true;
             _binder.Bind<TestSignal>().ToSingleton();
             _commandBinder.Bind<TestSignal>().To<CreateProbeCommand>();
