@@ -43,9 +43,29 @@ namespace SimplifyIoC.Contexts
 		public Context context { get; protected set; }
 
 		/// <summary>
+		/// 5.6：由 <see cref="Context"/> 在构造期回写"本 Bootstrap 归属哪个 Context"。
+		///
+		/// 这条反向链接是框架两条归属规则的唯一依据：
+		///   • Context.ResolveParentContext —— 新建 Context 沿 Transform 向上找父 Context；
+		///   • View.BubbleToContext         —— View 沿 Transform 向上找自己所属的 Context。
+		/// 二者都要求"祖先 Bootstrap 的 context 非空"。
+		///
+		/// 改前这个属性只由用户代码在 Awake 里赋值（`context = new MyContext(this)`），
+		/// 框架读它、却无权写它：一旦有人直接 `new MyContext(bootstrap)` 而忘了赋值，
+		/// 上面两条查找会**静默**失败——Context 悄悄自任链根、跨域绑定从此分叉，
+		/// View 则找不到归属按契约抛，报错现场离真正的原因很远。
+		///
+		/// Context 构造时本就拿得到 Bootstrap，这条链接完全可推导，因此改由框架建立。
+		/// 用户原有的 `context = new XxxContext(this)` 写法不受影响（赋的是同一个对象）。
+		/// </summary>
+		internal void AttachContext(Context context)
+		{
+			this.context = context;
+		}
+
+		/// <summary>
 		/// When a ContextView is Destroyed, automatically disposes the associated Context.
-		/// 3.1：改为 Dispose 契约——原实现依赖 firstContext 存活（firstContext 为 null 时
-		/// context 的清理永远不执行）；Dispose 自身幂等且不依赖 Context 链。
+		/// 3.1：改为 Dispose 契约（幂等），不再依赖任何全局 Context 引用存活。
 		/// </summary>
 		protected virtual void OnDestroy()
 		{

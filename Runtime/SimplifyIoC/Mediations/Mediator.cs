@@ -34,6 +34,15 @@ namespace SimplifyIoC.Mediations
 	    [Inject]
 	    public IInjectionBinder injectionBinder { get; set; }
 
+        /// <summary>
+        /// 5.6：从 injectionBinder 取一个实例（绝大多数场景就是取信号单例）。
+        /// 与 View.Get&lt;T&gt;() 同一形状，两侧写起来一样顺手。
+        /// </summary>
+        protected T Get<T>() where T : BaseSignal
+        {
+            return injectionBinder != null ? injectionBinder.GetInstance<T>() : null;
+        }
+
         //public Mediator() { }
 
         /// 4.1：解析只跑一次的哨兵（与 View 同策略）。

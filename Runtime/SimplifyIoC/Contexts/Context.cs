@@ -71,18 +71,6 @@ namespace SimplifyIoC.Contexts
     // 继承只会把 Binder 的公开面错误地暴露成 Context 的 API。
     public class Context : IDisposable
     {
-        /// In a multi-Context app, this represents the first Context to instantiate.
-        /// 3.5：由静态强引用改为静态弱引用——不再长期持有 Context（连同其注入容器、
-        /// 单例、订阅）不放；"全局唯一入口"的语义保留，供 View 兜底与链根判定使用。
-        private static WeakReference<Context> _firstContextRef;
-
-        /// 3.5：读写入口保持原 API 形状（字段 → 属性），调用方零改动。
-        public static Context firstContext
-        {
-            get => _firstContextRef != null && _firstContextRef.TryGetTarget(out var c) ? c : null;
-            set => _firstContextRef = value == null ? null : new WeakReference<Context>(value);
-        }
-
         /// The top of the View hierarchy.
         /// This is your top-level GameObject
         protected Bootstrap bootstrap;
@@ -102,7 +90,14 @@ namespace SimplifyIoC.Contexts
 
         /// 3.5：本 Context 是否为链根——只有链根持有共享 crossContextBinder
         /// （CrossContextBridge 单例与所有 .CrossContext() 绑定的宿主）。
+        /// 5.6：判定不再依赖静态 firstContext，改由构造期的归属推导（见 <see cref="ResolveParentContext"/>）。
         private bool _isRoot;
+
+        /// 5.6：划归关系的内读取入口（供测试夹具核对链结构）。<see cref="AddContext"/> / Dispose 维护它。
+        internal Context parentContext => _parentContext;
+
+        /// 5.6：本 Context 是否为链根。
+        internal bool isRoot => _isRoot;
         
         /// A Binder that handles dependency injection binding and instantiation
         /// All cross-context capable contexts must implement an injectionBinder
@@ -126,14 +121,31 @@ namespace SimplifyIoC.Contexts
         public Context() { }
 
         public Context(Bootstrap view, ContextStartupFlags flags = ContextStartupFlags.Automatic)
+            : this(view, null, flags)
         {
-            //If firstContext was unloaded, the contextView will be null. Assign the new context as firstContext.
-            if (firstContext == null || firstContext.bootstrap == null)
-                firstContext = this;
-            else
-                firstContext.AddContext(this);
+        }
+
+        /// <summary>
+        /// 5.6：带显式父 Context 的构造入口。跨场景 / 跨 Prefab 组合（两边没有 Transform 层级关系，
+        /// 但要共享跨域绑定）时用这个重载，或事后调用 <see cref="AddContext"/>。
+        /// </summary>
+        public Context(Bootstrap view, Context parent, ContextStartupFlags flags = ContextStartupFlags.Automatic)
+        {
             // ReSharper disable once VirtualMemberCallInConstructor
             SetBootstrap(view);
+
+            //5.6：归属确定顺序 —— 显式 parent > Bootstrap 层级向上查找 > 自任链根。
+            //原实现用静态 firstContext："谁先构造谁当根，后来的全挂在它下面"。
+            //那条链的传播方式是进程级全局状态，与 GameObject 层级毫无关系，
+            //导致两个毫无关联的 Context 被隐式耦合、级联释放范围不可预测，
+            //也让 View 的归属无法确定（见 View.BubbleToContext 里被一并删掉的 last-ditch 兜底）。
+            // ReSharper disable once VirtualMemberCallInConstructor
+            var parentContext = parent ?? ResolveParentContext(view);
+            if (parentContext != null && parentContext != this)
+                parentContext.AddContext(this);
+            else
+                _isRoot = true;
+
             // ReSharper disable once VirtualMemberCallInConstructor
             AddCoreComponents();
             _autoStartup = (flags & ContextStartupFlags.ManualLaunch) != ContextStartupFlags.ManualLaunch;
@@ -143,20 +155,46 @@ namespace SimplifyIoC.Contexts
             }
         }
 
+        /// <summary>
+        /// 5.6：沿 Transform 向上找最近的、已经持有 Context 的 Bootstrap，作为本 Context 的父。
+        ///
+        /// 与 View.BubbleToContext 的查找规则保持一致（同一套"向上找 Bootstrap + context 非空"的约定，
+        /// 都跳过自己所在的 GameObject、都不要求中途每一层都有 Bootstrap），
+        /// 这是"Context 归属 = GameObject 归属"这条单一规则的运行时依据。
+        ///
+        /// 返回 null 表示本 Context 是链根，据此 <see cref="AddCoreComponents"/> 决定是否创建共享跨域根 binder。
+        /// </summary>
+        protected virtual Context ResolveParentContext(Bootstrap view)
+        {
+            const int loopMax = 100;
+            var loopLimiter = 0;
+            var trans = view != null ? view.transform : null;
+            while (trans != null && trans.parent != null && loopLimiter < loopMax)
+            {
+                loopLimiter++;
+                trans = trans.parent;
+                var parentBootstrap = trans.GetComponent<Bootstrap>();
+                var candidate = parentBootstrap?.context;
+                //自己的 Bootstrap 此刻 context 尚未赋值（要到 ctor 返回后才由派生 Bootstrap 写入），跳过自身即可
+                if (candidate != null && candidate != this)
+                    return candidate;
+            }
+            return null;
+        }
+
         // 原 Context(Bootstrap, bool autoMapping) 重载已删除（P0#1）：
         // 其两个取值无论怎么传都不会执行 Start()（ManualMapping 标志恒被设置），
         // 语义反了且无任何调用方。需要手动控制时请使用 ContextStartupFlags。
 
         protected virtual void AddCoreComponents()
         {
-            //Only null if it could not find a parent context / firstContext
+            //5.6：非链根早在 AddContext 时已从父继承，这里只为链根兜底创建。
             injectionBinder.crossContextBinder ??= new CrossContextInjectionBinder();
 
-            if (firstContext == this)
+            if (_isRoot)
             {
-                //3.5：只有链根创建并持有共享的跨域根 binder（CrossContextBridge 单例宿主）。
+                //链根创建并持有共享的跨域根 binder（CrossContextBridge 单例宿主）。
                 //级联释放时由它负责清理，见 Dispose。
-                _isRoot = true;
                 injectionBinder.Bind<CrossContextBridge>().ToSingleton ().CrossContext();
             }
 
@@ -184,6 +222,11 @@ namespace SimplifyIoC.Contexts
         protected virtual void SetBootstrap(Bootstrap view)
         {
             bootstrap = view;
+            //5.6：回写 Bootstrap → Context 归属（详见 Bootstrap.AttachContext 的说明）。
+            //必须在 ResolveParentContext 之前完成：更晚构造的 Context 依赖祖先 Bootstrap
+            //已经持有自己的 Context 才能找到父节点。
+            if (view != null)
+                view.AttachContext(this);
         }
 
         /// Call this from your Root to set everything in action.
@@ -221,14 +264,26 @@ namespace SimplifyIoC.Contexts
         /// 3.5：显式登记父子关系（Composite）——父持有子引用，子持有父引用，
         /// 并在两端共享同一个跨域根 binder。这样父 Dispose 可级联释放子，
         /// 子 Dispose 也可把自己从父的链上摘除。
+        ///
+        /// 5.6：建议在 Pending Context 尚未进入 Start（尚未登记 .CrossContext() 绑定）时调用——
+        /// 通常就是走带 parent 的构造重载。事后再认父不会迁移已经落到"原跨域根 binder"上的
+        /// 跨域绑定（那些绑定留在旧 binder 上，随旧 binder 一起无人清理）。
         public virtual void AddContext(Context context)
         {
             ThrowIfDisposed();
             if (context == null || context == this) return;
+
+            //5.6：转移归属前先从旧父摘除，避免出现"同一个 Context 同时是两个节点的子"
+            if (context._parentContext != null && context._parentContext != this)
+                context._parentContext._children.Remove(context);
+
             //已登记则只保证共享桥接仍然成立（幂等）
             if (!_children.Contains(context))
                 _children.Add(context);
             context._parentContext = this;
+            //非链根：与父共享同一个跨域根 binder
+            if (context._isRoot && context != this)
+                context._isRoot = false;
             context.injectionBinder.crossContextBinder = injectionBinder.crossContextBinder;
         }
 
@@ -239,12 +294,12 @@ namespace SimplifyIoC.Contexts
             //3.5：双向解绑——从子列表摘除并断开子的父引用
             _children.Remove(context);
             if (context._parentContext == this)
+            {
                 context._parentContext = null;
+                //脱离父链后自己就是链根：此后它的 Dispose 要负责清理共享跨域根 binder（若共享）
+                context._isRoot = true;
+            }
             context.injectionBinder.crossContextBinder = null;
-            //3.1 修复：原 firstContext 分支不调用 OnRemove，
-            //主 Context 销毁时 commandBinder 信号监听等清理链路从根上断裂
-            if (context == firstContext)
-                firstContext = null;
             context.OnRemove();
         }
 
@@ -277,10 +332,6 @@ namespace SimplifyIoC.Contexts
                 _parentContext = null;
             }
 
-            //脱离 Context 链：firstContext 静态弱引用
-            if (firstContext == this)
-                firstContext = null;
-
             //3.5：无论角色如何都断开共享桥接。
             //链根额外负责清空共享的跨域根 binder —— 它是 CrossContextBridge 单例与
             //所有 .CrossContext() 绑定的宿主，不清空则整条链的跨域单例都会泄漏
@@ -305,6 +356,11 @@ namespace SimplifyIoC.Contexts
         /// 都不依赖 Mediator——没有 mediationBinder 时走兜底路径，View 照常可用。
         public virtual void AddView(View view)
         {
+            if (view == null) return;
+            //5.6：归属在注册成功这一刻确定，之后 View 的 Remove/Enable/Disable 直接发回本 Context，
+            //不再逐次遍历 Transform 链，也不再有"随便找一个 Context"的余地。
+            view.SetOwningContext(this);
+
             if (mediationBinder != null)
             {
                 mediationBinder.Trigger(MediationEvent.Awake, view);
