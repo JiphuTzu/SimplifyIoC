@@ -23,6 +23,7 @@
  */
 
 using SimplifyIoC.Injectors;
+using SimplifyIoC.Signals;
 using SimplifyIoC.Utils;
 using UnityEngine;
 
@@ -37,6 +38,26 @@ namespace SimplifyIoC.Mediations
 
         /// 4.1：解析只跑一次的哨兵（与 View 同策略）。
         private bool _attributesInitialized;
+
+        /// 5.1：订阅组（惰性创建，从未订阅过则不分配）。
+        private SignalSubscriptionGroup _subscriptions;
+
+        /// <summary>
+        /// 5.1：随本 Mediator 生命周期的订阅组。组内订阅在 Mediator 被摘除时自动退订，
+        /// 用以取代"OnRemove 里逐条手写 RemoveListener"的样板（漏一行就是泄漏）。
+        ///
+        ///     public override void OnRegister()
+        ///     {
+        ///         subscriptions.Listen(view.OnDead, OnDead);   //组内订阅自动回收
+        ///     }
+        /// </summary>
+        protected SignalSubscriptionGroup subscriptions => _subscriptions ??= new SignalSubscriptionGroup();
+
+        /// <summary>
+        /// 5.1：由框架在摘除 Mediator 时调用（MediationBinder.DestroyMediator，紧接 OnRemove 之后）。
+        /// 用户覆写 OnRemove 时无需做任何事，订阅一律回收。
+        /// </summary>
+        internal void DisposeSubscriptions() => _subscriptions?.Dispose();
 
         /**
 		 * Fires directly after creation and before injection

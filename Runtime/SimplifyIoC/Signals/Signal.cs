@@ -59,14 +59,25 @@
 		signal.Dispatch(42, "zaphod");
 		//Remove the first listener. The listener added by AddOnce has been automatically removed.
 		signal.RemoveListener(callbackWithParamsIntAndString);
+
+		//5.1：订阅句柄
+		//AddListener / AddOnce 返回 SignalSubscription，Dispose 即退订。
+		//忘记 RemoveListener 曾经只能靠"记住回调引用"补救，现在有句柄可管：
+		SignalSubscription subscription = signalWithNoParameters.AddListener(callbackWithNoParameters);
+		...
+		subscription.Dispose();                       //退订，幂等，可重复调用
+		using (var once = signal.AddListener(cb)) { } //或用 using 限定作用域
+
+		Mediator / View / Command 另有集中回收：subscriptions.Listen(signal, cb)，
+		组件销毁时组内订阅自动退订，详见 SignalSubscriptionGroup。
  * 
  * @see SimplifyIoC.Signals.IBaseSignal
  * @see SimplifyIoC.Signals.BaseSignal
+ * @see SimplifyIoC.Signals.SignalSubscription
  */
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace SimplifyIoC.Signals
 {
@@ -81,20 +92,22 @@ namespace SimplifyIoC.Signals
         private Action _listener;
         private Action _onceListener;
 
-        public void AddListener(Action callback)
+        public SignalSubscription AddListener(Action callback)
         {
-            _listener = AddUnique(_listener, callback);
+            _listener = (Action)CombineUnique(_listener, callback);
+            return new SignalSubscription(this, callback, false);
         }
 
-        public void AddOnce(Action callback)
+        public SignalSubscription AddOnce(Action callback)
         {
-            _onceListener = AddUnique(_onceListener, callback);
+            _onceListener = (Action)CombineUnique(_onceListener, callback);
+            return new SignalSubscription(this, callback, true);
         }
 
         public void RemoveListener(Action callback)
         {
-            if (_listener != null)
-                _listener -= callback;
+            RemoveCore(callback, false);
+            RemoveCore(callback, true);
         }
         public override List<Type> GetTypes()
         {
@@ -108,13 +121,20 @@ namespace SimplifyIoC.Signals
             base.Dispatch(null);
         }
 
-        private Action AddUnique(Action listeners, Action callback)
+        /// 5.1：强类型通道先判，未命中再落到 BaseSignal 的无参通道。
+        internal override bool ContainsCore(Delegate callback, bool once)
         {
-            if (listeners == null || !listeners.GetInvocationList().Contains(callback))
-            {
-                listeners += callback;
-            }
-            return listeners;
+            return ContainsImpl(once ? (Delegate)_onceListener : _listener, callback)
+                   || base.ContainsCore(callback, once);
+        }
+
+        internal override void RemoveCore(Delegate callback, bool once)
+        {
+            if (once)
+                _onceListener = (Action)RemoveImpl(_onceListener, callback);
+            else
+                _listener = (Action)RemoveImpl(_listener, callback);
+            base.RemoveCore(callback, once);
         }
 
         public override void RemoveAllListeners()
@@ -141,20 +161,22 @@ namespace SimplifyIoC.Signals
         private Action<T> _listener;
         private Action<T> _onceListener;
 
-        public void AddListener(Action<T> callback)
+        public SignalSubscription AddListener(Action<T> callback)
         {
-            _listener = AddUnique(_listener, callback);
+            _listener = (Action<T>)CombineUnique(_listener, callback);
+            return new SignalSubscription(this, callback, false);
         }
 
-        public void AddOnce(Action<T> callback)
+        public SignalSubscription AddOnce(Action<T> callback)
         {
-            _onceListener = AddUnique(_onceListener, callback);
+            _onceListener = (Action<T>)CombineUnique(_onceListener, callback);
+            return new SignalSubscription(this, callback, true);
         }
 
         public void RemoveListener(Action<T> callback)
         {
-            if (_listener != null)
-                _listener -= callback;
+            RemoveCore(callback, false);
+            RemoveCore(callback, true);
         }
         public override List<Type> GetTypes()
         {
@@ -168,13 +190,19 @@ namespace SimplifyIoC.Signals
             base.Dispatch(new object[]{ type1 });
         }
 
-        private Action<T> AddUnique(Action<T> listeners, Action<T> callback)
+        internal override bool ContainsCore(Delegate callback, bool once)
         {
-            if (listeners == null || !listeners.GetInvocationList().Contains(callback))
-            {
-                listeners += callback;
-            }
-            return listeners;
+            return ContainsImpl(once ? (Delegate)_onceListener : _listener, callback)
+                   || base.ContainsCore(callback, once);
+        }
+
+        internal override void RemoveCore(Delegate callback, bool once)
+        {
+            if (once)
+                _onceListener = (Action<T>)RemoveImpl(_onceListener, callback);
+            else
+                _listener = (Action<T>)RemoveImpl(_listener, callback);
+            base.RemoveCore(callback, once);
         }
 
         public override void RemoveAllListeners()
@@ -200,20 +228,22 @@ namespace SimplifyIoC.Signals
         private Action<T, U> _listener;
         private Action<T, U> _onceListener;
 
-        public void AddListener(Action<T, U> callback)
+        public SignalSubscription AddListener(Action<T, U> callback)
         {
-            _listener = AddUnique(_listener, callback);
+            _listener = (Action<T, U>)CombineUnique(_listener, callback);
+            return new SignalSubscription(this, callback, false);
         }
 
-        public void AddOnce(Action<T, U> callback)
+        public SignalSubscription AddOnce(Action<T, U> callback)
         {
-            _onceListener = AddUnique(_onceListener, callback);
+            _onceListener = (Action<T, U>)CombineUnique(_onceListener, callback);
+            return new SignalSubscription(this, callback, true);
         }
 
         public void RemoveListener(Action<T, U> callback)
         {
-            if (_listener != null)
-                _listener -= callback;
+            RemoveCore(callback, false);
+            RemoveCore(callback, true);
         }
         public override List<Type> GetTypes()
         {
@@ -230,13 +260,20 @@ namespace SimplifyIoC.Signals
             _onceListener = null;
             base.Dispatch(new object[] { type1, type2 });
         }
-        private Action<T, U> AddUnique(Action<T, U> listeners, Action<T, U> callback)
+
+        internal override bool ContainsCore(Delegate callback, bool once)
         {
-            if (listeners == null || !listeners.GetInvocationList().Contains(callback))
-            {
-                listeners += callback;
-            }
-            return listeners;
+            return ContainsImpl(once ? (Delegate)_onceListener : _listener, callback)
+                   || base.ContainsCore(callback, once);
+        }
+
+        internal override void RemoveCore(Delegate callback, bool once)
+        {
+            if (once)
+                _onceListener = (Action<T, U>)RemoveImpl(_onceListener, callback);
+            else
+                _listener = (Action<T, U>)RemoveImpl(_listener, callback);
+            base.RemoveCore(callback, once);
         }
 
         public override void RemoveAllListeners()
@@ -262,20 +299,22 @@ namespace SimplifyIoC.Signals
         private Action<T, U, V> _listener;
         private Action<T, U, V> _onceListener;
 
-        public void AddListener(Action<T, U, V> callback)
+        public SignalSubscription AddListener(Action<T, U, V> callback)
         {
-            _listener = AddUnique(_listener, callback);
+            _listener = (Action<T, U, V>)CombineUnique(_listener, callback);
+            return new SignalSubscription(this, callback, false);
         }
 
-        public void AddOnce(Action<T, U, V> callback)
+        public SignalSubscription AddOnce(Action<T, U, V> callback)
         {
-            _onceListener = AddUnique(_onceListener, callback);
+            _onceListener = (Action<T, U, V>)CombineUnique(_onceListener, callback);
+            return new SignalSubscription(this, callback, true);
         }
 
         public void RemoveListener(Action<T, U, V> callback)
         {
-            if (_listener != null)
-                _listener -= callback;
+            RemoveCore(callback, false);
+            RemoveCore(callback, true);
         }
         public override List<Type> GetTypes()
         {
@@ -293,13 +332,20 @@ namespace SimplifyIoC.Signals
             _onceListener = null;
             base.Dispatch(new object[] { type1, type2, type3 });
         }
-        private Action<T, U, V> AddUnique(Action<T, U, V> listeners, Action<T, U, V> callback)
+
+        internal override bool ContainsCore(Delegate callback, bool once)
         {
-            if (listeners == null || !listeners.GetInvocationList().Contains(callback))
-            {
-                listeners += callback;
-            }
-            return listeners;
+            return ContainsImpl(once ? (Delegate)_onceListener : _listener, callback)
+                   || base.ContainsCore(callback, once);
+        }
+
+        internal override void RemoveCore(Delegate callback, bool once)
+        {
+            if (once)
+                _onceListener = (Action<T, U, V>)RemoveImpl(_onceListener, callback);
+            else
+                _listener = (Action<T, U, V>)RemoveImpl(_listener, callback);
+            base.RemoveCore(callback, once);
         }
         public override void RemoveAllListeners()
         {
@@ -324,20 +370,22 @@ namespace SimplifyIoC.Signals
         private Action<T, U, V, W> _listener;
         private Action<T, U, V, W> _onceListener;
 
-        public void AddListener(Action<T, U, V, W> callback)
+        public SignalSubscription AddListener(Action<T, U, V, W> callback)
         {
-            _listener = AddUnique(_listener, callback);
+            _listener = (Action<T, U, V, W>)CombineUnique(_listener, callback);
+            return new SignalSubscription(this, callback, false);
         }
 
-        public void AddOnce(Action<T, U, V, W> callback)
+        public SignalSubscription AddOnce(Action<T, U, V, W> callback)
         {
-            _onceListener = AddUnique(_onceListener, callback);
+            _onceListener = (Action<T, U, V, W>)CombineUnique(_onceListener, callback);
+            return new SignalSubscription(this, callback, true);
         }
 
         public void RemoveListener(Action<T, U, V, W> callback)
         {
-            if (_listener != null)
-                _listener -= callback;
+            RemoveCore(callback, false);
+            RemoveCore(callback, true);
         }
         public override List<Type> GetTypes()
         {
@@ -357,13 +405,19 @@ namespace SimplifyIoC.Signals
             base.Dispatch(new object[] { type1, type2, type3, type4 });
         }
 
-        private Action<T, U, V, W> AddUnique(Action<T, U, V, W> listeners, Action<T, U, V, W> callback)
+        internal override bool ContainsCore(Delegate callback, bool once)
         {
-            if (listeners == null || !listeners.GetInvocationList().Contains(callback))
-            {
-                listeners += callback;
-            }
-            return listeners;
+            return ContainsImpl(once ? (Delegate)_onceListener : _listener, callback)
+                   || base.ContainsCore(callback, once);
+        }
+
+        internal override void RemoveCore(Delegate callback, bool once)
+        {
+            if (once)
+                _onceListener = (Action<T, U, V, W>)RemoveImpl(_onceListener, callback);
+            else
+                _listener = (Action<T, U, V, W>)RemoveImpl(_listener, callback);
+            base.RemoveCore(callback, once);
         }
         public override void RemoveAllListeners()
         {
