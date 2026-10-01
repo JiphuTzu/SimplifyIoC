@@ -33,6 +33,18 @@ namespace SimplifyIoC.Tests
         [Inject] public ITestService service { get; set; }
     }
 
+    /// 非 public setter 的 [Inject] 消费者（private/protected set 均应可注入）
+    public class ConsumerWithNonPublicSetters
+    {
+        [Inject] public ITestService privateSet { get; private set; }
+        [Inject] public ITestService protectedSet { get; protected set; }
+        [Inject] private ITestService fullyPrivate { get; set; }
+
+        public ITestService ExposePrivateSet() => privateSet;
+        public ITestService ExposeProtectedSet() => protectedSet;
+        public ITestService ExposeFullyPrivate() => fullyPrivate;
+    }
+
     /// 构造注入消费者（单一带参构造）
     public class ConsumerWithCtor
     {

@@ -54,6 +54,8 @@ namespace SimplifyIoC.Reflectors
         /// <summary>
         /// 为属性 setter 构建 Action&lt;object,object&gt; 委托。
         /// 实现：泛型辅助方法 + Delegate.CreateDelegate 生成开放实例委托，再包一层 object 适配。
+        /// 2.5：非 public setter（private/protected/internal set）同样可绑定——
+        /// CreateDelegate 不做可见性检查，与反射扫描路径一致。
         /// AOT 约束：IL2CPP 的泛型共享仅覆盖引用类型，涉及值类型（含 Nullable）时返回 null，
         /// 由调用方回落 PropertyInfo.SetValue；不使用 Expression.Compile / Reflection.Emit。
         /// </summary>
@@ -61,7 +63,7 @@ namespace SimplifyIoC.Reflectors
         {
             if (property == null) return null;
             var setMethod = property.GetSetMethod(true);
-            if (setMethod == null || !setMethod.IsPublic) return null;
+            if (setMethod == null) return null;
 
             var declaringType = property.DeclaringType;
             if (declaringType == null || declaringType.IsValueType || property.PropertyType.IsValueType)

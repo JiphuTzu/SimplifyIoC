@@ -190,25 +190,15 @@ namespace SimplifyIoC.Reflectors
 
         private void MapSetters(ReflectedClass reflected, IBinding binding, Type type)
         {
-            var privateMembers = type.FindMembers(MemberTypes.Property,
-                                                    BindingFlags.FlattenHierarchy |
-                                                    BindingFlags.SetProperty |
-                                                    BindingFlags.NonPublic |
-                                                    BindingFlags.Instance,
-                                                    null, null);
-            foreach (var member in privateMembers)
-            {
-                var injections = member.GetCustomAttributes(typeof(Inject), true);
-                if (injections.Length > 0)
-                {
-                    throw new Exception("The class " + type.Name + " has a non-public Injection setter " + member.Name + ". Make the setter public to allow injection.");
-                }
-            }
-
+            //2.5：[Inject] 不再要求 public set——private/protected/internal set 同样可注入。
+            //原实现会先扫一遍 NonPublic 并对带 [Inject] 的非 public setter 抛异常；
+            //现合并为一次扫描（Public|NonPublic），只收集带 [Inject] 的属性，访问级别不再受限。
+            //已知限制（与原实现一致）：基类的 private 成员不受 FlattenHierarchy 影响，不会被扫到。
             var members = type.FindMembers(MemberTypes.Property,
                                                           BindingFlags.FlattenHierarchy |
                                                           BindingFlags.SetProperty |
                                                           BindingFlags.Public |
+                                                          BindingFlags.NonPublic |
                                                           BindingFlags.Instance,
                                                           null, null);
 

@@ -107,6 +107,23 @@ namespace SimplifyIoC.Tests
         }
 
         [Test]
+        public void SetterInjectionSatisfiesNonPublicSetters()
+        {
+            //2.5：[Inject] 不再要求 public set——private/protected set 同样可注入
+            _binder.Bind<ITestService>().To<TestServiceImpl>().ToSingleton();
+            _binder.Bind<ConsumerWithNonPublicSetters>().ToSingleton();
+
+            var consumer = _binder.GetInstance<ConsumerWithNonPublicSetters>();
+
+            Assert.IsNotNull(consumer.ExposePrivateSet(), "private set 应被注入");
+            Assert.AreEqual("impl", consumer.ExposePrivateSet().Name);
+            Assert.IsNotNull(consumer.ExposeProtectedSet(), "protected set 应被注入");
+            Assert.AreEqual("impl", consumer.ExposeProtectedSet().Name);
+            Assert.IsNotNull(consumer.ExposeFullyPrivate(), "全私有属性应被注入");
+            Assert.AreEqual("impl", consumer.ExposeFullyPrivate().Name);
+        }
+
+        [Test]
         public void ConstructorInjectionSatisfiesSingleCtorParameter()
         {
             _binder.Bind<ITestService>().To<TestServiceImpl>().ToSingleton();
