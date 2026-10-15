@@ -19,6 +19,8 @@ namespace SimplifyIoC.Tests
         [SetUp]
         public void SetUp()
         {
+            //锚点是进程级静态槽：先归零，本类用例里 _context 才会是可预期的链根
+            Context.rootContext = null;
             TestCommand.ExecutionCount = 0;
             _bootstrapObject = new GameObject("ContextDisposeTests.Bootstrap");
             _context = new DisposeTestContext(_bootstrapObject.AddComponent<Bootstrap>());
@@ -29,6 +31,7 @@ namespace SimplifyIoC.Tests
         {
             _context?.Dispose();
             if (_bootstrapObject != null) Object.DestroyImmediate(_bootstrapObject);
+            Context.rootContext = null;
         }
 
         [Test]
@@ -56,9 +59,10 @@ namespace SimplifyIoC.Tests
         [Test]
         public void ContextUnderARootlessBootstrapIsItsOwnChainRoot()
         {
-            //5.6：链根不再由"谁先构造"这种进程级全局状态决定——
-            //只看它有没有父 Bootstrap。本 Context 挂在场景根上，因此自任链根，
-            // Dispose 时无需与任何其它 Context 协商，也不留下任何跨测试用例的状态。
+            //本 Context 挂在场景根上，显式 parent 与 Transform 层级都找不到父；
+            //又因为 SetUp 已清空锚点，它就是第一个构造的链根 → 自任链根并接任锚点。
+            //（"谁先构造谁当根"这条 2026-10-15 随 firstContext 一起恢复，但它只作用于兜底：
+            //  显式 parent 与 Transform 层级仍然优先。）
             Assert.That(_context.isRoot, Is.True);
             Assert.That(_context.parentContext, Is.Null);
 

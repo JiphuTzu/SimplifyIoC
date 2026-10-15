@@ -1,14 +1,13 @@
 // 5.6：View 的 Context 归属回归测试。
 //
-// 改前 View 的生命周期事件每次都重新沿 Transform 向上查一遍 Context，
-// 查不到时还会落到一条"全局兜底"上（Context.firstContext —— 谁先构造谁当兜底）。
-// 三条问题：
-//   1. 归属不是确定的：Mediate 由 A 做，事件却可能通知到 B（中途 reparent 就会发生）；
-//   2. 全局兜底把两个毫无关系的 Context 和 View 隐式连到一起，
-//      连带成链 Dispose 与跨域单例都会被牵扯；
-//   3. 每次事件都要走 100 层上限的向上查找，纯属浪费。
-//
-// 现在：归属在注册成功那一刻写下（Context.AddView），之后一律发回原 Context。
+// 改前 View 的生命周期事件每次都重新沿 Transform 向上查一遍 Context。三条问题：
+//   1. 归属不确定：Mediate 由 A 做，事件却可能通知到 B（中途 reparent 就会发生）；
+//   2. 每次事件都要走 100 层上限的向上查找，纯属浪费；
+//   3. 查不到时落到一条"全局兜底"（Context.firstContext —— 谁先构造谁当兜底）。
+
+// 现在：归属在注册成功那一刻写下（Context.AddView），之后一律发回原 Context（问题 1、2 已消除）。
+// 2026-10-15：问题 3 的那条全局兜底**恢复了**（对外名 Context.rootContext，见兜底用例）——
+// 它是"层级里确实找不到家"时的最后退路，因此兜底只决定注册到谁，不改变上面这条归属规则。
 using System.Collections.Generic;
 using NUnit.Framework;
 using SimplifyIoC.Contexts;
@@ -24,6 +23,13 @@ namespace SimplifyIoC.Tests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();
 
+        [SetUp]
+        public void SetUp()
+        {
+            //锚点是进程级静态槽（Context.rootContext）：先归零，让"第一个构造的链根持有锚点"可预期
+            Context.rootContext = null;
+        }
+
         [TearDown]
         public void TearDown()
         {
@@ -32,6 +38,9 @@ namespace SimplifyIoC.Tests
                 if (go != null) Object.DestroyImmediate(go);
             }
             _objects.Clear();
+
+            //锚点静态槽不得留给下一个用例
+            Context.rootContext = null;
         }
 
         [Test]
@@ -88,19 +97,19 @@ namespace SimplifyIoC.Tests
         }
 
         [Test]
-        public void ViewNeverAttachedToAnUnrelatedGlobalContext()
+        public void ViewFallbackToAnchorWhenNoBootstrapIsFound()
         {
-            //5.6 之前：只要进程里存在任何一个 Context（静态 firstContext），
-            //找不到父 Bootstrap 的 View 就会被挂到它上面。这里钉住"那条暗道已删除"——
-            //即便场上有一个活着的、与它毫无关系的 Context，该抛的还是抛。
-            CreateContext("Unrelated");
+            //2026-10-15 恢复的 last-ditch 兜底（5.6 之前叫 Context.firstContext）：
+            //层级里找不到任何 Bootstrap 的 View 注册到框架级锚点，而不是在 Start 抛异常。
+            var anchor = CreateContext("Unrelated");
             var orphanRoot = NewObject("Orphan");
             var view = orphanRoot.AddComponent<OwnershipView>();
 
-            Assert.DoesNotThrow(() => view.CallAwake(), "Awake 阶段不抛：Start 还有一次机会");
-            Assert.Throws<System.Exception>(() => view.CallStart(),
-                "requiresContext 的 View 找不到所属 Bootstrap 时必须按契约抛——不得再找全局兜底");
-            Assert.That(view.owningContext, Is.Null);
+            Assert.DoesNotThrow(() => view.CallAwake(), "Awake 阶段不动声色：Start 还有一次机会");
+            Assert.DoesNotThrow(() => view.CallStart(), "Start 阶段回落到锚点");
+            Assert.That(view.owningContext, Is.SameAs(anchor), "兜底注册同样写下归属");
+            Assert.That(view.registeredWithContext, Is.True);
+            Assert.That(anchor.AddCalls, Is.EqualTo(1));
         }
 
         [Test]

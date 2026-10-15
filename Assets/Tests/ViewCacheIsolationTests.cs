@@ -14,8 +14,15 @@ namespace SimplifyIoC.Tests
     {
         private readonly List<GameObject> _objects = new List<GameObject>();
 
-        //5.6：不再需要在 SetUp/TearDown 里重置全局 Context.firstContext——
-        //Context 的归属只由 GameObject 层级或显式 parent 决定，测试之间没有任何共享状态。
+        //锚点是进程级静态槽（Context.rootContext，2026-10-15 恢复 firstContext 语义）：
+        //SetUp/TearDown 都要清，否则本类里"后构造的 Context 自动挂到先构造的那个之下"
+        //会与其它用例的残留状态纠缠。
+
+        [SetUp]
+        public void SetUp()
+        {
+            Context.rootContext = null;
+        }
 
         [TearDown]
         public void TearDown()
@@ -25,6 +32,7 @@ namespace SimplifyIoC.Tests
                 if (go != null) Object.DestroyImmediate(go);
             }
             _objects.Clear();
+            Context.rootContext = null;
         }
 
         [Test]
@@ -44,17 +52,17 @@ namespace SimplifyIoC.Tests
         [Test]
         public void DisposingOneContextDoesNotAffectAnother()
         {
-            //5.6：三个 Context 各自挂在独立的根 GameObject 上 → 彼此都是独立链根，互不隶属。
-            //这比原先"都挂在静态 firstContext 下面当兄弟"更能说明隔离性：
-            //连父子链都不存在，Dispose 一个也不会波及另一个。
+            //2026-10-15：三个 Context 依次构造、都没有显式 parent → 后两个自动挂到第一个（锚点）下。
+            //级联关系不影响本用例要钉的隔离性：ViewCache 是每 Context 实例一份，
+            //Dispose 一个不会动到另一个的缓存（3.2 之前是 static 缓存，才会互相覆盖）。
             var root = CreateContext();
             var contextA = CreateContext();
             var contextB = CreateContext();
 
-            //顺带确认三者互不隶属（本用例的前提）
-            Assert.That(contextA.parentContext, Is.Null);
-            Assert.That(contextB.parentContext, Is.Null);
+            //顺带确认三者确实成链（本用例的前提）
             Assert.That(root.parentContext, Is.Null);
+            Assert.That(contextA.parentContext, Is.SameAs(root));
+            Assert.That(contextB.parentContext, Is.SameAs(root));
 
             contextA.CacheEarlyView(CreateView());
             contextB.CacheEarlyView(CreateView());

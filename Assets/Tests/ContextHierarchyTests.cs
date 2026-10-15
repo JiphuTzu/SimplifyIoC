@@ -7,8 +7,9 @@
 //   4. 链根 Dispose 清空共享的跨域根 binder（CrossContextBridge 单例宿主），
 //      否则整条链的跨域绑定与单例会随它一起泄漏；
 //   5. 链内跨域单例共享仍然成立（回归护栏）；
-//   6. 无关的两个 Context 互不隶属（5.6：静态 firstContext 已摘除）。
-//
+//   6. 无关的两个 Context 仍会成链——没有显式 parent 也没 Transform 关系时，
+//      后构造的那个挂到框架级锚点（Context.rootContext）之下，见最后一个用例。
+
 // 5.6：上述层级归属依赖"祖先 Bootstrap 持有自己的 Context"。这条链接改由框架
 // 在 Context 构造期回写（Bootstrap.AttachContext），不再要求用户派生 Bootstrap 手工赋值。
 using System.Collections.Generic;
@@ -31,6 +32,8 @@ namespace SimplifyIoC.Tests
         [SetUp]
         public void SetUp()
         {
+            //锚点是进程级静态槽：先归零，下面第一个构造的 _parent 才会成为本类用例的锚点
+            Context.rootContext = null;
             TestCommand.ExecutionCount = 0;
 
             // 第一个 Context 挂在场景根上 → 没有父 Bootstrap → 自任链根
@@ -52,6 +55,7 @@ namespace SimplifyIoC.Tests
             _parent?.Dispose();
             if (_childObject != null) Object.DestroyImmediate(_childObject);
             if (_parentObject != null) Object.DestroyImmediate(_parentObject);
+            Context.rootContext = null;
         }
 
         [Test]
@@ -132,21 +136,22 @@ namespace SimplifyIoC.Tests
         }
 
         [Test]
-        public void TwoUnrelatedContextsAreIndependentChainRoots()
+        public void UnrelatedContextAutomaticallyAttachesToTheAnchor()
         {
-            //5.6：没有 Transform 关系、也没有显式指定 parent 的两个 Context 互不隶属，
-            //各自持有自己的跨域根 binder——跨域单例不再被隐式共享。
-            //改前：后构造的那个会被挂到静态 firstContext 下面，两个毫无关系的 Context 被强行耦合。
+            //2026-10-15 恢复：没有 Transform 关系、也没有显式 parent 的 Context 会挂到
+            //框架级锚点下（本用例里锚点就是 SetUp 中第一个构造的 _parent），共享同一个跨域根 binder。
+            //这里用 ChildHierarchyContext（只做本地绑定）——先前的独立根写法会重复登记跨域类型，
+            //挂到共享根 binder 之后就会撞名冲突（见下方 ChildHierarchyContext 的说明）。
             var otherObject = new GameObject("ContextHierarchyTests.OtherRoot");
             try
             {
-                var other = new RootHierarchyContext(otherObject.AddComponent<Bootstrap>());
+                var other = new ChildHierarchyContext(otherObject.AddComponent<Bootstrap>());
 
-                Assert.That(other.isRoot, Is.True);
-                Assert.That(other.parentContext, Is.Null);
-                Assert.That(_parent.ExposedChildren, Has.No.Member(other));
+                Assert.That(other.isRoot, Is.False);
+                Assert.That(other.parentContext, Is.SameAs(_parent));
+                Assert.That(_parent.ExposedChildren, Does.Contain(other));
                 Assert.That(other.ExposedInjectionBinder.crossContextBinder,
-                    Is.Not.SameAs(_parent.ExposedInjectionBinder.crossContextBinder));
+                    Is.SameAs(_parent.ExposedInjectionBinder.crossContextBinder));
 
                 other.Dispose();
             }

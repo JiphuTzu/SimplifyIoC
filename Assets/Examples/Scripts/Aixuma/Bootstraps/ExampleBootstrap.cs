@@ -19,10 +19,11 @@ namespace Aixuma.Bootstraps
         public GameObject[] objects;
         protected override void Awake()
         {
-            //5.6：静态 Context.firstContext 已移除——两个没有 Transform 层级关系的 Context
-            //不再自动结为父子。跨域共享必须显式表达：这里找到常驻的 CrossContext
-            //（它所在的 GameObject 带 DontDestroyOnLoad），把本 Context 挂成它的子。
-            //单独打开本场景、CrossContext 不在场时为 null，本 Context 自成链根。
+            //跨场景共享的两种写法：
+            //  ① 显式认父（如下）——语义最清楚，也最可控；
+            //  ② 不传 parent——框架级锚点（Context.rootContext，第一个构造的链根 Context）会兜底，
+            //     本 Context 自动挂到常驻的 CrossContext 之下（2026-10-15 恢复 firstContext 语义）。
+            //单独打开本场景、CrossContext 不在场时两者都为 null，本 Context 自成链根并接任锚点。
             var crossRoot = FindObjectOfType<CrossContextBootstrap>();
             context = crossRoot != null && crossRoot.context != null
                 ? new ExampleContext(this, crossRoot.context)
