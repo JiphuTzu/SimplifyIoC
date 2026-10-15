@@ -1,6 +1,6 @@
 {
   "name": "com.aixuma.simplifyioc",
-  "version": "1.3.2",
+  "version": "2.0.0",
   "displayName": "SimplifyIoC",
   "description": "StrangeIoC 的精简版：面向 Unity 的轻量 IoC / MVCS 框架，提供绑定容器、命令、类型安全信号与声明式绑定（[Child] / [BindEvent] / [BindMethod] / [MainThread]）。",
   "unity": "2022.3",

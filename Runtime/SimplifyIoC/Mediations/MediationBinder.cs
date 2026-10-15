@@ -125,11 +125,11 @@ namespace SimplifyIoC.Mediations
                 var iView = views[a];
                 if (iView != null && iView.shouldRegister)
                 {
-                    if (iView.autoRegisterWithContext && iView.registeredWithContext)
+                    if (iView.autoRegisterWithBootstrap && iView.registeredWithBootstrap)
                     {
                         continue;
                     }
-                    iView.registeredWithContext = true;
+                    iView.registeredWithBootstrap = true;
                     if (!iView.Equals(view))
                         Trigger(MediationEvent.Awake, iView);
                 }

@@ -26,7 +26,7 @@
  *
  * 最后两点提醒。
  * 第一：View 也可以被注入（例如注入局部 Dispatcher 或配置文件），
- * 但强烈建议不要注入全 Context 共享的 Dispatcher 或任何超出 View
+ * 但强烈建议不要注入全 Bootstrap 共享的 Dispatcher 或任何超出 View
  * 关注范围的类，否则 mediation 的意义就名存实亡。
  * 第二：经验表明，划分“什么属于 Mediator、什么属于 View”是这套系统最难的部分。
  * 建议坚持“薄”类原则：除了完成中介所必需的，什么都别放进 Mediator。
