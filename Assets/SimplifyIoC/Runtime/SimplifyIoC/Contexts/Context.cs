@@ -1,31 +1,12 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-
-
-/*
  * @class SimplifyIoC.Contexts.Context
- * 
- * A Context is the entry point to the binding framework.
- * 
- * Extend this class to create the binding context suitable 
- * for your application.
- * 
- * In a typical Unity3D setup, extend MVCSContext and instantiate 
- * your extension from the ContextView.
+ *
+ * Context 是绑定框架的入口。
+ *
+ * 继承本类，创建适合你的应用的绑定上下文。
+ *
+ * 典型的 Unity 用法是：继承 Context（或使用推荐的 SimplifyContext<T>），
+ * 并从 Bootstrap（ContextView）中实例化你的扩展。
  */
 
 using System;
@@ -44,28 +25,6 @@ namespace SimplifyIoC.Contexts
         /// Marker for the named Injection of the ContextView
         Bootstrap
     }
-    [Flags]
-    public enum ContextStartupFlags
-    {
-        /// Context will map bindings and launch automatically (default).
-        Automatic = 0,
-        /// Context startup will halt after Core bindings are mapped, but before instantiation or any custom bindings.
-        /// If this flag is invoked, the developer must call context.Start()
-        ManualMapping = 1,
-        /// Context startup will halt after all bindings are mapped, but before firing ContextEvent.START (or the analogous Signal).
-        /// If this flag is invoked, the developer must call context.Launch()
-        ManualLaunch = 2,
-    }
-    /*
-     * @class SimplifyIoC.Contexts.Context
-     *
-     * A Context is the entry point to the binding framework.
-     *
-     * Implement this interface to create the binding context suitable for your application.
-     *
-     * In a typical Unity3D setup, an extension of MVCSContext should be instantiated from the ContextView.
-     */
-    
     // 3.2：不再继承 Binder——Context 自带的绑定注册表从未被使用（Context 的绑定
     // 都走 injectionBinder/commandBinder/mediationBinder 三个组件 Binder），
     // 继承只会把 Binder 的公开面错误地暴露成 Context 的 API。
@@ -74,9 +33,6 @@ namespace SimplifyIoC.Contexts
         /// The top of the View hierarchy.
         /// This is your top-level GameObject
         protected Bootstrap bootstrap;
-
-        /// If false, the `Launch()` method won't fire.
-        private readonly bool _autoStartup;
 
         /// 3.1：Dispose 幂等标志
         protected bool _disposed;
@@ -118,18 +74,11 @@ namespace SimplifyIoC.Contexts
         ///   ② Context 本就不使用 Mediator 机制——直接给 View 走注入 + 声明式解析的兜底路径。
         private bool _coreInstantiated;
 
-        public Context() { }
-
-        public Context(Bootstrap view, ContextStartupFlags flags = ContextStartupFlags.Automatic)
-            : this(view, null, flags)
-        {
-        }
-
         /// <summary>
         /// 5.6：带显式父 Context 的构造入口。跨场景 / 跨 Prefab 组合（两边没有 Transform 层级关系，
         /// 但要共享跨域绑定）时用这个重载，或事后调用 <see cref="AddContext"/>。
         /// </summary>
-        public Context(Bootstrap view, Context parent, ContextStartupFlags flags = ContextStartupFlags.Automatic)
+        public Context(Bootstrap view, Context parent = null)
         {
             // ReSharper disable once VirtualMemberCallInConstructor
             SetBootstrap(view);
@@ -148,11 +97,12 @@ namespace SimplifyIoC.Contexts
 
             // ReSharper disable once VirtualMemberCallInConstructor
             AddCoreComponents();
-            _autoStartup = (flags & ContextStartupFlags.ManualLaunch) != ContextStartupFlags.ManualLaunch;
-            if ((flags & ContextStartupFlags.ManualMapping) != ContextStartupFlags.ManualMapping)
-            {
-                Start();
-            }
+            //启动语义（单一、显式）：构造 = 建容器 + 归属 + 映射（Start）；
+            //启动（Launch）永远由调用方显式触发——推荐路径由 SimplifyBootstrap.Start 补上，
+            //裸 Bootstrap 派生类需自行在 Start 里调用 context.Launch()。
+            //注意 MapBindings 在构造期即被调用（虚调用陷阱）：派生类实例字段尚未赋值，
+            //MapBindings 里只放类型绑定，值绑定请在构造完成后再补。
+            Start();
         }
 
         /// <summary>
@@ -183,8 +133,9 @@ namespace SimplifyIoC.Contexts
         }
 
         // 原 Context(Bootstrap, bool autoMapping) 重载已删除（P0#1）：
-        // 其两个取值无论怎么传都不会执行 Start()（ManualMapping 标志恒被设置），
-        // 语义反了且无任何调用方。需要手动控制时请使用 ContextStartupFlags。
+        // 其两个取值无论怎么传都不会执行 Start()（映射恒被推迟），
+        // 语义反了且无任何调用方。ContextStartupFlags 已随启动语义统一一并移除：
+        // 映射永远在构造期完成，启动永远显式调用 Launch()。
 
         protected virtual void AddCoreComponents()
         {
@@ -229,7 +180,8 @@ namespace SimplifyIoC.Contexts
                 view.AttachContext(this);
         }
 
-        /// Call this from your Root to set everything in action.
+        /// 建容器、确定归属并完成映射（InstantiateCoreComponents + MapBindings + PostBindings）。
+        /// 由构造函数自动调用，正常情况下无需手动触发。
         public void Start()
         {
             ThrowIfDisposed();
@@ -237,12 +189,11 @@ namespace SimplifyIoC.Contexts
             _coreInstantiated = true;
             MapBindings();
             PostBindings();
-            if (_autoStartup)
-                Launch();
         }
 
-        /// The final method to fire after mappings.
-        /// If autoStartup is false, you need to call this manually.
+        /// 启动 Context：启动语义由派生类定义（如 SimplifyContext<T> 在此广播 StartupSignal）。
+        /// 启动永远显式——推荐路径由 SimplifyBootstrap.Start 调用；
+        /// 裸 Bootstrap 派生类需自行在 Start 里调用 context.Launch()。
         public virtual void Launch()
         {
             ThrowIfDisposed();

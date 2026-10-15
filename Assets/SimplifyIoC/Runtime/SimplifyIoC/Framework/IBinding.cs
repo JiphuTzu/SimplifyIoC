@@ -1,43 +1,21 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @interface SimplifyIoC.Framework.IBinding
- * 
- * Binds a key SemiBinding to a vlaue Semibinding.
- * 
- * Bindings represent the smallest element of Strange with which most
- * developers will normally interact.
- * 
- * A Strange binding is made up of two required parts and one optional part (SemiBindings).
- * <ul>
- * <li>key - The Type or value that a client provides in order to unlock a value.</li>
- * <li>value - One or more things tied to and released by the offering of a key</li>
- * <li>name - An optional discriminator, allowing a client to differentiate between multiple keys of the same Type</li>
- * </ul>
- * 
- * The required parts are a key and a value. The key triggers the value; 
- * thus an event can be the key that triggers a callback. 
- * Or the instantiation of one class can be the key that leads to the 
- * instantiation of another class. The optional part is a name. 
- * Under some circumstances, it is useful to qualify two bindings with identical keys. 
- * Under these circumstances, the name serves as a discriminator.
- * <br />
- * <br />
- * Note that SemiBindings maintain lists, so RemoveKey, RemoveValue and RemoveName delete an entry from those lists.
+ *
+ * 把 key SemiBinding 绑定到 value SemiBinding。
+ *
+ * Binding 是开发者日常打交道最多的最小单元。
+ *
+ * 一个绑定由两个必需部分和一个可选部分（SemiBinding）组成：
+ * - key：客户端为解锁一个值而提供的 Type 或值；
+ * - value：与 key 绑定、凭 key 释放的一个或多个对象；
+ * - name：可选的区分符，允许客户端区分同一 Type 的多个绑定。
+ *
+ * 必需部分是 key 与 value：key 触发 value——事件可以作为触发回调的 key，
+ * 一个类的实例化也可以作为引出另一个类实例化的 key。
+ * 可选部分是 name：当需要用相同的 key 建立两个绑定时，name 充当区分符。
+ *
+ * 注意 SemiBinding 内部维护的是列表，RemoveKey / RemoveValue / RemoveName
+ * 都是从这些列表中删除条目。
  */
 
 namespace SimplifyIoC.Framework

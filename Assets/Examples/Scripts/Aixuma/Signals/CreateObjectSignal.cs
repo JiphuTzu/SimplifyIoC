@@ -1,17 +1,14 @@
-using SimplifyIoC.Commands;
+using SimplifyIoC.Signals;
+using UnityEngine;
 //============================================================
 //支持中文，文件使用UTF-8编码
 //@author	JiphuTzu
 //@create	20210310
-//@company	UMa
+//@company	Aixuma
 //
 //@description:
 //============================================================
-namespace UMa.Commands
+namespace Aixuma.Signals
 {
-    public class ExampleStartupCommand : Command {
-		public override void Execute(){
-			
-		}
-	}
+    public class CreateObjectSignal : Signal<Vector3> {}
 }

@@ -5,11 +5,11 @@ using UnityEngine;
 //支持中文，文件使用UTF-8编码
 //@author	JiphuTzu
 //@create	20210310
-//@company	UMa
+//@company	Aixuma
 //
 //@description:
 //============================================================
-namespace UMa.Commands
+namespace Aixuma.Commands
 {
     public class CreateObjectCommand : Command
     {

@@ -1,16 +1,16 @@
 using SimplifyIoC.Mediations;
 using SimplifyIoC.Utils;
-using UMa.Signals;
+using Aixuma.Signals;
 using UnityEngine.UI;
 //============================================================
 //支持中文，文件使用UTF-8编码
 //@author	JiphuTzu
 //@create	20210311
-//@company	UMa
+//@company	Aixuma
 //
 //@description:
 //============================================================
-namespace UMa.Views
+namespace Aixuma.Views
 {
     public class RecordView : View
     {

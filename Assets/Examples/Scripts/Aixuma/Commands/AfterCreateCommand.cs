@@ -1,22 +1,20 @@
 using SimplifyIoC.Commands;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 //============================================================
 //支持中文，文件使用UTF-8编码
 //@author	JiphuTzu
-//@create	20210311
-//@company	UMa
+//@create	20210312
+//@company	Aixuma
 //
 //@description:
 //============================================================
-namespace UMa.Commands
+namespace Aixuma.Commands
 {
-    public class CrossContextStartupCommand : Command
+    public class AfterCreateCommand : Command
     {
         public override void Execute()
         {
-            Debug.Log("cross context startup command execute");
-			SceneManager.LoadScene(1);
+            Debug.Log("after create command execute");
         }
     }
 }

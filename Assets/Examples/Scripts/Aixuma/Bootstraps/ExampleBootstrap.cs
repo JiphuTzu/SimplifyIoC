@@ -1,18 +1,18 @@
 using SimplifyIoC.Contexts;
-using UMa.Commands;
-using UMa.Mediators;
-using UMa.Signals;
-using UMa.Views;
+using Aixuma.Commands;
+using Aixuma.Mediators;
+using Aixuma.Signals;
+using Aixuma.Views;
 using UnityEngine;
 //============================================================
 //支持中文，文件使用UTF-8编码
 //@author	JiphuTzu
 //@create	20210310
-//@company	UMa
+//@company	Aixuma
 //
 //@description:
 //============================================================
-namespace UMa.Bootstraps
+namespace Aixuma.Bootstraps
 {
     public class ExampleBootstrap : SimplifyBootstrap
     {

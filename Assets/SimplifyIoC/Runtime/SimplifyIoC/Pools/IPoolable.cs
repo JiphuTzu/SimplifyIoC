@@ -1,33 +1,13 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @interface SimplifyIoC.Pools.IPoolable
  *
- * Interface for items that belong to a Pool
+ * 属于 Pool 的对象所实现的接口。
  *
- * Instances that belong to a Pool usually need to be cleaned up for later
- * reuse. This is both an aspect of careful instance wrangling and of memory management,
- * since you want to release any memory references possibly attached to the poolable
- * items. If your instances implement IPoolable, place all cleanup code inside Restore(),
- * and the cleanup will occur automatically when the instance is returned to the Pool.
+ * 池化实例在复用之前通常需要清理——这既是实例管理的需要，也是内存管理的需要：
+ * 你不会希望挂在实例上的引用一直占着内存。实现 IPoolable 后，
+ * 把所有清理代码放进 Restore()，实例归还 Pool 时会自动执行。
  *
- * If you cannot or do not wish to implement IPoolable, that's entirely allowable, but
- * know that it will be your responsibility to clean up an instance BEFORE returning
- * it to the Pool.
+ * 不实现 IPoolable 也完全可以，但那样就必须在把实例归还 Pool 之前自行完成清理。
  */
 
 namespace SimplifyIoC.Pools

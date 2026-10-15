@@ -1,65 +1,41 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @class Inject
- * 
- * The `[Inject]` attribute marks a setter Injection point.
- * 
- * Example:
+ *
+ * [Inject] 特性标记一个属性注入点。
+ *
+ * 示例：
 
 		[Inject]
 		public IMyInterface myInstance{get;set;}
 
- * 
- * Inject tags can also specify a name:
- * 
+ * 注入点也可以指定名字：
 
- 		[Inject(SomeEnum.VALUE)]
- 		public IMyInterface myInstance{get;set;}
+		[Inject(SomeEnum.VALUE)]
+		public IMyInterface myInstance{get;set;}
 
-
- * @class Name
- *  
- * When a parameter of a constructor or pseudo-constructor is tagged with [Name], 
- * the injector can discriminate between different classes that satisfy the same interface.  
- * This means that constructors and pseudo-constructors can used named injection just like 
- * setter injection.
- * 
- * @class Construct
- * 
- * The `[Construct]` attribute marks a preferred Constructor. If omitted,
- * the Reflector will mark as Constructor the shortest available
- * Constructor. Obviously, if there only one constructor, this tag
- * is not requried.
- * 
- * @class PostConstruct
- * 
- * The `[PostConstruct]` attribute marks one or more methods as PostConstructors.
- * A PostConstructor is triggered immediately after injection. This allows
- * you to use use a PostConstructor in much the same way as a Constructor,
- * safe in the knowledge that there will be no null pointers on injected
- * dependencies. PostConstructors do not accept arguments.
  *
- * You may optionally include a priority int on your PostConstructor. This allows for multiple
- * PostConstruction methods which will fire in a predictable order.
- * 
+ * @class Name
+ *
+ * 当构造函数或伪构造函数的参数标注 [Name] 时，注入器可以在满足同一接口的
+ * 不同实现之间做出区分——构造注入因此也能像属性注入一样使用命名注入。
+ *
+ * @class Construct
+ *
+ * [Construct] 特性标记首选的构造函数。若省略，反射器会选择参数最少的构造函数。
+ * 显然，只有一个构造函数时无需该标记。
+ *
+ * @class PostConstruct
+ *
+ * [PostConstruct] 特性把一个或多个方法标记为 PostConstructor（注入后回调）。
+ * 它在注入完成后立即触发，因此可以像构造函数一样使用，
+ * 并保证此时注入的依赖不会为空。PostConstructor 不接受参数。
+ *
+ * 可以为 PostConstructor 指定可选的优先级 int，
+ * 多个 PostConstructor 将按可预期的顺序依次执行。
+ *
  * @class Deconstruct
- * 
- * Unsupported.
+ *
+ * 暂不支持。
  */
 
 using System;

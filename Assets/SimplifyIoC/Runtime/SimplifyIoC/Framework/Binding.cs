@@ -1,40 +1,20 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @class SimplifyIoC.Framework.Binding
- * 
- * A binding maintains at least two — and optionally three — SemiBindings:
- * 
- * <ul>
- * <li>key - The Type or value that a client provides in order to unlock a value.</li>
- * <li>value - One or more things tied to and released by the offering of a key</li>
- * <li>name - An optional discriminator, allowing a client to differentiate between multiple keys of the same Type</li>
- * </ul>
- * 
- * <p>Resolver</p>
- * The resolver method (type Binder.BindingResolver) is a callback passed in to resolve
- * instantiation chains.
  *
- * Strange v0.7 adds Pools as an alternative form of SemiBinding. Pools can recycle groups of instances.
- * Binding implements IPool to act as a facade on any Pool SemiBinding.
- * 
- * @see SimplifyIoC.Framework.IBinding;
- * @see SimplifyIoC.Pools.IPool;
- * @see SimplifyIoC.Framework.Binder;
+ * 一个 Binding 至少维护两个、可选维护三个 SemiBinding：
+ *
+ * - key：客户端为解锁一个值而提供的 Type 或值；
+ * - value：与 key 绑定、凭 key 释放的一个或多个对象；
+ * - name：可选的区分符，允许客户端区分同一 Type 的多个绑定。
+ *
+ * 解析器（resolver，类型为 Binder.BindingResolver）是传入的回调，用于解开实例化链条。
+ *
+ * 本框架以 Pool 作为 SemiBinding 的另一种形态，Pool 可回收一组实例；
+ * Binding 实现 IPool，作为 Pool SemiBinding 的门面。
+ *
+ * @see SimplifyIoC.Framework.IBinding
+ * @see SimplifyIoC.Pools.IPool
+ * @see SimplifyIoC.Framework.Binder
  */
 
 namespace SimplifyIoC.Framework

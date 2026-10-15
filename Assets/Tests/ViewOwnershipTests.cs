@@ -206,7 +206,7 @@ namespace SimplifyIoC.Tests
             public void CallOnDisable() => OnDisable();
             public void CallOnDestroy() => OnDestroy();
 
-            public T ExposedGet<T>() where T : BaseSignal => Get<T>();
+            public T ExposedGet<T>() where T : BaseSignal => GetSignal<T>();
         }
     }
 }

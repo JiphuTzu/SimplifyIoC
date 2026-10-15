@@ -1,37 +1,16 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- * & Marc Tanenbaum, StrangeIoC 2015
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @interface SimplifyIoC.Framework.IBinder
- * 
- * Collection class for bindings.
- * 
- * Binders are a collection class (akin to ArrayList and Dictionary)
- * with the specific purpose of connecting lists of things that are
- * not necessarily related, but need some type of runtime association.
- * Binders are the core concept of the StrangeIoC framework, allowing
- * all the other functionality to exist and further functionality to
- * easily be created.
- * 
- * Think of each Binder as a collection of causes and effects, or actions
- * and reactions. If the Key action happens, it triggers the Value
- * action. So, for example, an Event may be the Key that triggers
- * instantiation of a particular class.
- * 
+ *
+ * 用于绑定的集合接口。
+ *
+ * Binder 是一种集合类（类似 ArrayList 与 Dictionary），
+ * 其用途是把那些并不天然相关、但需要在运行时建立关联的东西连接起来。
+ * Binder 是本框架的核心概念，其他所有功能都建立在它之上，
+ * 更多功能也可以便捷地由它派生。
+ *
+ * 可以把每个 Binder 看作“原因与结果”或“动作与反应”的集合：
+ * key 动作发生时触发 value 动作。例如一个事件可以作为 key，触发某个类的实例化。
+ *
  * @see SimplifyIoC.Framework.IBinding
  */
 

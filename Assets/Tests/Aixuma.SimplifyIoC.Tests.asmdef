@@ -1,8 +1,8 @@
 {
-    "name": "UMa.SimplifyIoC.Tests",
+    "name": "Aixuma.SimplifyIoC.Tests",
     "rootNamespace": "SimplifyIoC.Tests",
     "references": [
-        "UMa.SimplifyIoC",
+        "Aixuma.SimplifyIoC",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

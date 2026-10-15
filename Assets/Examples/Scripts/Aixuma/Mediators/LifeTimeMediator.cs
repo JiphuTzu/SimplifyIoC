@@ -1,19 +1,19 @@
 using SimplifyIoC.Mediations;
 using SimplifyIoC.Utils;
-using UMa.Signals;
-using UMa.Views;
+using Aixuma.Signals;
+using Aixuma.Views;
 using UnityEngine;
 
 //============================================================
 //支持中文，文件使用UTF-8编码
 //@author	JiphuTzu
 //@create	20210311
-//@company	UMa
+//@company	Aixuma
 //
 //@description:	阶段 4 起改用 Mediator<TView> 强类型视图：
 //				不再写 [Inject] LifeTimeView view，也不需要在 OnRegister 里手抄解析。
 //============================================================
-namespace UMa.Mediators
+namespace Aixuma.Mediators
 {
     public class LifeTimeMediator : Mediator<LifeTimeView>
     {

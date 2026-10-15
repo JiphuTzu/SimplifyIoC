@@ -1,46 +1,25 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @interface SimplifyIoC.Injectors.IInjectionBinding
  *
- * The Binding form for the Injection system.
+ * 注入系统使用的绑定形式。
  *
- * The InjectionBinding allows mapping to three core types:
- * <ul>
- *  <li>Default: every `GetInstance()` on the Binder Key returns a new imstance</li>
- *  <li>ToSingleton: every `GetInstance()` on the Binder Key returns the same imstance</li>
- *  <li>ToValue: every `GetInstance()` on the Binder Key returns the provided imstance</li>
- * </ul>
+ * InjectionBinding 支持三种核心映射类型：
+ * - Default（默认）：对 Binder key 的每次 GetInstance() 都返回新实例；
+ * - ToSingleton：每次 GetInstance() 返回同一个实例；
+ * - ToValue：每次 GetInstance() 返回绑定时提供的实例。
  *
- * Named injections are supported, thus:
+ * 支持命名注入：
  *
-        Bind<IMyInterface>().To<MyInterfaceImplementer>().ToName(SomeEnum.VALUE);
+ *         Bind<IMyInterface>().To<MyInterfaceImplementer>().ToName(SomeEnum.VALUE);
  *
- * returns a MyInterfaceImplementer instance only to injections that specifically tag
- * SomeEnum.Value. This will be the same instance whenever it is called.
+ * 只有显式标注 SomeEnum.VALUE 的注入点才会拿到该实例，且每次拿到的是同一个。
  *
- * You can also map multiple Keys, allowing for polymorphic binding.
- * This allows you to match two or more interfaces to a single class or value.
+ * 还可以映射多个 key，实现多态绑定——让两个或更多接口指向同一个类或值：
  *
-        Bind<IFirstInterface>().Bind<ISecondInterface>().To<PolymorphicClass>();
+ *         Bind<IFirstInterface>().Bind<ISecondInterface>().To<PolymorphicClass>();
  *
- * Note that while you can bind multiple keys to an InjectionBinding, you can
- * only bind one value. (The Injection system needs to know which concrete
- * class you want created.)
+ * 注意：一个 InjectionBinding 可以绑定多个 key，但只能绑定一个值
+ * （注入系统需要知道要创建哪个具体类）。
  *
  * @see SimplifyIoC.Injectors.IInjectionBinder
  */

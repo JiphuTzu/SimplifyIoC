@@ -5,11 +5,11 @@ using UnityEngine.Events;
 //支持中文，文件使用UTF-8编码
 //@author	JiphuTzu
 //@create	20210311
-//@company	UMa
+//@company	Aixuma
 //
 //@description:
 //============================================================
-namespace UMa.Views
+namespace Aixuma.Views
 {
     public class LifeTimeView : View {
 		public float lifeTime = 2;

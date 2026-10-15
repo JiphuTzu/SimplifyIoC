@@ -1,50 +1,31 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @interface SimplifyIoC.Pools.IPool
  *
- * A mechanism for storing and reusing instances.
+ * 存储并复用实例的机制。
  *
- * Unlike much of the rest of Strange, the Pool is not a Binder, per se. Rather,
- * it holds onto instances created by other parts of your application for use and
- * reuse. Strange applies Pools in the CommandBinder and EventDispatcher for
- * the recycling of those instances. But you can employ Pools yourself
- * by mapping and injecting a Pool for instances you want to reuse.
+ * 与框架其他部分不同，Pool 本身并不是 Binder：它保存应用其他部分创建的
+ * 实例以供使用与复用。框架在 CommandBinder 中用 Pool 回收命令实例。
+ * 你也可以自己使用 Pool：映射并注入一个 Pool 来复用你需要的实例。
  *
- * Basic instructions for injecting a Pool for use:
- * Map IPool<SomeClass> in the InjectionBinder:
+ * 注入 Pool 的基本做法——先在 InjectionBinder 中映射：
 
 		injectionBinder.Bind<IPool<MyClass>>().ToSingleton();
 
-* Then inject like so:
+ * 然后注入：
 
 		[Inject]
 		public IPool<MyClass> myPool { get; set; }
+
  *
- * A couple of caveats for working with Pools:
- * 1. A limitation of the version of .NET currently used by Unity forbids using interfaces or abstracts in generics.
- * so you cannot map and inject IPool<IMyInterface> or IPool<MyAbstractClass>. This is a little confusing in
- * Strange, since we're used to mapping injections in exactly this fashion (e.g., injectionBinder.Bind<ISomeInterface>).
- * The reason this doesn't work for Pools has to do with setting properties, rather than the binding itself.
- * But because it will bite you, we throw an Exception if you attempt to Bind or set anything but a concrete Pool type.
- * 
- * 2. Pooling presupposes that when the instance is finished doing what it does it is cleaned up and
- * returned to the Pool. Use IPool.ReturnInstance() to mark an object as ready for reuse.
- * @see SimplifyIoC.Pools.IPoolable for more on cleaning up.
+ * 使用 Pool 的两点注意：
+ * 1. 运行时不支持在泛型里使用接口或抽象类——不能映射并注入 IPool<IMyInterface>
+ *    或 IPool<MyAbstractClass>。这与日常注入习惯（injectionBinder.Bind<ISomeInterface>）
+ *    略有不同，原因出在属性赋值环节而非绑定本身。为免踩坑，映射或设置任何
+ *    非具体 Pool 类型时框架会直接抛异常。
+ *
+ * 2. 使用 Pool 的前提是：实例完成工作后会被清理并归还给 Pool。
+ *    用 IPool.ReturnInstance() 把对象标记为可复用；
+ *    清理逻辑详见 @see SimplifyIoC.Pools.IPoolable。
  */
 
 using System;

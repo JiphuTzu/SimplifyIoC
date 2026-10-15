@@ -1,36 +1,31 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
+ * @class SimplifyIoC.Contexts.Bootstrap
  *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
+ * Context 层级结构的根节点（扮演 StrangeIoC 中 ContextView 的角色）。
  *
- *		http://www.apache.org/licenses/LICENSE-2.0
+ * 继承本类创建应用根，并把该 MonoBehaviour 挂到显示层级最顶部的 GameObject 上。
+ * 注意：Bootstrap 并不继承 View，两者是平行的 MonoBehaviour——
+ * View 负责"注册进已存在的 Context"，而 Bootstrap 负责"创建 Context"，职责相反、时序也不同；
+ * 它需要的只是 Transform 锚点与注入根两个身份（详见 AttachContext 与 Context 的绑定）。
  *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
- * @class SimplifyIoC.Contexts.ContextView
- * 
- * The Root View of a Context hierarchy.
- * 
- * Extend this class to create your AppRoot, then attach
- * that MonoBehaviour to the GameObject at the very top of
- * your display hierarchy.
- * 
- * The startup sequence looks like this:
-
-		void Awake()
-		{
-			context = new MyContext(this, true);
-			context.Start ();
-		}
-
+ * 5.6 起本类的 context 属性由框架回写：Context 构造函数会经 SetBootstrap → AttachContext
+ * 写入自己，因此你只需要在 Awake 里创建 Context，无需再手动给 context 赋值。
+ * 创建 Context 本身仍必须在 Awake 里完成（框架不会替你实例化派生 Context）。
+ *
+ * 启动语义（单一、显式）：构造 = 建容器 + 归属 + 映射；启动永远显式调用 context.Launch()。
+ * 推荐直接派生 SimplifyBootstrap——它在 Start 里替你调用 Launch：
+ *
+ *      //推荐：SimplifyBootstrap 子类只需在 Awake 里创建 Context
+ *      void Awake() { new MyContext(this); }        //MyContext : SimplifyContext<T>
+ *
+ * 若派生裸 Bootstrap（直接继承 Context），请自行补启动：
+ *
+ *      void Awake()  { context = new MyContext(this); }
+ *      void Start()  { context.Launch(); }
+ *
+ * 旧的只创建不启动写法现在会真的停在"已映射、未启动"状态——StartupSignal 不会广播。
+ * 注意：MapBindings 在构造期即被调用（派生类实例字段尚未赋值），里面只放类型绑定，
+ * 值绑定请在构造完成后再补。
  */
 
 using SimplifyIoC.Mediations;
@@ -71,16 +66,5 @@ namespace SimplifyIoC.Contexts
 		{
 			context?.Dispose();
 		}
-
-		#region IView implementation
-
-		public bool requiresContext {get;set;}
-
-		public bool registeredWithContext {get;set;}
-
-		public bool autoRegisterWithContext{ get; set; }
-		public bool shouldRegister => true;
-
-		#endregion
 	}
 }

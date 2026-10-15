@@ -83,8 +83,6 @@ namespace SimplifyIoC.Tests
         {
             var go = new GameObject("ViewCacheIsolationTests.Bootstrap");
             _objects.Add(go);
-            //ManualMapping：ctor 不调用 Start() → mediationBinder 为 null，
-            //AddView/CacheView 走缓存分支（正是早期视图的路径）
             return new CacheProbeContext(go.AddComponent<Bootstrap>());
         }
 
@@ -97,10 +95,13 @@ namespace SimplifyIoC.Tests
 
         private sealed class CacheProbeContext : Context
         {
-            public CacheProbeContext(Bootstrap view) : base(view, ContextStartupFlags.ManualMapping) { }
+            public CacheProbeContext(Bootstrap view) : base(view) { }
 
             public ViewCache ExposedViewCache => _viewCache;
-            public void CacheEarlyView(View view) => CacheView(view);
+            //本夹具要测的是"缓存中的早期视图"本身（ViewCache 的隔离与随 Dispose 清空）。
+            //ContextStartupFlags 移除后构造期即完成映射，AddView 不再走缓存分支，
+            //故直接写入 _viewCache 复现缓存状态（原缓存分支的效果就是这一行）。
+            public void CacheEarlyView(View view) => _viewCache.Add(view);
         }
 
         /// 不自动向 Context 注册，测试里显式调用 CacheView，避免依赖 Awake 触发时机

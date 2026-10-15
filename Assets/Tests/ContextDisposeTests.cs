@@ -90,7 +90,7 @@ namespace SimplifyIoC.Tests
             try
             {
                 var manualContext = new ManualStartContext(
-                    manualObject.AddComponent<Bootstrap>(), ContextStartupFlags.ManualMapping);
+                    manualObject.AddComponent<Bootstrap>());
                 manualContext.Dispose();
                 Assert.Throws<ObjectDisposedException>(() => manualContext.Start());
             }
@@ -117,7 +117,7 @@ namespace SimplifyIoC.Tests
 
         private sealed class ManualStartContext : Context
         {
-            public ManualStartContext(Bootstrap view, ContextStartupFlags flags) : base(view, flags) { }
+            public ManualStartContext(Bootstrap view) : base(view) { }
         }
     }
 }
