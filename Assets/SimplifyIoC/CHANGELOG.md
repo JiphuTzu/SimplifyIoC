@@ -1,4 +1,12 @@
 ﻿# CHANGELOG
+## 1.3.1
+### 修复与改进
++ **`[BindEvent]` 方法多目标修复**：方法上标注多个 targetName（如 `[BindEvent("onClick", "btn1", "btn2")]`）时，原实现命中第一个目标即返回，其余目标被静默忽略；现每个目标独立解析、互不影响，且某个名字解析失败不再中断后续目标。
++ **`[BindEvent]` 收敛为仅限方法**：特性不再允许标注在字段 / 属性上（`AttributeTargets.Method`），`BindUsage` 枚举、`GetEventFieldParser` / `GetEventPropertyParser` 扩展及对应解析路径已删除——它们在框架内从未被注册（View / Mediator 只注册方法解析器），全仓也无调用方。targetNames 解析"事件宿主"时对字段 / 属性 / 数组 / List 的支持保持不变。
+
+### 升级注意（破坏性变更）
++ **`[BindEvent]` 仅支持标注在方法上**：此前标在字段 / 属性上的写法（由手写 `GetEventFieldParser` / `GetEventPropertyParser` 驱动）不再可用，请改为标注在监听方法上、targetNames 指向事件宿主；`BindUsage` 枚举与上述两个扩展方法已删除。
+
 ## 1.3.0
 本轮为框架内部质量与 API 现代化改造的累积成果（对应内部"阶段 0–5"，20+ 次提交）。
 **含破坏性变更**，升级前请先读文末「升级注意」。

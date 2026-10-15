@@ -95,6 +95,36 @@ namespace SimplifyIoC.Tests
         }
 
         [Test]
+        public void BindEventWithMultipleTargetsAttachesAll()
+        {
+            var view = CreateView<MultiTargetEventMappingView>("MultiTargetEventMappingView");
+
+            MediationBinder.Trigger(MediationEvent.Awake, view);
+
+            view.holderA.onClick.Invoke();
+            view.holderB.onClick.Invoke();
+            view.holderB.onClick.Invoke();
+
+            Assert.That(view.total, Is.EqualTo(3),
+                "方法上标注多个 targetName 时应全部挂载（原实现命中第一个即 return，只有第一个生效）");
+        }
+
+        [Test]
+        public void BindEventInvalidTargetNameDoesNotBlockOthers()
+        {
+            var view = CreateView<InvalidTargetEventMappingView>("InvalidTargetEventMappingView");
+
+            MediationBinder.Trigger(MediationEvent.Awake, view);
+
+            //targetNames 里混入不存在的名字"missing"：应跳过该名字继续解析其余目标
+            view.holderA.onClick.Invoke();
+            view.holderB.onClick.Invoke();
+
+            Assert.That(view.total, Is.EqualTo(2),
+                "某个 targetName 解析失败不应静默跳过后续目标（原实现 propertyInfo==null 即 return）");
+        }
+
+        [Test]
         public void EnsureAttributesInitializedIsIdempotent()
         {
             var view = CreateView<EventMappingView>("EventMappingView");
@@ -235,6 +265,28 @@ namespace SimplifyIoC.Tests
 
             [BindEvent("onClick", nameof(holder))]
             public void OnClick() => clicks++;
+        }
+
+        /// 方法上标注多个 targetName：所有目标都应挂载
+        private sealed class MultiTargetEventMappingView : ProbeView
+        {
+            public BindEventHolder holderA = new BindEventHolder();
+            public BindEventHolder holderB = new BindEventHolder();
+            public int total;
+
+            [BindEvent("onClick", nameof(holderA), nameof(holderB))]
+            public void OnClick() => total++;
+        }
+
+        /// targetNames 混入不存在的名字：应跳过它继续解析其余目标，不得整体中断
+        private sealed class InvalidTargetEventMappingView : ProbeView
+        {
+            public BindEventHolder holderA = new BindEventHolder();
+            public BindEventHolder holderB = new BindEventHolder();
+            public int total;
+
+            [BindEvent("onClick", nameof(holderA), "missing", nameof(holderB))]
+            public void OnClick() => total++;
         }
 
         private sealed class MainThreadView : ProbeView

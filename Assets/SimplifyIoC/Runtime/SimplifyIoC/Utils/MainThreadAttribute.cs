@@ -28,7 +28,7 @@ namespace SimplifyIoC.Utils
 
         public static void RemoveFromMainThread(this object target,Action callback)
         {
-            if(_runner==null) return;
+            if(_runner == null) return;
             _runner.Remove(target,callback);
         }
 
