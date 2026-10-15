@@ -51,8 +51,11 @@ namespace SimplifyIoC.Mediations
         /// 之后 Remove / Enable / Disable 一律直接发给它，不再逐次向上遍历 Transform 链。
         ///
         /// 改前每次生命周期事件都要重新走一遍 100 层上限的向上查找，且查出来的 Context
-        /// 未必是当初做 Mediate 的那个（中途被重新挂到别的父节点下时尤其容易错），
-        /// 更有一条"找不到就挂到 Context.firstContext"的全局暗道——现与那条暗道一并删除。
+        /// 未必是当初做 Mediate 的那个（中途被重新挂到别的父节点下时尤其容易错）。
+        ///
+        /// 与兜底的关系：向上找不到任何 Bootstrap 时，注册会回落到框架级锚点
+        /// <see cref="Context.rootContext"/>（5.6 之前叫 Context.firstContext，2026-10-15 恢复）。
+        /// 兜底只决定"注册到谁"，不影响"之后通知给谁"——归属照样在注册那一刻钉死。
         public Context owningContext { get; private set; }
 
         /// 5.6：由 Context 在一锤定音的注册点写入（不要从别处调用）。
@@ -145,7 +148,7 @@ namespace SimplifyIoC.Mediations
             //4.7：走到这里仍未注册到任何 Context ⇒ 不会有任何人替它做"注入后解析"。
             //自行兜底一次（幂等），使 View 在没有 Mediator / 没有 Context 时，
             //[Child] / [BindEvent] / [BindMethod] / [MainThread] 依然照常生效。
-            //（requiresContext 为 true 的 View 在上一行就会抛异常，走不到这里——这是既有契约。）
+            //（requiresContext 为 true 的 View 在上一行要么已注册、要么已抛异常，走不到这里——这是既有契约。）
             if (owningContext == null)
                 EnsureAttributesInitialized();
         }
@@ -211,7 +214,8 @@ namespace SimplifyIoC.Mediations
         /// <summary>
         /// 沿 Transform 向上找最近一个已持有 Context 的 Bootstrap，注册并记下归属。
         /// 找不到时：Awake 阶段不动声色（finalTry=false，Start 还有一次机会）；
-        /// Start 阶段若 requiresContext 则按既有契约抛异常。
+        /// Start 阶段若 requiresContext 则先回落到框架级锚点（Context.rootContext），
+        /// 锚点也不在场才抛异常。
         /// </summary>
         private void ResolveAndRegister(bool finalTry)
         {
@@ -233,10 +237,20 @@ namespace SimplifyIoC.Mediations
             }
 
             if (!requiresContext || !finalTry) return;
-            //5.6：原实现在这里有一条"last ditch"——找不到任何 Context 时把 View 挂到
-            //Context.firstContext（谁先构造谁当兜底）。那条暗道让 View 的归属彻底失控：
-            //一个层级上毫无关系的 Context 会莫名其妙地 Mediate 这个 View，
-            //连级联 Dispose 与跨域单例都会被牵扯进来。已删除：找不到归属就按契约抛。
+
+            //last ditch：向上找不到任何 Bootstrap 的 View 注册到框架级锚点，而不是直接抛。
+            //这是 5.6 之前的行为（当时叫 Context.firstContext），2026-10-15 恢复：
+            //运行期 Instantiate、层级被重排、Bootstrap 尚未就绪等情形下"层级里找不到家"并不罕见，
+            //宁可让归属落到一个进程级兜底，也不要让整个 View 崩在 Start。
+            //注意：作者已声明"不依赖 Context"（requiresContext = false）的 View 在上面就返回了，不参与兜底。
+            var anchor = Context.rootContext;
+            if (anchor != null)
+            {
+                anchor.AddView(this);
+                registeredWithContext = true;
+                return;
+            }
+
             var msg = loopLimiter == LOOP_MAX ?
                 "A view couldn't find a context. Loop limit reached." :
                 "A view was added with no context. Views must be added into the hierarchy of their ContextView lest all hell break loose.";

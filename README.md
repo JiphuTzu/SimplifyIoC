@@ -85,6 +85,34 @@ public class HudMediator : Mediator<HudView>
 }
 ```
 
+### 4. 跨场景 / 并列 Bootstrap：`Context.rootContext`
+
+多个场景各自带一个 Bootstrap 时，它们在 Transform 上往往并列，且分属不同程序集（热更新分层：场景/玩法层不应编译期依赖 App 层）。
+**第一个构造成功的链根 Context 自动成为框架级锚点**（`Context.rootContext`，先到先得、不抢占），
+它同时承担 5.6 之前 `firstContext` 的两条兜底，场景侧只依赖框架类型即可取得父 Context，跨域绑定随之可用：
+
+```csharp
+//App 层：常驻（DontDestroyOnLoad），先构造即可——锚点自动登记，无需额外声明
+public class AppBootstrap : SimplifyBootstrap
+{
+    protected override void Awake() => new AppContext(this);
+}
+
+//场景层：不认识 AppBootstrap，只认识框架类型
+public class LevelBootstrap : SimplifyBootstrap
+{
+    protected override void Awake() => new LevelContext(this, Context.rootContext);
+}
+```
+
+- 锚点**自动**产生：第一个构造的链根持有，后来的 Context 不抢占；锚点被 `Dispose()`（App 根销毁）后清空，下一个链根接任。
+- 两条**兜底**（1.3.2 恢复 5.6 之前 `firstContext` 的行为）：
+  - 构造 Context 时，显式 parent 与 Transform 层级都找不到父 ⇒ 自动挂到锚点下（跨场景并列加载时不必手写 parent）；
+  - View 找不到任何 Bootstrap ⇒ 注册到锚点而不是抛异常（`requiresContext = false` 的 View 不参与）。
+  归属优先级始终是 **显式 parent > Transform 层级 > 锚点兜底**——能表达清楚的永远优先。
+- 锚点缺席（单独跑某个场景调试）时 `Context.rootContext` 为 `null`，照常把它当 parent 传进去即 **自任链根**，功能照常。
+- 跨域绑定请只在锚点根声明一次并标 `.CrossContext()`，场景 Context 不要重复登记（会在共享根 binder 上同名冲突）。
+
 ## 声明式绑定
 
 在 `View` / `Mediator` 的成员上标注即可，框架会在**注入完成后自动解析**，无需手写调用。

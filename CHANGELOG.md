@@ -1,4 +1,22 @@
 ﻿# CHANGELOG
+## 1.3.2
+### 新增
++ **框架级 Context 锚点 `Context.rootContext`（恢复 `firstContext` 的兜底语义）**：供「跨场景 / 并列 Bootstrap」
+  取得父 Context，调用方因此无需知道 App 侧的具体类型（热更新分层：场景/玩法层不依赖 App 层）。
+  **自动登记**：第一个构造的**链根** Context 持有（先到先得、不抢占；锚点被 `Dispose()`
+  ——含 App 根 Bootstrap 被卸载——后，由下一个构造的链根接任）。它同时是两条兜底的落点：
+  - Context 构造时，**显式 parent 与 Transform 层级都找不到父 ⇒ 自动挂到锚点下**（"后来者自动成为子"）；
+  - View 向上**找不到任何 Bootstrap ⇒ 注册到锚点，而不是抛异常**（仅 `requiresContext = true`；`false` 不参与）。
+  归属优先级始终是 **显式 parent > Transform 层级 > 锚点兜底**。弱引用存储，锚点 `Dispose()` 时自动清空。
+
+### 升级注意（行为变更）
++ **1.3.0 移除的全局兜底已恢复**（旧名 `Context.firstContext`，现名 `Context.rootContext`）：
+  1.3.0 曾规定"View 必须位于某个 Bootstrap 的子孙层级，否则抛异常"、"无明显父子关系的两个 Context 互不隶属"——
+  这两条**不再成立**：层级外的 View 会注册到锚点，没有 Transform 关系的 Context 会挂到锚点下。
+  行为仍然是确定的：**显式 parent 与 Transform 层级优先**，锚点只在两者都表达不出来时才生效。
++ `Context.firstContext` 这个名字**没有恢复**，请统一使用 `Context.rootContext`。把 View 放进 Bootstrap 子树、
+  或显式传 parent 仍是推荐做法（归属最清晰、级联 Dispose 范围最小）。
+
 ## 1.3.1
 ### 修复与改进
 + **`[BindEvent]` 方法多目标修复**：方法上标注多个 targetName（如 `[BindEvent("onClick", "btn1", "btn2")]`）时，原实现命中第一个目标即返回，其余目标被静默忽略；现每个目标独立解析、互不影响，且某个名字解析失败不再中断后续目标。
