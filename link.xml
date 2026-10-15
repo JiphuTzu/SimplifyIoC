@@ -17,7 +17,7 @@
   - ignoreIfMissing="1" 使本文件在包未被引用时不会报错。
 -->
 <linker>
-  <assembly fullname="UMa.SimplifyIoC" preserve="all" ignoreIfMissing="1" />
+  <assembly fullname="Aixuma.SimplifyIoC" preserve="all" ignoreIfMissing="1" />
 
   <!-- MakeGenericType 涉及的 BCL 泛型容器兜底（按需可自行增删） -->
   <assembly fullname="mscorlib" ignoreIfMissing="1">

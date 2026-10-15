@@ -1,5 +1,5 @@
 /*
- * @file    ChildAttributeExtension.cs
+ * @file    ChildAttribute.cs
  * @author  JiphuTzu
  * @date    2021/11/4
  *
@@ -7,7 +7,7 @@
  *
  * @brief	（简要描述）
  *
- * @details	公司：Umawerse
+ * @details	公司：Aixuma
  *			对该文档的详细说明和解释，可以换行
  * @see     （参见可添加URL地址）
  */
@@ -30,6 +30,8 @@ namespace SimplifyIoC.Utils
      *              public Image image;
      *              [Child("submit")]
      *              public Button submit;
+     *              [Child(true)]
+     *              private Button _cancel;
      *              [Child("content/items")]
      *              private GameObject[] _items;
      *              [Child("content/icons")]
@@ -87,16 +89,6 @@ namespace SimplifyIoC.Utils
 
     public static class ChildAttributeExtension
     {
-        /// <summary>
-        /// 把带有ChildAttribute的变量与子对象对应。
-        /// 支持公有变量和私有变量
-        /// </summary>
-        /// <param name="target"></param>
-        [Obsolete("use this.AddAttributeParser(this.GetChildParser()).ParseAttributes() instead")]
-        public static void MapChildren(this Component target)
-        {
-            target.AddAttributeParser(target.GetChildParser()).ParseFields(BindingFlags.Instance|BindingFlags.Public);
-        }
 
         public static Action<T, ChildAttribute, FieldInfo, Type> GetChildParser<T>(this T target) where T : Component
         {

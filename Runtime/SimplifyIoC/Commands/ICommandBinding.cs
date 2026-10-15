@@ -1,28 +1,11 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @interface SimplifyIoC.Commands.ICommandBinding
- * 
- * Defines the form of a Binding for use with the CommandBinder. 
- * 
- * The only real distinctions between CommandBinding and Binding
- * are:
- * - the addition of `Once()`, which signals that the Binding should be destroyed immediately after a single use.
- * - a marker for running multiple commands in parallel (default) or sequentially.
+ *
+ * 定义 CommandBinder 所用绑定的形式。
+ *
+ * 它与普通 Binding 的实质区别有两点：
+ * - 增加了 Once()，标记绑定在单次使用后立即销毁；
+ * - 增加了多个 Command 并行执行（默认）或串行执行的标记。
  */
 
 using System;

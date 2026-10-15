@@ -5,7 +5,7 @@ using SimplifyIoC.Signals;
 //============================================================
 //@author	JiphuTzu
 //@create	2019/11/13
-//@company	UMa
+//@company	Aixuma
 //
 //@description:修改启动模式为手动启动，需要调用Launch方法，在Launch时会广播StartupSignal
 //             0.指定绑定一个启动命令到StartupSignal
@@ -16,13 +16,10 @@ namespace SimplifyIoC.Contexts
 {
     public abstract class SimplifyContext<T> : Context where T : Command
     {
-
-        public SimplifyContext(Bootstrap view) : base(view, ContextStartupFlags.ManualLaunch) { }
-
         /// <summary>
         /// 5.6：带显式父 Context 的构造入口。跨场景 / 跨层级共享跨域绑定时用（父 Object 不在本 Transform 链上）。
         /// </summary>
-        public SimplifyContext(Bootstrap view, Context parent) : base(view, parent, ContextStartupFlags.ManualLaunch) { }
+        public SimplifyContext(Bootstrap view, Context parent = null) : base(view, parent) { }
         
         protected sealed override void MapBindings()
         {

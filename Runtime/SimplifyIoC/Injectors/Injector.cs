@@ -1,40 +1,19 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @class SimplifyIoC.Injectors.Injector
- * 
- * Supplies injection for all mapped dependencies. 
- * 
- * Extension satisfies injection dependencies. Works in conjuntion with 
- * (and therefore relies on) the Reflector.
- * 
- * Dependencies may be Constructor injections (all parameters will be satisfied),
- * or setter injections.
- * 
- * Classes utilizing this injector must be marked with the following metatags:
- * <ul>
- *  <li>[Inject] - Use this metatag on any setter you wish to have supplied by injection.</li>
- *  <li>[Construct] - Use this metatag on the specific Constructor you wish to inject into when using Constructor injection. If you omit this tag, the Constructor with the shortest list of dependencies will be selected automatically.</li>
- *  <li>[PostConstruct] - Use this metatag on any method(s) you wish to fire directly after dependencies are supplied</li>
- * </ul>
- * 
- * The Injection system is quite loud and specific where dependencies are unmapped,
- * throwing Exceptions to warn you. This is exceptionally useful in ensuring that
- * your app is well structured.
+ *
+ * 为所有映射好的依赖提供注入。
+ *
+ * 注入依赖可以来自构造注入（所有参数都会被满足），也可以来自属性注入。
+ * 工作原理依赖反射器（Reflector）对类的解析结果。
+ *
+ * 使用注入的类可以标注以下特性：
+ * - [Inject]：标注任何希望由注入提供的属性；
+ * - [Construct]：使用构造注入时，标注希望被注入的构造函数；
+ *   省略时自动选择参数最少的构造函数；
+ * - [PostConstruct]：标注希望在依赖注入完成后立即执行的方法。
+ *
+ * 当依赖未映射时，注入系统会抛出异常大声告警——
+ * 这对保证应用结构正确非常有用。
  */
 
 using System;

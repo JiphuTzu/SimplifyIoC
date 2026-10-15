@@ -1,29 +1,13 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @class SimplifyIoC.Mediations.View
- * 
- * Parent class for all your Views. Extends MonoBehaviour.
- * Bubbles its Awake, Start and OnDestroy events to the
- * ContextView, which allows the Context to know when these
- * critical moments occur in the View lifecycle.
+ *
+ * 所有 View 的父类，继承 MonoBehaviour。
+ * 它把自身的 Awake、Start 与 OnDestroy 生命周期事件上报给归属的 Context，
+ * 使框架能够感知 View 生命周期中的这些关键时刻。
  */
 
 using System;
+using System.Reflection;
 using SimplifyIoC.Contexts;
 using SimplifyIoC.Injectors;
 using SimplifyIoC.Signals;
@@ -116,9 +100,9 @@ namespace SimplifyIoC.Mediations
         ///     [Inject] 之外的轻量写法：startSignal = Get&lt;StartSignal&gt;();
         /// 没有归属容器时返回 null（孤儿 View 的既有契约，不抛）。
         /// </summary>
-        protected T Get<T>() where T : BaseSignal
+        protected T GetSignal<T>() where T : BaseSignal
         {
-            return injectionBinder != null ? injectionBinder.GetInstance<T>() : null;
+            return injectionBinder?.GetInstance<T>();
         }
 
         /// <summary>
@@ -259,5 +243,14 @@ namespace SimplifyIoC.Mediations
             msg += "\nView: " + this;
             throw new Exception(msg);
         }
+#if UNITY_EDITOR
+        [ContextMenu("🔭 MapChildren", false, 0)]
+        private void AutoMapChildren()
+        {
+            this.AddAttributeParser(this.GetChildParser())
+                .ParseFields(BindingFlags.Instance | BindingFlags.Public  | BindingFlags.NonPublic);
+            UnityEditor.EditorUtility.SetDirty(this);
+        }
+#endif
     }
 }

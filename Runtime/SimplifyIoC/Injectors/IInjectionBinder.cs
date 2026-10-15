@@ -1,59 +1,32 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @interface SimplifyIoC.Injectors.IInjectionBinder
- * 
- * A Binder that implements Dependency Injection in StrangeIoC.
- * 
- * Keys in this Binder are always Types, that is, they represent
- * either Classes or Interfaces, not values. Values may be either Types
- * or values, depending on the situation.
- * 
- * The nature of the instance returned by `GetInstance()` depends on how
- * that Key was mapped.
- * 
- * examples:
- * 
- * //Returns a new instance of SimpleInterfaceImplementer.
- * 
- * `Bind<ISimpleInterface>().To<SimpleInterfaceImplementer>();`
- * 
- * //Returns a Singleton instance of SimpleInterfaceImplementer.
- * 
- * `Bind<ISimpleInterface>().To<SimpleInterfaceImplementer>().ToSingleton();`
- * 
- * //Returns a Singleton instance of SimpleInterfaceImplementer.
- * 
- * `Bind<ISimpleInterface>().ToValue(new SimpleInterfaceImplementer());`
- * 
- * //Returns the value 42.
- * 
- * `Bind<int>().ToValue(42);`
- * 
- * //Returns a named instance of SimpleInterfaceImplementer for those whose
- * //injections specify this name. Note that once requested, this 
- * //same instance will be returned on any future request for that named instance.
- * 
- * `Bind<ISimpleInterface>().To<SimpleInterfaceImplementer>().ToName(SomeEnum.MY_ENUM);`
- * 
- * //Raises an Exception. string does not Implement ISimpleInterface.
- * 
- * `Bind<ISimpleInterface>().To<string>();`
- * 
+ *
+ * 在框架中实现依赖注入的 Binder。
+ *
+ * 这里的 key 始终是 Type（类或接口），而不是值；value 则视情况可以是 Type 或具体值。
+ * GetInstance() 返回什么，取决于 key 当时的映射方式。
+ *
+ * 示例：
+ *
+ * //每次都返回一个新的 SimpleInterfaceImplementer 实例
+ * Bind<ISimpleInterface>().To<SimpleInterfaceImplementer>();
+ *
+ * //返回 SimpleInterfaceImplementer 的单例
+ * Bind<ISimpleInterface>().To<SimpleInterfaceImplementer>().ToSingleton();
+ *
+ * //返回绑定时提供的那个实例
+ * Bind<ISimpleInterface>().ToValue(new SimpleInterfaceImplementer());
+ *
+ * //返回值 42
+ * Bind<int>().ToValue(42);
+ *
+ * //返回按名字区分的 SimpleInterfaceImplementer 实例，只有标注了该名字的注入点才会拿到它；
+ * //此后对该名字的任何请求返回的都是同一实例
+ * Bind<ISimpleInterface>().To<SimpleInterfaceImplementer>().ToName(SomeEnum.MY_ENUM);
+ *
+ * //抛出异常：string 未实现 ISimpleInterface
+ * Bind<ISimpleInterface>().To<string>();
+ *
  * @see SimplifyIoC.Injectors.IInjectionBinding
  */
 

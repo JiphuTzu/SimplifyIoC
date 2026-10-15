@@ -1,68 +1,48 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @class SimplifyIoC.Signals.Signal
- * 
- * This is actually a series of classes defining the Base concrete form for all Signals.
- * 
- * Signals are a type-safe approach to communication that essentially replace the
- * standard EventDispatcher model. Signals can be injected/mapped just like any other
- * object -- as Singletons, as instances, or as values. Signals can even be mapped
- * across Contexts to provide an effective and type-safe way of communicating
- * between the parts of your application.
- * 
- * Signals in Strange use the Action Class as the underlying mechanism for type safety.
- * Unity's C# implementation currently allows up to FOUR parameters in an Action, therefore
- * SIGNALS ARE LIMITED TO FOUR PARAMETERS. If you require more than four, consider
- * creating a value object to hold additional values.
- * 
- * Examples:
+ *
+ * 这里定义的是所有 Signal 的基础具体形态（一系列泛型类）。
+ *
+ * Signal 是类型安全的通信方式，本质上取代了传统 EventDispatcher 模型。
+ * Signal 可以像其他对象一样被注入/映射——作为单例、实例或值，
+ * 还可以跨 Context 映射，为应用各部分之间提供类型安全的通信。
+ *
+ * Signal 用 Action 作为类型安全的底层机制，参数最多四个；
+ * 需要更多参数时，考虑用一个值对象把多个值装在一起。
+ *
+ * 示例：
 
-		//BASIC SIGNAL CREATION/DISPATCH
-		//Create a new signal
+		//基础信号的创建与派发
+		//创建信号
 		Signal signalWithNoParameters = new Signal();
-		//Add a listener
+		//添加监听
 		signalWithNoParameters.AddListener(callbackWithNoParameters);
-		//This would throw a compile-time error
+		//下面这行会引发编译错误
 		signalWithNoParameters.AddListener(callbackWithOneParameter);
-		//Dispatch
+		//派发
 		signalWithNoParameters.Dispatch();
-		//Remove the listener
+		//移除监听
 		signalWithNoParameters.RemoveListener(callbackWithNoParameters);
 
-		//SIGNAL WITH PARAMETERS
-		//Create a new signal with two parameters
+		//带参数的信号
+		//创建带两个参数的信号
 		Signal<int, string> signal = new Signal<int, string>();
-		//Add a listener
+		//添加监听
 		signal.AddListener(callbackWithParamsIntAndString);
-		//Add a listener for the duration of precisely one Dispatch
+		//添加只存活一次派发的监听
 		signal.AddOnce(anotherCallbackWithParamsIntAndString);
-		//These all throw compile-time errors
+		//以下都会引发编译错误
 		signal.AddListener(callbackWithParamsStringAndInt);
 		signal.AddListener(callbackWithOneParameter);
 		signal.AddListener(callbackWithNoParameters);
-		//Dispatch
+		//派发
 		signal.Dispatch(42, "zaphod");
-		//Remove the first listener. The listener added by AddOnce has been automatically removed.
+		//移除第一个监听；AddOnce 添加的监听已被自动移除
 		signal.RemoveListener(callbackWithParamsIntAndString);
 
 		//5.1：订阅句柄
 		//AddListener / AddOnce 返回 SignalSubscription，Dispose 即退订。
-		//忘记 RemoveListener 曾经只能靠"记住回调引用"补救，现在有句柄可管：
+		//忘记 RemoveListener 曾经只能靠“记住回调引用”补救，现在有句柄可管：
 		SignalSubscription subscription = signalWithNoParameters.AddListener(callbackWithNoParameters);
 		...
 		subscription.Dispose();                       //退订，幂等，可重复调用
@@ -70,7 +50,7 @@
 
 		Mediator / View / Command 另有集中回收：subscriptions.Listen(signal, cb)，
 		组件销毁时组内订阅自动退订，详见 SignalSubscriptionGroup。
- * 
+ *
  * @see SimplifyIoC.Signals.IBaseSignal
  * @see SimplifyIoC.Signals.BaseSignal
  * @see SimplifyIoC.Signals.SignalSubscription

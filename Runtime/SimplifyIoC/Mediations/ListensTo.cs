@@ -1,39 +1,27 @@
 ﻿/*
- * Copyright 2015 StrangeIoC
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @class ListensTo
- * 
- * The `[ListensTo]` attribute provides a shortcut for adding
- * Signal-to-Method binding with Mediators.
- * Example:
+ *
+ * [ListensTo] 特性为 Mediator 提供“信号-方法”绑定的快捷方式。
+ * 示例：
 
 		[ListensTo(typeof(PlayerUpdateSignal))]
 		public void onPlayerUpdate(int hitpoints)
 		{
 			//do some stuff
 		}
+
+ * 上例等价于在 OnRegister 中执行 PlayerUpdateSignal.AddListener(onPlayerUpdate)，
+ * 在 OnRemove 中执行 PlayerUpdateSignal.RemoveListener(onPlayerUpdate)。
  *
- * The above example performs PlayerUpdateSignal.AddListener(onPlayerUpdate)
- * within OnRegister, and PlayerUpdateSignal.RemoveListener(onPlayerUpdate)
- * within OnRemove.
+ * 注意：方法可见性不限——private / protected / internal 均可生效
+ * （扫描用 BindingFlags.NonPublic；Delegate.CreateDelegate 绑定已解析的 MethodInfo
+ * 不做可见性检查，两者均已实验验证）。
  *
- * NOTE: THE LISTENING METHOD MUST BE MARKED PUBLIC. Private and protected
- * methods are not scanned and the ListensTo attribute will be silently
- * ignored.
+ * 两个已知限制：
+ *   1) 基类中声明的 private 方法扫不到（GetMethods 的 FlattenHierarchy 不传播基类
+ *      private 成员），基类的 protected / public 方法不受影响；
+ *   2) 方法签名必须与信号匹配：无载荷 Signal → 无参方法；Signal<T,...> → 对应参数
+ *      签名。不匹配时 CreateDelegate 抛异常，不是静默失败。
  */
 
 

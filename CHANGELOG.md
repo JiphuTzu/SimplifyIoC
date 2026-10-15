@@ -18,6 +18,8 @@
 + **作用域治理**：Mediation 往返、`GetCommand`、信号载荷改走**调用级作用域**，去掉全局临时绑定与固定 key；`suppliers` 双注册表收敛；`Context` 与 Binder 由继承改为组合；Context 启动扫描优化。
 + **命令池化统一**：所有命令统一走池，非池化路径移除（`usePooling` 已标 `[Obsolete]`，不再影响行为）。
 + **View 归属**：View 注册成功一刻记录 `owningContext`，此后的 Add / Remove / Enable / Disable 只发给它；`Bootstrap.context` 改由框架写入。
++ **启动语义统一**：移除 `ContextStartupFlags`。`Context` 构造函数固定完成映射（原 Automatic 行为），启动（`Launch()`）永远显式调用——推荐路径 `SimplifyBootstrap.Start` 自动补调，裸 `Bootstrap` 派生类需自行在 `Start` 里调用 `context.Launch()`。
++ **品牌更名 UMa → Aixuma**：包名 `com.uma.simplifyioc` → `com.aixuma.simplifyioc`；程序集 `UMa.SimplifyIoC` / `.Tests` / `.Examples` → `Aixuma.…`（asmdef 同名更名）；示例命名空间 `UMa.*` → `Aixuma.*`，目录 `Examples/Scripts/UMa` → `Aixuma`；`link.xml`、`InternalsVisibleTo` 与注释署名同步更新。
 + **清理**：删除 `Promises/`（`IPromise` / `BasePromise` / `Promise` 及泛型变体）、`ImplicitBinds/`（`ImplicitBinder` / `[Implements]` / `[ImplementedBy]`）、`WhitelistBindings`、`ReflectedClass.setterNames` / `HasSetterFor`、`CommandBinder.GetPool<T>()`，以及多处注释遗留代码。
 
 ### 升级注意（破坏性变更）
@@ -25,6 +27,7 @@
 + **`Pool` 不再实现 `IPoolable`**：容器与元素两种身份已拆开（旧实现里归还元素会连带清空整个池）。元素清理契约由 `IPoolable` 独占。
 + **`usePooling` 失效**：命令全部池化，该开关不再影响行为。
 + **`Context.firstContext` 已删除**：两个没有 Transform 层级关系的 `Context` 不再自动结为父子；跨域共享请用 `SimplifyContext<T>(Bootstrap, Context parent)` 显式指定父级。
++ **`ContextStartupFlags` 已删除（原 Automatic / ManualMapping / ManualLaunch）**：构造固定完成映射，`Launch()` 不再自动触发。直接派生 `Context`（非 `SimplifyContext<T>`）且覆写了 `Launch` 的代码，必须在 `Start` 里自行调用 `context.Launch()`，或改用 `SimplifyBootstrap`；若仍传 flags 参数会编译失败，直接删除实参即可。
 + **`Bootstrap.context` 由框架写入**：不要手工赋值（会被覆盖，导致 Context 静默自任链根、跨域绑定分叉）。
 + **`Binding` 扩展点收敛**：逻辑收口到 `protected virtual BindCore / ToCore / ToNameCore / NamedCore`，覆写过旧外观方法的子类需迁移。
 + **`AddListener` / `AddOnce` 返回类型**由 `void` 变为 `SignalSubscription`：调用处忽略返回值不受影响，覆写过这两个方法的子类需改签名。

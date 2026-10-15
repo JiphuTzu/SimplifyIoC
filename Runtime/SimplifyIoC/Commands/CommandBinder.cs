@@ -1,54 +1,32 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @class SimplifyIoC.Commands.CommandBinder
- * 
- * A Binder that triggers the instantiation of Commands.
- * 
- * Commands are where the logic of your application belongs.
- * These Commands typically focus on a single function, such as
- * adding a View, requesting a service, reading from or saving to a model.
- * 
- * The act of binding events to Commands means that code needn't know
- * anything about an event recipient, or even how the event will be used.
- * For example, a Mediator might send out an event that two View objects
- * collided. A Command would then determine that the result of that event
- * was to Destroy both objects, tell a ScoreKeeper model to change the
- * score and request a message be sent to the server. Whether that
- * example means one Command or three is up to your coding preference...
- * CommandBinder can trigger one Command or multiple Commands off the
- * same event.
- * 
- * Note that CommandBinder also features sequencing. By default, CommandBinder fires all
- * Commands in parallel. If your binding specifies `InSequence()`, commands will run serially,
- * with the option of suspending the chain at any time.
- * 
- * Example bindings:
+ *
+ * 触发 Command 实例化的 Binder。
+ *
+ * Command 是应用逻辑的归属地，通常只聚焦单一职责，
+ * 例如添加一个 View、请求一个服务、读取或保存一个 Model。
+ *
+ * 把 Signal 绑定到 Command 意味着派发方无需知道事件由谁消费、
+ * 更无需知道事件将如何被使用。例如，一个 Mediator 发出“两个 View 相撞”的信号，
+ * 随后由 Command 决定处理结果：销毁这两个对象、通知记分 Model 修改分数、
+ * 并向服务器发送消息。这一结果用一个 Command 还是三个 Command 表达，
+ * 取决于你的编码偏好——同一个信号可以触发一个或多个 Command。
+ *
+ * CommandBinder 还支持序列（Sequence）：默认所有 Command 并行执行；
+ * 若绑定指定了 InSequence()，Command 将串行执行，并可在任意时刻挂起链条。
+ *
+ * 绑定示例：
 
-		Bind("someEvent").To<SomeCommand>(); //Works, but poor form to use strings. Use the next example instead
+		Bind("someEvent").To<SomeCommand>(); //可用，但不推荐字符串，建议改用下面的常量形式
 
-		Bind(EventMap.SOME_EVENT).To<SomeCommand>(); //Make it a constant
+		Bind(EventMap.SOME_EVENT).To<SomeCommand>(); //用常量代替字符串
 
-		Bind(ContextEvent.START).To<StartCommand>().Once(); //Destroy the binding immediately after a single use
+		Bind(ContextEvent.START).To<StartCommand>().Once(); //单次使用后立即销毁该绑定
 
 		Bind(EventMap.END_GAME_EVENT).To<FirstCommand>().To<SecondCommand>().To<ThirdGCommand>().InSequence();
 
- * 
- * See Command for details on asynchronous Commands and cancelling sequences.
+ *
+ * 异步 Command 与取消序列的细节参见 Command。
  */
 
 using System;

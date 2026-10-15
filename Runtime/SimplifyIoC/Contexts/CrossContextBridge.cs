@@ -1,41 +1,20 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @class SimplifyIoC.Contexts.CrossContextBridge
- * 
- * A relay for events mapped across multiple Contexts.
- * 
- * This simple class gates events fired by the local Context-wide EventDispatcher.
- * Any event trigger mapped to this Binder will be relayed to the CrossContextDispatcher
- * for consumption by others. This removes the necessity to ever inject the CrossContextDispatcher
- * at an endpoint (e.g., a Command or Mediator).
- * 
- * Because the Bridge itself is mapped cross-context (and
- * therefore shared), it is up to the developer to decide where to make cross-Context the mappings.
- * 
- * This "freedom" is also a potential pitfall; we recommend that you map all Cross-Context
- * events in firstContext to avoid confusion.
- * 
- * Example:
+ *
+ * 跨 Context 转发信号的中继器。
+ *
+ * 本类把本地 Context 内派发并映射到它的信号“放行”，
+ * 转发给跨域根 Binder 供其他 Context 消费，
+ * 从而免去在终点（如 Command 或 Mediator）注入跨域 Binder 的必要。
+ *
+ * 由于 Bridge 本身就是跨域共享的，在哪里建立跨域映射由开发者决定。
+ * 这种自由同时也是一个潜在的坑：建议统一在链根 Context 中建立跨域映射，以免混乱。
+ *
+ * 示例：
 
 	crossContextBridge.Bind(GameEvent.MISSILE_HIT);
 
- * By doing this from any Context in your app, any Context Dispatcher that fires `GameEvent.MISSILE_HIT` will
- * relay that Event to other Contexts.
+ * 在应用的任意 Context 中执行上述语句后，任何 Context 派发该信号都会被转发到其他 Context。
  */
 
 using SimplifyIoC.Framework;

@@ -2,7 +2,7 @@ using System.Collections;
 //============================================================
 //@author	JiphuTzu
 //@create	2019/11/13
-//@company	AMLab
+//@company	Aixuma
 //
 //@description:在Start中调用context.Launch
 //============================================================

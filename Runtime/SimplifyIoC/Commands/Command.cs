@@ -1,36 +1,16 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @class SimplifyIoC.Commands.Command
- * 
- * Commands are where you place your business logic.
- * 
- * In the MVCSContext setup, commands are mapped to IEvents. 
- * The firing of a specific event on the global event bus triggers 
- * the instantiation, injection and execution of any Command(s) bound to that event.
- * 
- * By default, commands are cleaned up immediately on completion of the `Execute()` method.
- * For asynchronous Commands (e.g., calling a service and awaiting a response),
- * call `Retain()` at the top of your `Execute()` method, which will prevent
- * premature cleanup. But remember, having done so it is your responsipility
- * to call `Release()` once the Command is complete.
- * 
- * Calling `Fail()` will terminate any sequence in which the Command is operating, but
- * has no effect on Commands operating in parallel.
+ *
+ * Command 是承载业务逻辑的地方。
+ *
+ * 在本框架中，Command 通过 CommandBinder 绑定到 Signal 上：
+ * 派发某个 Signal 时，框架会实例化、注入并执行绑定到该 Signal 的所有 Command。
+ *
+ * 默认情况下，Command 在 Execute() 执行完毕后立即被回收。
+ * 对于异步 Command（例如调用服务并等待响应），请在 Execute() 开头调用 Retain()
+ * 以阻止过早回收；但请注意，此时你必须在 Command 完成后自行调用 Release()。
+ *
+ * 调用 Fail() 会终止 Command 所在的执行序列，但对并行执行的 Command 没有影响。
  */
 
 using SimplifyIoC.Injectors;

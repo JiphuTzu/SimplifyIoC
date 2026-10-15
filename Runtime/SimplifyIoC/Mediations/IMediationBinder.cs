@@ -1,65 +1,35 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @interface SimplifyIoC.Mediations.IMediationBinder
- * 
- * Interface for the Binder which maps Views to Mediators.
- * 
- * In a general sense, mediation is the act of using one thing
- * to separate and communicate between two others. mediation
- * in Strange refers to separating Views from the rest of the
- * application. The reason for doing this is not at all theoretical,
- * but highly practical. Views ypically come in two flavors:
- * the "component", which tends to be stable and dropped into
- * multiple, highly varied situations, and the highly volatile
- * "working" View, which changes rapidly according to last-minute
- * design considerations. In both cases, Mediators help you to insulate
- * the View from the app around it, and vice-versa. This yields
- * components that are easier to re-use, and working Views whose
- * chaos is structurally contained.
- * 
- * The MediationBinder quite simply Binds two (or more) classes. The Key
- * is the View class, the Value is one or more Mediators. Whenever the
- * View shows up, a corresponding Mediator joins it to buffer
- * View from app. The View doesn't know about the Mediator, nor
- * about the app beyond it. It simply establishes its API and waits
- * tp be told what to do. The Mediator, on the other hand, is allowed
- * to know quite a lot about the View and the app. It can be injected,
- * it has access to the common event bus, and can listen for and Dispatch
- * events. It is intended to be 'thin', that is, it should know just
- * enough to provide mediation. Leave logic, data storage, and View
- * behaviour to other classes.
- * 
- * In the context of Unity3D, the View is a MonoBehaviour attached
- * to a GameObject. The mediator is also a MonoBehaviour, so it has access
- * to all the usual things a MomoBehaviour would. Consider it a best
- * practice to attach only the View to your GameObject in Unity3D.
- * 
- * Finally, two words of warning.
- * First: Views may be injected. This allows you to provide a local Dispatcher,
- * a Configuration file, or other items that might come in handy. I
- * recommend very strongly that you do not inject the context-wide Dispatcher,
- * nor any other class involving the world beyond the View's immediate
- * area of interest. To do so risks negating the whole point of mediation.
- * 
- * Second: experience tells me that understanding what belongs in Mediator and
- * what in View is the trickiest part of this system. I recommend the
- * 'thin' class approach, i.e., nothing goes in the Mediator but what it needs
- * to mediate.
+ *
+ * 把 View 映射到 Mediator 的 Binder 接口。
+ *
+ * 广义上说，mediation（中介）就是用一个东西隔开并连接另外两个东西。
+ * 本框架中的 mediation 指的是把 View 与应用的其他部分隔开。
+ * 这样做的理由非常实际：View 通常有两种形态——
+ * 一种是“组件”，稳定、会被放进各种不同的场景反复使用；
+ * 一种是“工作 View”，随最后关头的设计变动快速变化。
+ * 无论哪种，Mediator 都能把 View 与周围的应用隔离开，反之亦然：
+ * 组件因此更易复用，工作 View 的混乱也被结构性地控制在局部。
+ *
+ * MediationBinder 做的事很简单：把两个（或多个）类绑定在一起。
+ * key 是 View 类，value 是一个或多个 Mediator。
+ * View 出现时，对应的 Mediator 会 join 上来，为 View 与应用之间做缓冲。
+ * View 不需要知道 Mediator 的存在，也不知道应用在它之外还有什么；
+ * 它只声明自己的 API，然后等待指令。
+ * 而 Mediator 恰恰相反，它允许相当了解 View 与应用：它可以被注入、
+ * 可以监听和派发信号。它应当保持“薄”——只保留完成中介所需的最低限度的知识，
+ * 把逻辑、数据存储和 View 行为留给其他类。
+ *
+ * 在 Unity 中，View 是挂在 GameObject 上的 MonoBehaviour，
+ * Mediator 同样是 MonoBehaviour，因此能访问 MonoBehaviour 的一切能力。
+ * 最佳实践是：Unity 中只把 View 挂到 GameObject 上。
+ *
+ * 最后两点提醒。
+ * 第一：View 也可以被注入（例如注入局部 Dispatcher 或配置文件），
+ * 但强烈建议不要注入全 Context 共享的 Dispatcher 或任何超出 View
+ * 关注范围的类，否则 mediation 的意义就名存实亡。
+ * 第二：经验表明，划分“什么属于 Mediator、什么属于 View”是这套系统最难的部分。
+ * 建议坚持“薄”类原则：除了完成中介所必需的，什么都别放进 Mediator。
  */
 
 using SimplifyIoC.Framework;

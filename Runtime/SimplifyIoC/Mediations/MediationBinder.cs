@@ -1,26 +1,9 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @class SimplifyIoC.Mediations.MediationBinder
- * 
- * Highest-level abstraction of the MediationBinder. Agnostic as to View and Mediator Type.
- * 
- * Please read SimplifyIoC.Mediations.IMediationBinder
- * where I've extensively explained the purpose of View mediation
+ *
+ * MediationBinder 的最高层抽象，不关心 View 与 Mediator 的具体类型。
+ *
+ * View mediation 的设计目的详见 SimplifyIoC.Mediations.IMediationBinder。
  */
 
 using System;

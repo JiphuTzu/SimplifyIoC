@@ -1,27 +1,10 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @class SimplifyIoC.Commands.CommandBinding
- * 
- * The Binding for CommandBinder.
- * 
- * The only real distinction between CommandBinding and Binding
- * is the addition of `Once()`, which signals that the Binding
- * should be destroyed immediately after a single use.
+ *
+ * CommandBinder 使用的绑定。
+ *
+ * 它与普通 Binding 的唯一实质区别是增加了 Once()，
+ * 用于标记该绑定在单次使用后立即销毁。
  */
 using System;
 using SimplifyIoC.Framework;

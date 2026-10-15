@@ -1,31 +1,14 @@
 /*
- * Copyright 2013 ThirdMotion, Inc.
- *
- *	Licensed under the Apache License, Version 2.0 (the "License");
- *	you may not use this file except in compliance with the License.
- *	You may obtain a copy of the License at
- *
- *		http://www.apache.org/licenses/LICENSE-2.0
- *
- *		Unless required by applicable law or agreed to in writing, software
- *		distributed under the License is distributed on an "AS IS" BASIS,
- *		WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *		See the License for the specific language governing permissions and
- *		limitations under the License.
- */
-
-/*
  * @interface SimplifyIoC.Mediations.MediationBinding
- * 
- * Subclass of Binding for MediationBinding.
- * 
- * MediationBindings support the following extensions of standard Bindings:
  *
- * ToMediator - Porcelain for To<T> providing a little extra clarity and security.
+ * Binding 的 Mediation 子类。
  *
- * ToAbstraction<T> - Provide an Interface or base Class adapter for the View.
- * When the binding specifies ToAbstraction<T>, the Mediator will be expected to inject <T>
- * instead of the concrete View class.
+ * 相对标准 Binding 的扩展：
+ *
+ * ToMediator —— To<T> 的便捷形式，语义更明确、更安全。
+ *
+ * ToAbstraction<T> —— 为 View 提供接口或基类适配：绑定指定 ToAbstraction<T> 时，
+ * Mediator 将注入 <T> 而不是具体的 View 类。
  */
 
 using System;
