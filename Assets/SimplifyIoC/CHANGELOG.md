@@ -1,4 +1,24 @@
 ﻿# CHANGELOG
+## 2.0.0
+### 破坏性变更
++ **`Context` 更名为 `Bootstrap`，并与旧的 `Bootstrap`（纯层级锚点类）合并为一个类**：框架里现在只剩 `Bootstrap`——它自己就是 `MonoBehaviour`，既是**层级锚点**（挂在显示层级顶部的那块组件），也是**绑定容器**。旧的 `Bootstrap` / `SimplifyBootstrap`（非泛型、负责创建 Context 的那两个）已删除；`SimplifyContext<T>` 更名为 `SimplifyBootstrap<T>`；`Context` 这个类名不再存在。改前两个类靠 `context ⇄ bootstrap` 双向可变链接相连，忘写其中一半就会**静默**分叉（Context 悄悄自任链根、跨域绑定各持一个 binder，报错现场离原因很远）；合并后这类失效在类型层面不可能发生。
++ 启动入口只剩**一个组件**：派生 `SimplifyBootstrap<T>`（或裸 `Bootstrap`）后直接挂到 GameObject 上——`Awake` → `Init()`（建容器 + 确定归属 + 映射），`Start` → `Launch()`（`SimplifyBootstrap<T>` 自动补调）。
++ **`Bootstrap.Init(Bootstrap parent = null)` 取代带参构造**（MonoBehaviour 没有带参构造）：幂等，`Awake` 自动调用；EditMode 测试与运行时动态加组件请显式调用。显式认父请覆写 `Awake` 并**直接** `Init(父)`，不要再调 `base.Awake()`（那样显式父会被忽略，框架会打一条警告）。传入尚未 `Init` 的父同样会被忽略并告警、改走常规归属解析——避免挂到「还没有跨域根 binder」的父上，导致两条链各持一个 binder。
++ **框架级锚点改名 `Context.rootContext` → `Bootstrap.root`**（语义不变：第一个 `Init` 成功的链根自动持有、先到先得、弱引用、`Dispose()` 时清空）。
++ **命名注入键 `ContextKeys` → `BootstrapKeys`**，其成员 `Context` → `Bootstrap`（框架在 `Bootstrap.AddCoreComponents` 里 `Bind<Bootstrap>().ToValue(this).ToName(BootstrapKeys.Bootstrap)`）。
++ **跨域一族的命名不随本次更名而变**：`ICrossContextInjectionBinder`、`CrossContextInjectionBinder`、`CrossContextBridge`（宿主在 `Framework/`）、`crossContextBinder`、链式入口 `.CrossContext()`，以及 `SimplifyBootstrap.BindValue` / `BindSignal` 的 `crossContext` 参数，**一律保持 `Context` 命名**（“跨域”跨的是 `Context` 边界，与 `Context` 这个类本身是否更名无关）。绑定标记 `IInjectionBinding.isCrossContext` 同样**未动**。
++ **`View` 侧成员改名**：`owningContext` → `owningBootstrap`、`SetOwningContext` → `SetOwningBootstrap`、`BubbleToContext` → `BubbleToBootstrap`、`autoRegisterWithContext` → `autoRegisterWithBootstrap`、`registeredWithContext` → `registeredWithBootstrap`、`requiresContext` → `requiresBootstrap`。
++ **`Bootstrap` 链成员改名**：`AddContext` → `AddBootstrap`、`RemoveContext` → `RemoveBootstrap`、`ResolveParentContext` → `ResolveParentBootstrap`、`parentContext` → `parentBootstrap`；命名空间 `SimplifyIoC.Contexts` → `SimplifyIoC.Bootstraps`（文件与目录同步更名）。
++ `MapBindings` 仍在 `Init()` 内被调用（虚调用陷阱不变）：只放类型绑定，值绑定请在 `Init()` 之后补；Unity 序列化字段此时**已经可用**（Unity 在 `Awake` 之前完成反序列化）。
+
+### 升级注意（迁移速查）
++ **一处机械替换可覆盖大半**：把工程里的 `Context` 换成 `Bootstrap`（`SimplifyContext<T>` → `SimplifyBootstrap<T>`、`ContextKeys.Context` → `BootstrapKeys.Bootstrap` 均自动覆盖）；两处例外——锚点属性 `Context.rootContext` 现名 **`Bootstrap.root`**、命名空间 `SimplifyIoC.Contexts` 现名 **`SimplifyIoC.Bootstraps`**。
++ 旧的 `context = new MyContext(this)` / `new MyContext(bootstrap)` 写法请改为「派生 `Bootstrap` 组件 + `Init()`」——`Bootstrap.context` 属性已不存在。
++ `[Inject(ContextKeys.Bootstrap)] Bootstrap root` 这类旧写法统一改成 `[Inject(BootstrapKeys.Bootstrap)] Bootstrap root`（`Bootstrap` 本身就是 MonoBehaviour，`root.transform` 照常可用）。
++ EditMode 测试不再需要「先 `AddComponent<Bootstrap>()` 再 `new XxxContext(bootstrap)`」：改为 `AddComponent<XxxBootstrap>()` + `Init()`。
++ 示例工程只需跟随框架改类型引用：`using SimplifyIoC.Contexts` → `using SimplifyIoC.Bootstraps`、`Context` 类型引用 → `Bootstrap`、`[Inject(ContextKeys.Context)]` → `[Inject(BootstrapKeys.Bootstrap)]`。示例自身的类名 / 文件名 / 命名空间（`Aixuma.Bootstraps`）与场景 `CrossContextExample` 本就按 `Bootstrap` 命名，无需改动；`.unity` 按脚本 GUID 引用脚本，更不受影响。
++ 本段之后的 1.3.x 及更早条目保留了当时真实的 API 名（`Context`、`Context.rootContext`、`Context.firstContext`、`ContextKeys` 等），仅供追溯，不代表现行 API。
+
 ## 1.3.2
 ### 新增
 + **框架级 Context 锚点 `Context.rootContext`（恢复 `firstContext` 的兜底语义）**：供「跨场景 / 并列 Bootstrap」

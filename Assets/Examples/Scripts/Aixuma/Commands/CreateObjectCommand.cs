@@ -1,5 +1,5 @@
 using SimplifyIoC.Commands;
-using SimplifyIoC.Contexts;
+using SimplifyIoC.Bootstraps;
 using UnityEngine;
 //============================================================
 //支持中文，文件使用UTF-8编码
@@ -13,7 +13,9 @@ namespace Aixuma.Commands
 {
     public class CreateObjectCommand : Command
     {
-		[Inject(ContextKeys.Bootstrap)]
+		//2.0.0：Context 更名为 Bootstrap 后，框架绑定的命名实例就是 Bootstrap 自身
+		//（Bootstrap.AddCoreComponents 里 Bind<Bootstrap>().ToValue(this).ToName(BootstrapKeys.Bootstrap)）。
+		[Inject(BootstrapKeys.Bootstrap)]
 		public Bootstrap root{get;set;}
         [Inject]
         public GameObject[] objects { get; set; }

@@ -1,37 +1,39 @@
-// 3.1：Context.Dispose 契约回归测试。
+// 3.1：Bootstrap.Dispose 契约回归测试。
 // 覆盖：注册表清空、信号监听移除、幂等、成链释放与链根判定、
 //       Dispose 后使用抛 ObjectDisposedException。
 using System;
 using NUnit.Framework;
 using SimplifyIoC.Commands;
-using SimplifyIoC.Contexts;
+using SimplifyIoC.Bootstraps;
 using SimplifyIoC.Injectors;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace SimplifyIoC.Tests
 {
-    public class ContextDisposeTests
+    public class BootstrapDisposeTests
     {
-        private GameObject _bootstrapObject;
-        private DisposeTestContext _context;
+        private GameObject _contextObject;
+        private DisposeTestBootstrap _context;
 
         [SetUp]
         public void SetUp()
         {
             //锚点是进程级静态槽：先归零，本类用例里 _context 才会是可预期的链根
-            Context.rootContext = null;
+            Bootstrap.root = null;
             TestCommand.ExecutionCount = 0;
-            _bootstrapObject = new GameObject("ContextDisposeTests.Bootstrap");
-            _context = new DisposeTestContext(_bootstrapObject.AddComponent<Bootstrap>());
+            _contextObject = new GameObject("BootstrapDisposeTests.Bootstrap");
+            _context = _contextObject.AddComponent<DisposeTestBootstrap>();
+            //EditMode 不派发 MonoBehaviour 生命周期（Awake），显式建容器
+            _context.Init();
         }
 
         [TearDown]
         public void TearDown()
         {
             _context?.Dispose();
-            if (_bootstrapObject != null) Object.DestroyImmediate(_bootstrapObject);
-            Context.rootContext = null;
+            if (_contextObject != null) Object.DestroyImmediate(_contextObject);
+            Bootstrap.root = null;
         }
 
         [Test]
@@ -57,14 +59,14 @@ namespace SimplifyIoC.Tests
         }
 
         [Test]
-        public void ContextUnderARootlessBootstrapIsItsOwnChainRoot()
+        public void BootstrapOnItsOwnGameObjectIsItsOwnChainRoot()
         {
-            //本 Context 挂在场景根上，显式 parent 与 Transform 层级都找不到父；
+            //本 Bootstrap 挂在场景根上，显式 parent 与 Transform 层级都找不到父；
             //又因为 SetUp 已清空锚点，它就是第一个构造的链根 → 自任链根并接任锚点。
             //（"谁先构造谁当根"这条 2026-10-15 随 firstContext 一起恢复，但它只作用于兜底：
             //  显式 parent 与 Transform 层级仍然优先。）
             Assert.That(_context.isRoot, Is.True);
-            Assert.That(_context.parentContext, Is.Null);
+            Assert.That(_context.parentBootstrap, Is.Null);
 
             _context.Dispose();
 
@@ -88,15 +90,15 @@ namespace SimplifyIoC.Tests
         }
 
         [Test]
-        public void StartAfterDisposeThrowsObjectDisposed()
+        public void InitAfterDisposeThrowsObjectDisposed()
         {
-            var manualObject = new GameObject("ContextDisposeTests.ManualBootstrap");
+            var manualObject = new GameObject("BootstrapDisposeTests.ManualBootstrap");
             try
             {
-                var manualContext = new ManualStartContext(
-                    manualObject.AddComponent<Bootstrap>());
-                manualContext.Dispose();
-                Assert.Throws<ObjectDisposedException>(() => manualContext.Start());
+                var manualBootstrap = manualObject.AddComponent<BareTestBootstrap>();
+                manualBootstrap.Init();
+                manualBootstrap.Dispose();
+                Assert.Throws<ObjectDisposedException>(() => manualBootstrap.Init());
             }
             finally
             {
@@ -104,10 +106,8 @@ namespace SimplifyIoC.Tests
             }
         }
 
-        private sealed class DisposeTestContext : Context
+        private sealed class DisposeTestBootstrap : Bootstrap
         {
-            public DisposeTestContext(Bootstrap view) : base(view) { }
-
             public ICrossContextInjectionBinder ExposedInjectionBinder => injectionBinder;
             public ICommandBinder ExposedCommandBinder => commandBinder;
 
@@ -119,9 +119,6 @@ namespace SimplifyIoC.Tests
             }
         }
 
-        private sealed class ManualStartContext : Context
-        {
-            public ManualStartContext(Bootstrap view) : base(view) { }
-        }
+        private sealed class BareTestBootstrap : Bootstrap { }
     }
 }

@@ -2,13 +2,13 @@
 // 钉住三条契约：
 //  1) 解析发生在"注入完成之后"——Mediator 侧 [BindEvent(nameof(注入成员))] 可用；
 //  2) 解析幂等——重复触发不得重复挂监听（UnityEvent.AddListener 本身不去重）；
-//  3) 不会向 Context 注册的 View，由 Awake 兜底路径完成解析。
+//  3) 不会向 Bootstrap 注册的 View，由 Awake 兜底路径完成解析。
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
-using SimplifyIoC.Contexts;
+using SimplifyIoC.Bootstraps;
 using SimplifyIoC.Injectors;
 using SimplifyIoC.Mediations;
 using SimplifyIoC.Utils;
@@ -20,16 +20,17 @@ namespace SimplifyIoC.Tests
 {
     public class DeclarationBindingTests
     {
-        private GameObject _bootstrapObject;
-        private DeclarativeTestContext _context;
+        private GameObject _contextObject;
+        private DeclarativeTestBootstrap _context;
         private readonly List<GameObject> _objects = new List<GameObject>();
 
         [SetUp]
         public void SetUp()
         {
-            _bootstrapObject = new GameObject("DeclarationBindingTests.Bootstrap");
-            _objects.Add(_bootstrapObject);
-            _context = new DeclarativeTestContext(_bootstrapObject.AddComponent<Bootstrap>());
+            _contextObject = new GameObject("DeclarationBindingTests.Bootstrap");
+            _objects.Add(_contextObject);
+            _context = _contextObject.AddComponent<DeclarativeTestBootstrap>();
+            _context.Init();
         }
 
         [TearDown]
@@ -189,17 +190,17 @@ namespace SimplifyIoC.Tests
                 "[MainThread] 标注的无参方法应被自动登记进 MainThreadRunner");
         }
 
-        // ---- 不注册 Context 的 View 走 Awake 兜底 ----
+        // ---- 不注册 Bootstrap 的 View 走 Awake 兜底 ----
 
         [Test]
-        public void ViewOutsideContextStillParsesOnAwakeFallback()
+        public void ViewOutsideBootstrapStillParsesOnAwakeFallback()
         {
             var view = CreateView<FallbackView>("FallbackView");
 
             view.CallAwake();   // EditMode 下 Unity 不会自动调用 Awake，这里显式模拟
 
             Assert.That(view.mappedChild, Is.Not.Null,
-                "!autoRegisterWithContext 的 View 拿不到注入后解析，应由 Awake 兜底完成");
+                "!autoRegisterWithBootstrap 的 View 拿不到注入后解析，应由 Awake 兜底完成");
             Assert.That(view.AwakeParseCount, Is.EqualTo(1), "兜底路径同样只解析一次");
         }
 
@@ -225,10 +226,8 @@ namespace SimplifyIoC.Tests
             public UnityEvent onClick = new UnityEvent();
         }
 
-        private sealed class DeclarativeTestContext : Context
+        private sealed class DeclarativeTestBootstrap : Bootstrap
         {
-            public DeclarativeTestContext(Bootstrap view) : base(view) { }
-
             public IMediationBinder ExposedMediationBinder => mediationBinder;
 
             protected override void MapBindings()
@@ -242,9 +241,9 @@ namespace SimplifyIoC.Tests
         {
             protected ProbeView()
             {
-                //不向 Context 自动注册：由测试显式 Trigger，避免依赖 Awake 在 EditMode 下的触发时机
-                autoRegisterWithContext = false;
-                requiresContext = false;
+                //不向 Bootstrap 自动注册：由测试显式 Trigger，避免依赖 Awake 在 EditMode 下的触发时机
+                autoRegisterWithBootstrap = false;
+                requiresBootstrap = false;
             }
         }
 
@@ -301,8 +300,8 @@ namespace SimplifyIoC.Tests
 
             public FallbackView()
             {
-                autoRegisterWithContext = false;
-                requiresContext = false;
+                autoRegisterWithBootstrap = false;
+                requiresBootstrap = false;
             }
 
             public void CallAwake() => Awake();
@@ -320,8 +319,8 @@ namespace SimplifyIoC.Tests
 
             public MediatorViewA()
             {
-                autoRegisterWithContext = false;
-                requiresContext = false;
+                autoRegisterWithBootstrap = false;
+                requiresBootstrap = false;
             }
         }
 
@@ -331,8 +330,8 @@ namespace SimplifyIoC.Tests
 
             public MediatorViewB()
             {
-                autoRegisterWithContext = false;
-                requiresContext = false;
+                autoRegisterWithBootstrap = false;
+                requiresBootstrap = false;
             }
         }
 

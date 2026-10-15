@@ -8,7 +8,7 @@
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
-using SimplifyIoC.Contexts;
+using SimplifyIoC.Bootstraps;
 using SimplifyIoC.Injectors;
 using SimplifyIoC.Mediations;
 using UnityEngine;
@@ -18,8 +18,8 @@ namespace SimplifyIoC.Tests
 {
     public class MediationScopeTests
     {
-        private GameObject _bootstrapObject;
-        private MediationScopeTestContext _context;
+        private GameObject _contextObject;
+        private MediationScopeTestBootstrap _context;
         private readonly List<GameObject> _objects = new List<GameObject>();
 
         [SetUp]
@@ -27,9 +27,10 @@ namespace SimplifyIoC.Tests
         {
             MediationScopeProbeMediator.onViewInjected = null;
             MediationScopeProbeMediator.InjectedViews.Clear();
-            _bootstrapObject = new GameObject("MediationScopeTests.Bootstrap");
-            _objects.Add(_bootstrapObject);
-            _context = new MediationScopeTestContext(_bootstrapObject.AddComponent<Bootstrap>());
+            _contextObject = new GameObject("MediationScopeTests.Bootstrap");
+            _objects.Add(_contextObject);
+            _context = _contextObject.AddComponent<MediationScopeTestBootstrap>();
+            _context.Init();
         }
 
         [TearDown]
@@ -125,10 +126,8 @@ namespace SimplifyIoC.Tests
             return go.AddComponent<MediationScopeProbeView>();
         }
 
-        private sealed class MediationScopeTestContext : Context
+        private sealed class MediationScopeTestBootstrap : Bootstrap
         {
-            public MediationScopeTestContext(Bootstrap view) : base(view) { }
-
             public IMediationBinder ExposedMediationBinder => mediationBinder;
             public IInjectionBinder ExposedInjectionBinder => injectionBinder;
 
@@ -140,13 +139,13 @@ namespace SimplifyIoC.Tests
             }
         }
 
-        /// 不自动向 Context 注册；测试里显式调用 Trigger，避免依赖 Awake 在 EditMode 下的触发时机
+        /// 不自动向 Bootstrap 注册；测试里显式调用 Trigger，避免依赖 Awake 在 EditMode 下的触发时机
         private sealed class MediationScopeProbeView : View
         {
             public MediationScopeProbeView()
             {
-                autoRegisterWithContext = false;
-                requiresContext = false;
+                autoRegisterWithBootstrap = false;
+                requiresBootstrap = false;
             }
         }
 

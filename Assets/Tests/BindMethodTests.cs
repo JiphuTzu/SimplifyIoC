@@ -180,8 +180,8 @@ namespace SimplifyIoC.Tests
 
             public BindMethodView()
             {
-                autoRegisterWithContext = false;
-                requiresContext = false;
+                autoRegisterWithBootstrap = false;
+                requiresBootstrap = false;
             }
 
             [BindMethod("hit")]

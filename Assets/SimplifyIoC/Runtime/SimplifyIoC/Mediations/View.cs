@@ -2,13 +2,13 @@
  * @class SimplifyIoC.Mediations.View
  *
  * 所有 View 的父类，继承 MonoBehaviour。
- * 它把自身的 Awake、Start 与 OnDestroy 生命周期事件上报给归属的 Context，
+ * 它把自身的 Awake、Start 与 OnDestroy 生命周期事件上报给归属的 Bootstrap，
  * 使框架能够感知 View 生命周期中的这些关键时刻。
  */
 
 using System;
 using System.Reflection;
-using SimplifyIoC.Contexts;
+using SimplifyIoC.Bootstraps;
 using SimplifyIoC.Injectors;
 using SimplifyIoC.Signals;
 using SimplifyIoC.Utils;
@@ -18,7 +18,7 @@ namespace SimplifyIoC.Mediations
 {
     public abstract class View : MonoBehaviour
     {
-        /// Determines the type of event the View is bubbling to the Context
+        /// Determines the type of event the View is bubbling to the Bootstrap
         protected enum BubbleType
         {
             Add,
@@ -30,38 +30,38 @@ namespace SimplifyIoC.Mediations
         [Inject]
         public IInjectionBinder injectionBinder { get; set; }
         /// Leave this value true most of the time. If for some reason you want
-        /// a view to exist outside a context you can set it to false. The only
+        /// a view to exist outside a bootstrap you can set it to false. The only
         /// difference is whether an error gets generated.
-        public bool requiresContext { get; set; } = true;
+        public bool requiresBootstrap { get; set; } = true;
         
-        /// A flag for allowing the View to register with the Context
+        /// A flag for allowing the View to register with the Bootstrap
         /// In general you can ignore this. But some developers have asked for a way of disabling
         ///  View registration with a checkbox from Unity, so here it is.
         /// If you want to expose this capability either
         /// (1) uncomment the commented-out line immediately below, or
-        /// (2) subclass View and override the autoRegisterWithContext method using your own custom (public) field.
+        /// (2) subclass View and override the autoRegisterWithBootstrap method using your own custom (public) field.
         //[SerializeField]
-        public virtual bool autoRegisterWithContext { get; set; } = true;
+        public virtual bool autoRegisterWithBootstrap { get; set; } = true;
 
-        public bool registeredWithContext { get; set; }
+        public bool registeredWithBootstrap { get; set; }
         
         public bool shouldRegister => enabled && gameObject.activeInHierarchy;
 
-        /// 5.6：本 View 的归属 Context，在注册成功那一刻确定（<see cref="Context.AddView"/>），
+        /// 5.6：本 View 的归属 Bootstrap，在注册成功那一刻确定（<see cref="Bootstrap.AddView"/>），
         /// 之后 Remove / Enable / Disable 一律直接发给它，不再逐次向上遍历 Transform 链。
         ///
-        /// 改前每次生命周期事件都要重新走一遍 100 层上限的向上查找，且查出来的 Context
+        /// 改前每次生命周期事件都要重新走一遍 100 层上限的向上查找，且查出来的 Bootstrap
         /// 未必是当初做 Mediate 的那个（中途被重新挂到别的父节点下时尤其容易错）。
         ///
         /// 与兜底的关系：向上找不到任何 Bootstrap 时，注册会回落到框架级锚点
-        /// <see cref="Context.rootContext"/>（5.6 之前叫 Context.firstContext，2026-10-15 恢复）。
+        /// <see cref="Bootstrap.root"/>（5.6 之前叫 Context.firstContext，2026-10-15 恢复）。
         /// 兜底只决定"注册到谁"，不影响"之后通知给谁"——归属照样在注册那一刻钉死。
-        public Context owningContext { get; private set; }
+        public Bootstrap owningBootstrap { get; private set; }
 
-        /// 5.6：由 Context 在一锤定音的注册点写入（不要从别处调用）。
-        internal void SetOwningContext(Context context)
+        /// 5.6：由 Bootstrap 在一锤定音的注册点写入（不要从别处调用）。
+        internal void SetOwningBootstrap(Bootstrap bootstrap)
         {
-            owningContext = context;
+            owningBootstrap = bootstrap;
         }
 
         /// 4.1：解析只跑一次的哨兵。UnityEvent.AddListener 不去重，二次解析会让回调执行两次。
@@ -80,19 +80,19 @@ namespace SimplifyIoC.Mediations
         protected SignalSubscriptionGroup subscriptions => _subscriptions ??= new SignalSubscriptionGroup();
 
         /// A MonoBehaviour Awake handler.
-        /// The View will attempt to connect to the Context at this moment.
+        /// The View will attempt to connect to the Bootstrap at this moment.
         protected virtual void Awake()
         {
-            if (autoRegisterWithContext && !registeredWithContext && shouldRegister)
-                BubbleToContext(BubbleType.Add, false);
+            if (autoRegisterWithBootstrap && !registeredWithBootstrap && shouldRegister)
+                BubbleToBootstrap(BubbleType.Add, false);
 
             //4.1：解析时机在"注入完成之后"（由 MediationBinder 调用 EnsureAttributesInitialized）。
-            //4.7：只有明确不向 Context 注册、且此刻确实没有归属的 View 才在 Awake 兜底解析——
+            //4.7：只有明确不向 Bootstrap 注册、且此刻确实没有归属的 View 才在 Awake 兜底解析——
             //5.6：判定挪到注册之后。"是否会注册"这件事到这里已经确定，
-            //不再靠"看一眼 autoRegisterWithContext 就猜"来决定要不要抢跑，
-            //消除了"声明不注册、事实上却被注册（例如被其它脚本改变 autoRegisterWithContext，
+            //不再靠"看一眼 autoRegisterWithBootstrap 就猜"来决定要不要抢跑，
+            //消除了"声明不注册、事实上却被注册（例如被其它脚本改变 autoRegisterWithBootstrap，
             //或被显式 AddView）的 View 在注入之前就被抢先解析"这一类错配。
-            if (!autoRegisterWithContext && owningContext == null)
+            if (!autoRegisterWithBootstrap && owningBootstrap == null)
                 EnsureAttributesInitialized();
         }
 
@@ -138,59 +138,59 @@ namespace SimplifyIoC.Mediations
         }
 
         /// A MonoBehaviour Start handler
-        /// If the View is not yet registered with the Context, it will 
+        /// If the View is not yet registered with the Bootstrap, it will 
         /// attempt to connect again at this moment.
         protected virtual void Start()
         {
-            if (autoRegisterWithContext && !registeredWithContext && shouldRegister)
-                BubbleToContext(BubbleType.Add, true);
+            if (autoRegisterWithBootstrap && !registeredWithBootstrap && shouldRegister)
+                BubbleToBootstrap(BubbleType.Add, true);
 
-            //4.7：走到这里仍未注册到任何 Context ⇒ 不会有任何人替它做"注入后解析"。
-            //自行兜底一次（幂等），使 View 在没有 Mediator / 没有 Context 时，
+            //4.7：走到这里仍未注册到任何 Bootstrap ⇒ 不会有任何人替它做"注入后解析"。
+            //自行兜底一次（幂等），使 View 在没有 Mediator / 没有 Bootstrap 时，
             //[Child] / [BindEvent] / [BindMethod] / [MainThread] 依然照常生效。
-            //（requiresContext 为 true 的 View 在上一行要么已注册、要么已抛异常，走不到这里——这是既有契约。）
-            if (owningContext == null)
+            //（requiresBootstrap 为 true 的 View 在上一行要么已注册、要么已抛异常，走不到这里——这是既有契约。）
+            if (owningBootstrap == null)
                 EnsureAttributesInitialized();
         }
 
         /// A MonoBehaviour OnDestroy handler
-        /// The View will inform the Context that it is about to be
+        /// The View will inform the Bootstrap that it is about to be
         /// destroyed.
         protected virtual void OnDestroy()
         {
-            //5.1：先退订组内订阅（此处执行回调移除，避免后续 BubbleToContext 期间误触发）。
+            //5.1：先退订组内订阅（此处执行回调移除，避免后续 BubbleToBootstrap 期间误触发）。
             _subscriptions?.Dispose();
             //4.4：立即释放本组件的 [BindMethod] 静态注册表条目（不依赖 GC 时机）。
             //静态表本身已改为 ConditionalWeakTable，这里是"及时性"而非"正确性"的补充。
             this.UnbindMethods();
-            BubbleToContext(BubbleType.Remove, false);
-            //5.6：通知发出后断开归属引用，避免已销毁的 View 继续 root 住整个 Context 链
-            owningContext = null;
-            registeredWithContext = false;
+            BubbleToBootstrap(BubbleType.Remove, false);
+            //5.6：通知发出后断开归属引用，避免已销毁的 View 继续 root 住整个 Bootstrap 链
+            owningBootstrap = null;
+            registeredWithBootstrap = false;
         }
 
         /// A MonoBehaviour OnEnable handler
-        /// The View will inform the Context that it was enabled
+        /// The View will inform the Bootstrap that it was enabled
         protected virtual void OnEnable()
         {
-            BubbleToContext(BubbleType.Enable, false);
+            BubbleToBootstrap(BubbleType.Enable, false);
         }
 
         /// A MonoBehaviour OnDisable handler
-        /// The View will inform the Context that it was disabled
+        /// The View will inform the Bootstrap that it was disabled
         protected virtual void OnDisable()
         {
-            BubbleToContext(BubbleType.Disable, false);
+            BubbleToBootstrap(BubbleType.Disable, false);
         }
 
         /// <summary>
-        /// 把生命周期事件交给所属的 Context。
+        /// 把生命周期事件交给所属的 Bootstrap。
         ///
         /// 5.6：只有 Add 会发生"向上查找"（归属尚未确定）；Remove / Enable / Disable
-        /// 一律发给注册时记下的 <see cref="owningContext"/>—— Mediate 是谁做的，通知就得回到谁那里，
+        /// 一律发给注册时记下的 <see cref="owningBootstrap"/>—— Mediate 是谁做的，通知就得回到谁那里，
         /// 中间不管 GameObject 被挂到什么地方。
         /// </summary>
-        protected void BubbleToContext(BubbleType type, bool finalTry)
+        protected void BubbleToBootstrap(BubbleType type, bool finalTry)
         {
             switch (type)
             {
@@ -198,13 +198,13 @@ namespace SimplifyIoC.Mediations
                     ResolveAndRegister(finalTry);
                     return;
                 case BubbleType.Remove:
-                    owningContext?.RemoveView(this);
+                    owningBootstrap?.RemoveView(this);
                     return;
                 case BubbleType.Enable:
-                    owningContext?.EnableView(this);
+                    owningBootstrap?.EnableView(this);
                     return;
                 case BubbleType.Disable:
-                    owningContext?.DisableView(this);
+                    owningBootstrap?.DisableView(this);
                     return;
                 default:
                     return;
@@ -212,9 +212,13 @@ namespace SimplifyIoC.Mediations
         }
 
         /// <summary>
-        /// 沿 Transform 向上找最近一个已持有 Context 的 Bootstrap，注册并记下归属。
+        /// 沿 Transform 向上找最近一个 Bootstrap 组件，注册并记下归属。
+        ///
+        /// 5.6+：2.0.0 起锚点就是这个组件本身；尚未 Init 的 Bootstrap 也照样能收下 View
+        /// （<see cref="Bootstrap.AddView"/> 会把它放进早到缓存，由 PostBindings 统一处理），所以只看组件在不在。
+        ///
         /// 找不到时：Awake 阶段不动声色（finalTry=false，Start 还有一次机会）；
-        /// Start 阶段若 requiresContext 则先回落到框架级锚点（Context.rootContext），
+        /// Start 阶段若 requiresBootstrap 则先回落到框架级锚点（Bootstrap.root），
         /// 锚点也不在场才抛异常。
         /// </summary>
         private void ResolveAndRegister(bool finalTry)
@@ -226,34 +230,33 @@ namespace SimplifyIoC.Mediations
             {
                 loopLimiter++;
                 trans = trans.parent;
-                var contextBootstrap = trans.GetComponent<Bootstrap>();
-                var context = contextBootstrap?.context;
-                if (context != null)
+                var bootstrap = trans.GetComponent<Bootstrap>();
+                if (bootstrap != null)
                 {
-                    context.AddView(this);
-                    registeredWithContext = true;
+                    bootstrap.AddView(this);
+                    registeredWithBootstrap = true;
                     return;
                 }
             }
 
-            if (!requiresContext || !finalTry) return;
+            if (!requiresBootstrap || !finalTry) return;
 
             //last ditch：向上找不到任何 Bootstrap 的 View 注册到框架级锚点，而不是直接抛。
             //这是 5.6 之前的行为（当时叫 Context.firstContext），2026-10-15 恢复：
-            //运行期 Instantiate、层级被重排、Bootstrap 尚未就绪等情形下"层级里找不到家"并不罕见，
+            //运行期 Instantiate、层级被重排、Bootstrap 尚未 Init 等情形下"层级里找不到家"并不罕见，
             //宁可让归属落到一个进程级兜底，也不要让整个 View 崩在 Start。
-            //注意：作者已声明"不依赖 Context"（requiresContext = false）的 View 在上面就返回了，不参与兜底。
-            var anchor = Context.rootContext;
+            //注意：作者已声明"不依赖 Bootstrap"（requiresBootstrap = false）的 View 在上面就返回了，不参与兜底。
+            var anchor = Bootstrap.root;
             if (anchor != null)
             {
                 anchor.AddView(this);
-                registeredWithContext = true;
+                registeredWithBootstrap = true;
                 return;
             }
 
             var msg = loopLimiter == LOOP_MAX ?
-                "A view couldn't find a context. Loop limit reached." :
-                "A view was added with no context. Views must be added into the hierarchy of their ContextView lest all hell break loose.";
+                "A view couldn't find a bootstrap. Loop limit reached." :
+                "A view was added with no bootstrap. Views must be added into the hierarchy of their Bootstrap lest all hell break loose.";
             msg += "\nView: " + this;
             throw new Exception(msg);
         }

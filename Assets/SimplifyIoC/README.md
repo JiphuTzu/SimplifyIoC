@@ -16,28 +16,36 @@ https://github.com/JiphuTzu/SimplifyIoC.git#upm
 
 ## 快速上手
 
-### 1. 启动入口：Bootstrap + Context
+### 1. 启动入口：`SimplifyBootstrap<T>`
 
-`SimplifyBootstrap` 负责创建 `Context`，`SimplifyContext<TStartupCommand>` 负责分类绑定；它的 `Start()` 会派发 `StartupSignal`，从而触发启动命令。
+2.0.0 起框架里只有 `Bootstrap`——它自己就是 `MonoBehaviour`，既是**层级锚点**（挂在显示层级顶部的那块组件），也是**绑定容器**（1.3.2 及以前，这两个角色分属 `Context` 与 `Bootstrap` 两个类）。
+派生 `SimplifyBootstrap<TStartupCommand>`、实现四个 `Bind*` 分组，挂到场景 GameObject 上即可：`Awake` 建容器并确定归属，`Start` 派发 `StartupSignal` 触发启动命令。
 
 ```csharp
-public class GameBootstrap : SimplifyBootstrap
+public class GameBootstrap : SimplifyBootstrap<GameStartupCommand>
 {
-    protected override void Awake() => context = new GameContext(this);
-
-    private class GameContext : SimplifyContext<GameStartupCommand>
-    {
-        public GameContext(Bootstrap view) : base(view) { }
-
-        protected override void BindCommands() => BindCommand<CreateObjectSignal, CreateObjectCommand>();
-        protected override void BindViews()    => BindView<LifeTimeView, LifeTimeMediator>();
-        protected override void BindSignals()  => BindSignal<RecordChangedSignal>(true);
-        protected override void BindValues()   => BindValue<IClock, SystemClock>(true);
-    }
+    protected override void BindCommands() => BindCommand<CreateObjectSignal, CreateObjectCommand>();
+    protected override void BindViews()    => BindView<LifeTimeView, LifeTimeMediator>();
+    protected override void BindSignals()  => BindSignal<RecordChangedSignal>(true);
+    protected override void BindValues()   => BindValue<IClock, SystemClock>(true);
 }
 ```
 
-把 `GameBootstrap` 挂到场景中的 GameObject 上即可。
+把 `GameBootstrap` 挂到场景中层级最顶部的 GameObject 上，View 放在它的子树里。
+
+需要自己控制归属或启动时机时，覆写 `Awake` / `Start`：
+
+```csharp
+public class LevelBootstrap : SimplifyBootstrap<LevelStartupCommand>
+{
+    // 显式认父；直接 Init 即可，不要先调 base.Awake()（那样这里传的父会被忽略）
+    protected override void Awake() => Init(Bootstrap.root);
+}
+```
+
+- `Init(Bootstrap parent = null)` 幂等：`Awake` 自动调用；EditMode 测试与运行时动态加组件请显式调用它。
+- `Launch()` 永远显式：`SimplifyBootstrap<T>.Start` 自动补调；直接派生 `Bootstrap`（不经 `SimplifyBootstrap<T>`）的类需自行在 `Start` 里调用。
+- Unity 在 `Awake` 之前完成反序列化，所以 `BindValues` 里读序列化字段是安全的。
 
 ### 2. 信号与命令
 
@@ -49,7 +57,7 @@ public class CreateObjectSignal : Signal<Vector3> { }
 public class CreateObjectCommand : Command
 {
     [Inject] public Vector3 pos { get; set; }                          // 信号载荷
-    [Inject(ContextKeys.Bootstrap)] public Bootstrap root { get; set; }
+    [Inject(BootstrapKeys.Bootstrap)] public Bootstrap root { get; set; }
 
     public override void Execute() { /* ... */ }
 }
@@ -85,33 +93,37 @@ public class HudMediator : Mediator<HudView>
 }
 ```
 
-### 4. 跨场景 / 并列 Bootstrap：`Context.rootContext`
+### 4. 跨场景 / 并列 Bootstrap：`Bootstrap.root`
 
 多个场景各自带一个 Bootstrap 时，它们在 Transform 上往往并列，且分属不同程序集（热更新分层：场景/玩法层不应编译期依赖 App 层）。
-**第一个构造成功的链根 Context 自动成为框架级锚点**（`Context.rootContext`，先到先得、不抢占），
-它同时承担 5.6 之前 `firstContext` 的两条兜底，场景侧只依赖框架类型即可取得父 Context，跨域绑定随之可用：
+**第一个构造成功的链根 Bootstrap 自动成为框架级锚点**（`Bootstrap.root`，先到先得、不抢占），
+它同时承担 5.6 之前 `firstBootstrap` 的两条兜底，场景侧只依赖框架类型即可取得父 Bootstrap，跨域绑定随之可用：
 
 ```csharp
-//App 层：常驻（DontDestroyOnLoad），先构造即可——锚点自动登记，无需额外声明
-public class AppBootstrap : SimplifyBootstrap
+//App 层：常驻（DontDestroyOnLoad），先 Init 即可——锚点自动登记，无需额外声明
+public class AppBootstrap : SimplifyBootstrap<AppStartupCommand>
 {
-    protected override void Awake() => new AppContext(this);
+    protected override void Awake()
+    {
+        Init();
+        DontDestroyOnLoad(gameObject);
+    }
 }
 
 //场景层：不认识 AppBootstrap，只认识框架类型
-public class LevelBootstrap : SimplifyBootstrap
+public class LevelBootstrap : SimplifyBootstrap<LevelStartupCommand>
 {
-    protected override void Awake() => new LevelContext(this, Context.rootContext);
+    protected override void Awake() => Init(Bootstrap.root);
 }
 ```
 
-- 锚点**自动**产生：第一个构造的链根持有，后来的 Context 不抢占；锚点被 `Dispose()`（App 根销毁）后清空，下一个链根接任。
-- 两条**兜底**（1.3.2 恢复 5.6 之前 `firstContext` 的行为）：
-  - 构造 Context 时，显式 parent 与 Transform 层级都找不到父 ⇒ 自动挂到锚点下（跨场景并列加载时不必手写 parent）；
-  - View 找不到任何 Bootstrap ⇒ 注册到锚点而不是抛异常（`requiresContext = false` 的 View 不参与）。
+- 锚点**自动**产生：第一个构造的链根持有，后来的 Bootstrap 不抢占；锚点被 `Dispose()`（App 根销毁）后清空，下一个链根接任。
+- 两条**兜底**（1.3.2 恢复 5.6 之前 `firstBootstrap` 的行为）：
+  - `Init` 时没有显式 parent、Transform 层级也找不到父 ⇒ 自动挂到锚点下（跨场景并列加载时不必手写 parent）；
+  - View 找不到任何 Bootstrap ⇒ 注册到锚点而不是抛异常（`requiresBootstrap = false` 的 View 不参与）。
   归属优先级始终是 **显式 parent > Transform 层级 > 锚点兜底**——能表达清楚的永远优先。
-- 锚点缺席（单独跑某个场景调试）时 `Context.rootContext` 为 `null`，照常把它当 parent 传进去即 **自任链根**，功能照常。
-- 跨域绑定请只在锚点根声明一次并标 `.CrossContext()`，场景 Context 不要重复登记（会在共享根 binder 上同名冲突）。
+- 锚点缺席（单独跑某个场景调试）时 `Bootstrap.root` 为 `null`，照常把它当 parent 传进去即 **自任链根**，功能照常。
+- 跨域绑定请只在锚点根声明一次并标 `.CrossContext()`，场景 Bootstrap 不要重复登记（会在共享根 binder 上同名冲突）。
 
 ## 声明式绑定
 
@@ -119,7 +131,7 @@ public class LevelBootstrap : SimplifyBootstrap
 
 | 特性 | 可用位置 | 作用 |
 | --- | --- | --- |
-| `[Inject]` / `[Inject(name)]` | 属性 | 从容器注入；带名字取命名绑定（如 `[Inject(ContextKeys.Bootstrap)]`） |
+| `[Inject]` / `[Inject(name)]` | 属性 | 从容器注入；带名字取命名绑定（如 `[Inject(BootstrapKeys.Bootstrap)]`） |
 | `[Child]` | 字段 | 按名字 / 路径收集子物体上的组件，支持 `List<>` |
 | `[BindEvent("事件名", "成员名")]` | 字段 / 属性 / 方法 | 把成员上的 `UnityEvent` 绑到方法；事件源支持数组与 `List<>` |
 | `[BindMethod("名1", "名2")]` | 方法 | 把方法注册到名字，之后用 `InvokeBind("名", 参数)` 调用；`order` 控制同名方法的顺序 |

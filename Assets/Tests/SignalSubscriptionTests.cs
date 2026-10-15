@@ -8,7 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using NUnit.Framework;
-using SimplifyIoC.Contexts;
+using SimplifyIoC.Bootstraps;
 using SimplifyIoC.Injectors;
 using SimplifyIoC.Mediations;
 using SimplifyIoC.Signals;
@@ -263,15 +263,16 @@ namespace SimplifyIoC.Tests
         [Test]
         public void RemovingMediatorDisposesItsSubscriptionGroup()
         {
-            var bootstrapObject = NewGameObject("Bootstrap");
+            var contextObject = NewGameObject("Bootstrap");
             var signal = new Signal();
-            var context = new SubscriptionTestContext(bootstrapObject.AddComponent<Bootstrap>());
-            //注意时序：Context 的构造函数内部就会跑 MapBindings，实例字段此刻还没赋值
-            //（把 signal 传进构造参数的那一版正是死在 ToValue(null) 上），故值绑定放在构造之后。
-            context.ExposedInjectionBinder.Bind<Signal>().ToValue(signal).ToInject(false);
+            var bootstrap = contextObject.AddComponent<SubscriptionTestBootstrap>();
+            bootstrap.Init();
+            //注意时序：Init 内部就会跑 MapBindings，实例字段此刻还没赋值
+            //（把 signal 传进构造参数的那一版正是死在 ToValue(null) 上），故值绑定放在 Init 之后。
+            bootstrap.ExposedInjectionBinder.Bind<Signal>().ToValue(signal).ToInject(false);
 
             var view = NewComponent<SubscriptionProbeView>();
-            context.ExposedMediationBinder.Trigger(MediationEvent.Awake, view);
+            bootstrap.ExposedMediationBinder.Trigger(MediationEvent.Awake, view);
 
             var mediator = view.GetComponent<SubscriptionProbeMediator>();
             Assert.That(mediator, Is.Not.Null, "mediation 应挂上 probe mediator");
@@ -279,13 +280,13 @@ namespace SimplifyIoC.Tests
             signal.Dispatch();
             Assert.That(mediator.hits, Is.EqualTo(1), "mediator 的组内订阅在注册后生效");
 
-            context.ExposedMediationBinder.Trigger(MediationEvent.Destroyed, view);
+            bootstrap.ExposedMediationBinder.Trigger(MediationEvent.Destroyed, view);
 
             signal.Dispatch();
             Assert.That(mediator.hits, Is.EqualTo(1),
                 "DestroyMediator 应在 OnRemove 之后统一退订组内订阅");
 
-            context.Dispose();
+            bootstrap.Dispose();
         }
 
         // ---- 辅助 ----
@@ -306,16 +307,14 @@ namespace SimplifyIoC.Tests
 
         // ---- 夹具 ----
 
-        private sealed class SubscriptionTestContext : Context
+        private sealed class SubscriptionTestBootstrap : Bootstrap
         {
-            public SubscriptionTestContext(Bootstrap view) : base(view) { }
-
             public IMediationBinder ExposedMediationBinder => mediationBinder;
             public IInjectionBinder ExposedInjectionBinder => injectionBinder;
 
             protected override void MapBindings()
             {
-                //signal 的值绑定由测试在构造后补上：MapBindings 跑在基类构造函数里，
+                //signal 的值绑定由测试在 Init 后补上：MapBindings 跑在 Init 里，
                 //晚于它的实例字段赋值都还没发生。
                 mediationBinder.Bind<SubscriptionProbeView>().To<SubscriptionProbeMediator>();
             }
@@ -325,8 +324,8 @@ namespace SimplifyIoC.Tests
         {
             public SubscriptionProbeView()
             {
-                autoRegisterWithContext = false;
-                requiresContext = false;
+                autoRegisterWithBootstrap = false;
+                requiresBootstrap = false;
             }
 
             public int hits { get; private set; }

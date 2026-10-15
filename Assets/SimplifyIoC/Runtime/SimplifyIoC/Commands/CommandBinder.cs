@@ -21,7 +21,7 @@
 
 		Bind(EventMap.SOME_EVENT).To<SomeCommand>(); //用常量代替字符串
 
-		Bind(ContextEvent.START).To<StartCommand>().Once(); //单次使用后立即销毁该绑定
+		Bind(BootstrapEvent.START).To<StartCommand>().Once(); //单次使用后立即销毁该绑定
 
 		Bind(EventMap.END_GAME_EVENT).To<FirstCommand>().To<SecondCommand>().To<ThirdGCommand>().InSequence();
 
@@ -71,7 +71,7 @@ namespace SimplifyIoC.Commands
             }
             //5.5：归还池持有的全部命令实例（统一池化后每条命令类型都常驻一个池），
             //并清空两组"进行中命令"追踪集合——旧实现只 Clear() 了 pools 字典本身，
-            //实例与追踪集合都留着等 GC，Context 销毁后这些引用依然存在。
+            //实例与追踪集合都留着等 GC，Bootstrap 销毁后这些引用依然存在。
             foreach (var pool in pools.Values)
                 pool.Clean();
             pools.Clear();
@@ -441,7 +441,7 @@ namespace SimplifyIoC.Commands
         /// <summary>
         /// 5.5：绑定消失后回收"只为它服务"的命令池。
         /// 统一池化后每个命令类型都常驻一个池（默认 size=0 的池会按需膨胀并缓存峰值并发数的实例），
-        /// Once() 这类一次性绑定如果不清理，实例会被持有到 Context 销毁为止。
+        /// Once() 这类一次性绑定如果不清理，实例会被持有到 Bootstrap 销毁为止。
         /// 实现上不回头看"刚刚删掉的是谁"，而是按当前还活着的绑定重新统计——
         /// 这样也不用调 GetBinding（在有冲突未消解的 Binder 上它会抛异常）。
         /// </summary>

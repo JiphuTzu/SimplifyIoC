@@ -4,13 +4,13 @@
 // 若"触发点只存在于 Mediator 机制里"，那么不使用 Mediator 的项目就永远解析不到
 // [Child] / [BindEvent] / [BindMethod]。本文件钉住解耦后的两条契约：
 //
-//  1) View 没有绑定任何 Mediator（Context 有 mediationBinder）—— 走 Trigger 的
+//  1) View 没有绑定任何 Mediator（Bootstrap 有 mediationBinder）—— 走 Trigger 的
 //     "无绑定"分支，注入与声明式解析照常完成，生命周期事件不抛；
-//  2) Context 完全没有 mediationBinder（不使用 Mediator 机制）—— 走 Context 的
+//  2) Bootstrap 完全没有 mediationBinder（不使用 Mediator 机制）—— 走 Bootstrap 的
 //     兜底路径（InjectViewWithoutMediation），View 同样被注入并完成解析。
 using System.Collections.Generic;
 using NUnit.Framework;
-using SimplifyIoC.Contexts;
+using SimplifyIoC.Bootstraps;
 using SimplifyIoC.Injectors;
 using SimplifyIoC.Mediations;
 using SimplifyIoC.Utils;
@@ -22,16 +22,17 @@ namespace SimplifyIoC.Tests
 {
     public class ViewWithoutMediatorTests
     {
-        private GameObject _bootstrapObject;
-        private PlainTestContext _context;
+        private GameObject _contextObject;
+        private PlainTestBootstrap _context;
         private readonly List<GameObject> _objects = new List<GameObject>();
 
         [SetUp]
         public void SetUp()
         {
-            _bootstrapObject = new GameObject("ViewWithoutMediatorTests.Bootstrap");
-            _objects.Add(_bootstrapObject);
-            _context = new PlainTestContext(_bootstrapObject.AddComponent<Bootstrap>());
+            _contextObject = new GameObject("ViewWithoutMediatorTests.Bootstrap");
+            _objects.Add(_contextObject);
+            _context = _contextObject.AddComponent<PlainTestBootstrap>();
+            _context.Init();
         }
 
         [TearDown]
@@ -57,7 +58,7 @@ namespace SimplifyIoC.Tests
             _context.AddView(view);
 
             Assert.That(view.service, Is.Not.Null,
-                "没有 Mediator 的 View 也必须被注入——注入是 Context 的能力，不是 Mediator 的");
+                "没有 Mediator 的 View 也必须被注入——注入是 Bootstrap 的能力，不是 Mediator 的");
             Assert.That(view.mappedChild, Is.Not.Null, "[Child] 必须生效");
             Assert.That(view.mappedChild.name, Is.EqualTo("child"));
 
@@ -95,21 +96,22 @@ namespace SimplifyIoC.Tests
             Assert.That(sub.mappedChild.name, Is.EqualTo("subchild"));
         }
 
-        // ---- 2) 整个 Context 没有 Mediator 机制 ----
+        // ---- 2) 整个 Bootstrap 没有 Mediator 机制 ----
 
         [Test]
-        public void ContextWithoutMediationBinderStillDrivesViews()
+        public void BootstrapWithoutMediationBinderStillDrivesViews()
         {
             var noMediatorObject = new GameObject("ViewWithoutMediatorTests.NoMediatorBootstrap");
             _objects.Add(noMediatorObject);
-            var context = new NoMediatorContext(noMediatorObject.AddComponent<Bootstrap>());
+            var bootstrap = noMediatorObject.AddComponent<NoMediatorBootstrap>();
+            bootstrap.Init();
             try
             {
-                Assert.That(context.ExposedMediationBinder, Is.Null,
-                    "本 Context 刻意不绑定 IMediationBinder，且不得在装配期抛异常");
+                Assert.That(bootstrap.ExposedMediationBinder, Is.Null,
+                    "本 Bootstrap 刻意不绑定 IMediationBinder，且不得在装配期抛异常");
 
                 var view = CreateAutoView();
-                context.AddView(view);
+                bootstrap.AddView(view);
 
                 Assert.That(view.service, Is.Not.Null, "没有 mediationBinder 时 View 仍须被注入");
                 Assert.That(view.mappedChild, Is.Not.Null, "没有 mediationBinder 时 [Child] 仍须生效");
@@ -118,48 +120,49 @@ namespace SimplifyIoC.Tests
                 Assert.That(view.clicks, Is.EqualTo(1), "没有 mediationBinder 时 [BindEvent] 仍须生效");
 
                 //生命周期事件同样不得抛
-                Assert.DoesNotThrow(() => context.EnableView(view));
-                Assert.DoesNotThrow(() => context.DisableView(view));
-                Assert.DoesNotThrow(() => context.RemoveView(view));
+                Assert.DoesNotThrow(() => bootstrap.EnableView(view));
+                Assert.DoesNotThrow(() => bootstrap.DisableView(view));
+                Assert.DoesNotThrow(() => bootstrap.RemoveView(view));
             }
             finally
             {
-                context.Dispose();
+                bootstrap.Dispose();
             }
         }
 
         [Test]
-        public void EarlyViewIsHandledWhenContextHasNoMediationBinder()
+        public void EarlyViewIsHandledWhenBootstrapHasNoMediationBinder()
         {
-            //早到的 View：Context 尚未就绪（mediationBinder 还没实例化）时先缓存，
+            //早到的 View：Bootstrap 尚未就绪（mediationBinder 还没实例化）时先缓存，
             //PostBindings 阶段即使没有 mediationBinder 也要把它补上，而不是抛异常。
             var noMediatorObject = new GameObject("ViewWithoutMediatorTests.EarlyBootstrap");
             _objects.Add(noMediatorObject);
 
             var stagedView = CreateAutoView();
-            var stagedContext = new StagedNoMediatorContext(noMediatorObject.AddComponent<Bootstrap>());
+            var stagedBootstrap = noMediatorObject.AddComponent<StagedNoMediatorBootstrap>();
+            stagedBootstrap.Init();
             try
             {
-                //手动构造的 Context 会立刻 Start，这里直接验证 PostBindings 的兜底：
+                //Init 会立刻跑完映射，这里直接验证 PostBindings 的兜底：
                 //把 View 交给尚未就绪的缓存路径，再由 MediateViewCache 补处理。
-                stagedContext.CacheViewForTest(stagedView);
-                stagedContext.MediateViewCacheForTest();
+                stagedBootstrap.CacheViewForTest(stagedView);
+                stagedBootstrap.MediateViewCacheForTest();
 
                 Assert.That(stagedView.service, Is.Not.Null);
                 Assert.That(stagedView.mappedChild, Is.Not.Null);
             }
             finally
             {
-                stagedContext.Dispose();
+                stagedBootstrap.Dispose();
             }
         }
 
-        // ---- 3) 完全没有 Context（既没有 Mediator 也没有容器）----
+        // ---- 3) 完全没有 Bootstrap（既没有 Mediator 也没有容器）----
 
         [Test]
-        public void OrphanViewWithoutContextParsesOnStartNotAwake()
+        public void OrphanViewWithoutBootstrapParsesOnStartNotAwake()
         {
-            //requiresContext=false 的 View：允许在 Context 之外存在。
+            //requiresBootstrap=false 的 View：允许在 Bootstrap 之外存在。
             //它拿不到注入，但声明式绑定不该因此失效——由 Start 兜底解析。
             var go = new GameObject("OrphanView");
             _objects.Add(go);
@@ -173,7 +176,7 @@ namespace SimplifyIoC.Tests
 
             view.CallStart();
             Assert.That(view.mappedChild, Is.Not.Null,
-                "没有 Context / Mediator 的 View，Start 兜底也要把声明式绑定解析出来");
+                "没有 Bootstrap / Mediator 的 View，Start 兜底也要把声明式绑定解析出来");
 
             view.InvokeBind("hit", 5);
             Assert.That(view.hits, Is.EqualTo(new[] { 5 }));
@@ -181,7 +184,7 @@ namespace SimplifyIoC.Tests
 
         // ---- 辅助 ----
 
-        /// <summary>默认配置的 View（autoRegister / requiresContext 均为 true）+ 子视图层级</summary>
+        /// <summary>默认配置的 View（autoRegister / requiresBootstrap 均为 true）+ 子视图层级</summary>
         private AutoView CreateAutoView()
         {
             var root = new GameObject("AutoView");
@@ -200,10 +203,8 @@ namespace SimplifyIoC.Tests
             return root.AddComponent<AutoView>();
         }
 
-        private sealed class PlainTestContext : Context
+        private sealed class PlainTestBootstrap : Bootstrap
         {
-            public PlainTestContext(Bootstrap view) : base(view) { }
-
             public IMediationBinder ExposedMediationBinder => mediationBinder;
 
             protected override void MapBindings()
@@ -213,10 +214,8 @@ namespace SimplifyIoC.Tests
             }
         }
 
-        private class NoMediatorContext : Context
+        private class NoMediatorBootstrap : Bootstrap
         {
-            public NoMediatorContext(Bootstrap view) : base(view) { }
-
             public IMediationBinder ExposedMediationBinder => mediationBinder;
 
             protected override void AddCoreComponents()
@@ -234,10 +233,8 @@ namespace SimplifyIoC.Tests
             }
         }
 
-        private sealed class StagedNoMediatorContext : NoMediatorContext
+        private sealed class StagedNoMediatorBootstrap : NoMediatorBootstrap
         {
-            public StagedNoMediatorContext(Bootstrap view) : base(view) { }
-
             public void CacheViewForTest(View view) => CacheView(view);
 
             public void MediateViewCacheForTest() => MediateViewCache();
@@ -271,7 +268,7 @@ namespace SimplifyIoC.Tests
             [Child("subchild")] public GameObject mappedChild;
         }
 
-        /// 允许存在于 Context 之外的 View：requiresContext=false，但仍会在 Start 兜底解析
+        /// 允许存在于 Bootstrap 之外的 View：requiresBootstrap=false，但仍会在 Start 兜底解析
         private sealed class OrphanView : View
         {
             public readonly List<int> hits = new List<int>();
@@ -280,7 +277,7 @@ namespace SimplifyIoC.Tests
 
             public OrphanView()
             {
-                requiresContext = false;
+                requiresBootstrap = false;
             }
 
             public void CallAwake() => Awake();

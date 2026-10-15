@@ -117,7 +117,7 @@ namespace SimplifyIoC.Injectors
         // 触发顺序在内）不变——新增的价值只在编译期。
         //
         // 关于名字的一个刻意选择：Enum 名字按装箱枚举值存储，不做 ToString() 归一化。
-        // 框架自身的 `[Inject(ContextKeys.Bootstrap)]`、`ToName(SomeEnum.MY_ENUM)` 走的都是这条语义，
+        // 框架自身的 `[Inject(BootstrapKeys.Bootstrap)]`、`ToName(SomeEnum.MY_ENUM)` 走的都是这条语义，
         // 若在这里转成字符串，枚举与字符串写法会落进不同的名字槽位，既有代码会静默查不到绑定。
         // 代价是"同一个语义既写成枚举又写成字符串"仍会错——属输入不规范，不是本层能拦住的。
 

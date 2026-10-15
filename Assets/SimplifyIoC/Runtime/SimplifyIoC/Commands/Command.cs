@@ -25,7 +25,7 @@ namespace SimplifyIoC.Commands
         [Inject]
         public ICommandBinder commandBinder { get; set; }
 
-        /// The InjectionBinder for this Context
+        /// The InjectionBinder for this Bootstrap
         [Inject]
         public IInjectionBinder injectionBinder { get; set; }
 

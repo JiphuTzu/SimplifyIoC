@@ -1,7 +1,7 @@
 ﻿/*
  * @class SimplifyIoC.Injectors.CrossContextInjectionBinder
  *
- * InjectionBinder 的跨域版本，允许在多个 Context 之间共享注入绑定。
+ * InjectionBinder 的跨域版本，允许在多个 Bootstrap 之间共享注入绑定。
  *
  * @see SimplifyIoC.Injectors.IInjectionBinder
  * @see SimplifyIoC.Injectors.ICrossContextInjectionBinder

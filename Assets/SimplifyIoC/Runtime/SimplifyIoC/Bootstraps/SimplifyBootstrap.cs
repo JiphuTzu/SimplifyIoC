@@ -12,15 +12,19 @@ using SimplifyIoC.Signals;
 //             1.添加简便绑定方法
 //             2.完成虚方法，在方法中进行分类绑定
 //============================================================
-namespace SimplifyIoC.Contexts
+namespace SimplifyIoC.Bootstraps
 {
-    public abstract class SimplifyContext<T> : Context where T : Command
+    public abstract class SimplifyBootstrap<T> : Bootstrap where T : Command
     {
         /// <summary>
-        /// 5.6：带显式父 Context 的构造入口。跨场景 / 跨层级共享跨域绑定时用（父 Object 不在本 Transform 链上）。
+        /// Unity 生命周期：同场景 Awake 全部结束后启动——广播 StartupSignal（= <see cref="Bootstrap.Launch"/>）。
+        /// 要控制启动时机就覆写它（记得调 base.Start()），或干脆自己调 <see cref="Bootstrap.Launch"/>。
         /// </summary>
-        public SimplifyContext(Bootstrap view, Context parent = null) : base(view, parent) { }
-        
+        protected virtual void Start()
+        {
+            Launch();
+        }
+
         protected sealed override void MapBindings()
         {
             base.MapBindings();

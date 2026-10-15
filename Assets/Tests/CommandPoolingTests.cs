@@ -122,7 +122,7 @@ namespace SimplifyIoC.Tests
         /// <summary>
         /// 5.5 的行为变更：旧实现里未声明 Pooled() 的命令执行完就没人管，注入值原样留着；
         /// 统一池化后每条命令执行完都会归还并 Restore（Uninject），注入槽位随即清空。
-        /// 好处是池不再长期持有对 Context/单例的引用；代价是命令引用在 Dispatch 返回后不可再用。
+        /// 好处是池不再长期持有对 Bootstrap/单例的引用；代价是命令引用在 Dispatch 返回后不可再用。
         /// 这条用例把该语义钉住——用户代码若在 Execute 之外持有 Command，看到的应是空槽位而非脏数据。
         /// </summary>
         [Test]
@@ -175,7 +175,7 @@ namespace SimplifyIoC.Tests
 
             Assert.IsNull(_commandBinder.GetBinding(signal), "Once 后绑定应移除");
             Assert.IsFalse(_commandBinder.HasPool(typeof(TestCommand)),
-                "绑定已消失，命令实例不该继续被 Context 持有");
+                "绑定已消失，命令实例不该继续被 Bootstrap 持有");
         }
 
         [Test]

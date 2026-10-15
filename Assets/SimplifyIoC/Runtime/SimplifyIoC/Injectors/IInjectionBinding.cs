@@ -51,7 +51,7 @@ namespace SimplifyIoC.Injectors
         /// Map the Binding to a stated instance so that every `GetInstance()` on the Binder Key returns the provided imstance. Does not set type.
         IInjectionBinding SetValue(object o);
 
-        /// Map the binding and give access to all contexts in hierarchy
+        /// Map the binding and give access to all bootstraps in hierarchy
         IInjectionBinding CrossContext();
 
         /// Get the list of promised supply types
