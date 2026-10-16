@@ -70,23 +70,22 @@ namespace SimplifyIoC.Bootstraps
         /// 它同时是两条**兜底**的落点——这两条就是 5.6 之前静态 firstContext 的行为，
         /// 于 2026-10-15 恢复（当时一并删掉的还有 View 侧那条 last-ditch，见 View.ResolveAndRegister）：
         ///
-        ///   ① Init 新 Bootstrap 时，**显式 parent 与 Transform 层级都找不到父** ⇒ 挂到本锚点下
+        ///   ① Init 新 Bootstrap 时，**Transform 层级找不到父** ⇒ 挂到本锚点下
         ///      （旧语义"谁先构造谁当根，后来的全挂在它下面"）；
         ///   ② View 向上**找不到任何 Bootstrap** ⇒ 注册到本锚点，而不是抛异常
         ///      （仅 requiresBootstrap = true 的 View；声明不依赖 Bootstrap 的不参与）。
         ///
-        /// 归属优先级：**显式 parent > Transform 层级 > 锚点兜底**。前两条能表达清楚时永远优先，
-        /// 锚点只在调用方表达不出来时才生效——这是它与旧 firstContext 的唯一实质差别（旧版无条件通吃）。
+        /// 归属优先级：**Transform 层级 > 锚点兜底**。层级上说得清楚时永远优先，
+        /// 锚点只在层级表达不出来时才生效——这是它与旧 firstContext 的实质差别（旧版无条件通吃）；
+        /// 要指定"锚点之外的某个父"请用 <see cref="AddBootstrap"/>。
         ///
         /// 典型用法（App 根常驻、各场景分别加载，两侧在 Transform 上毫无关系且分属不同程序集）：
         ///
         ///     //App 层：常驻（DontDestroyOnLoad），先 Init 即可——锚点自动登记
-        ///     class AppBootstrap : SimplifyBootstrap<AppStartupCommand> { }
-        ///     //场景层：显式认父语义最清楚；实在拿不到父引用时不传也会自动挂到锚点下
-        ///     class LevelBootstrap : SimplifyBootstrap<LevelStartupCommand>
-        ///     {
-        ///         protected override void Awake() => Init(Bootstrap.root);
-        ///     }
+        ///     class AppBootstrap : SimplifyBootstrap&lt;AppStartupCommand&gt; { }
+        ///     //场景层：什么都不用写（连 Awake 都不必覆写）——Init() 无父参数，
+        ///     //Transform 上没有父时自动落到本锚点下，跨域绑定随之可用
+        ///     class LevelBootstrap : SimplifyBootstrap&lt;LevelStartupCommand&gt; { }
         ///
         /// 另：本成员与已删除的 `Context.firstContext` 是**同一语义的新名字**，旧名不再提供。
         /// 存为弱引用：锚点不会把整条链（注入容器、单例、订阅）长期吊住。
@@ -130,8 +129,9 @@ namespace SimplifyIoC.Bootstraps
 
         /// <summary>
         /// Unity 生命周期：组件装载即建容器（内部调 <see cref="Init"/>，幂等）。
-        /// 需要显式认父的派生类覆写它并直接调用 <c>Init(父)</c>——不必再调 base（Init 幂等）。
-        /// 编辑模式不派发本消息，EditMode 测试请显式调用 <see cref="Init"/>。
+        /// 派生类一般不必覆写它——归属由 <see cref="Init"/> 自动解析；要控制启动时机请覆写
+        /// <c>SimplifyBootstrap&lt;T&gt;.Start</c>。
+        /// 编辑模式不派发本消息，包内 EditMode 测试请显式调用 <see cref="Init"/>（<c>internal</c>，经 InternalsVisibleTo 可见）。
         /// </summary>
         protected virtual void Awake()
         {
@@ -150,42 +150,37 @@ namespace SimplifyIoC.Bootstraps
         /// <summary>
         /// 5.6+：建容器 + 定归属 + 映射（InstantiateCoreComponents + MapBindings + PostBindings）。幂等。
         ///
-        /// 由 <see cref="Awake"/> 自动调用；EditMode 测试与运行时动态加组件请显式调用它。
-        /// 要显式认父：覆写 <see cref="Awake"/> 后直接 <c>Init(父)</c>——不要先 base.Awake() 再 Init(父)，
-        /// 那样显式父会被忽略（本方法会打一条警告）。
+        /// 由 <see cref="Awake"/> 自动调用；可见性是 <c>internal</c>——它是框架自用的生命周期入口，
+        /// 只有框架自身与包内测试程序集可见（<c>AssemblyInfo.cs</c> 的 <c>InternalsVisibleTo</c>）。
+        /// 运行时 <c>AddComponent&lt;Bootstrap&gt;()</c> 照常由 Unity 派发 <see cref="Awake"/>，
+        /// 下游正常使用不需要（也调不到）它；下游若要在 EditMode 里驱动 Bootstrap，请改用 PlayMode 测试。
+        ///
+        /// **无父参数**：归属自动解析——先沿 Transform 向上找最近的已就绪 Bootstrap，
+        /// 找不到才回落到框架级锚点 <see cref="root"/>（第一个构造成链根的那个，即"后来者自动成为子"）。
+        /// 调用方因此不需要持有、也不需要知道任何别的 Bootstrap 的类型（跨程序集/热更新分层友好）；
+        /// 要指定"锚点之外的某个父"请用 <see cref="AddBootstrap"/>。
+        ///
+        /// 幂等仅指"重复 Init 无副作用"；<see cref="Dispose"/> 之后本方法会抛 <see cref="ObjectDisposedException"/>，
+        /// 已释放的 Bootstrap 不可复活（见 <see cref="Dispose"/> 的契约说明）。
         /// </summary>
-        /// <param name="parent">显式父 Bootstrap；传 null 则按"Transform 层级 → 框架级锚点"解析。</param>
-        public void Init(Bootstrap parent = null)
+        internal void Init()
         {
-            if (_coreInstantiated)
-            {
-                if (parent != null && !ReferenceEquals(parent, _parentBootstrap))
-                    Debug.LogWarning("[SimplifyIoC] " + GetType().Name +
-                                     " 已经完成 Init，本次 Init(parent) 的父参数被忽略。" +
-                                     "要显式认父，请在覆写 Awake 时直接调用 Init(parent)，不要先调 base.Awake()。");
-                return;
-            }
-
+            //3.1：守卫必须排在幂等判据之前——_coreInstantiated 在 Dispose 之后仍为 true，
+            //排在后面会让"Dispose 后再 Init"静默返回，而不是抛 ObjectDisposedException。
+            //（幂等判据是 2.0.0 合并时新增的；旧 Context.Start() 没有它，守卫在首位，这条契约才成立。）
             ThrowIfDisposed();
 
-            //显式传入的父必须已经就绪：父的跨域根 binder 是在它自己的 Init 里建的，
-            //若父尚未 Init 就被挂上去，两条链会各持一个 binder、跨域绑定静默分叉（5.6 撞过这个坑）。
-            //Awake 顺序不受保证，所以这里只告警 + 退回常规归属解析，不抛。
-            if (parent != null && !parent.isReady)
-            {
-                Debug.LogWarning("[SimplifyIoC] " + GetType().Name + " 收到尚未 Init 的父 Bootstrap（" +
-                                 parent.GetType().Name + "），已忽略该父并改用常规归属解析（层级 → 锚点）。");
-                parent = null;
-            }
+            if (_coreInstantiated) return;
 
-            //5.6+：归属确定顺序 —— 显式 parent > Transform 层级向上查找 > 回落框架级锚点。
-            //最后一段就是 5.6 之前静态 firstContext 的语义：谁先构造谁当根，后来者自动挂成它的子。
-            //放在最后不是弱化它，而是让能表达清楚的表达清楚：显式 parent 与 GameObject 层级都
-            //说得明白时永远优先，只有在两者都落空时才轮到"第一个构造的 Bootstrap"兜底——
-            //这样任何 Bootstrap 都不会因为调用方没说清楚而丢掉跨域共享（2026-10-15 恢复）。
+            //归属确定顺序 —— Transform 层级向上查找 > 回落框架级锚点。
+            //后一段就是 5.6 之前静态 firstContext 的语义：谁先构造谁当根，后来者自动挂成它的子。
+            //这样任何 Bootstrap 都不会因为调用方没写层级关系而丢掉跨域共享（2026-10-15 恢复）；
             //锚点只在这一处登记：占住 root 的就是链根（isRoot 由它派生）——
             //"谁算链根"全框架仅此一个判断，不存在第二个会与之打架的字段。
-            var parentBootstrap = parent ?? ResolveParentBootstrap() ?? root;
+            //注：Init 一度接收过 parent 参数（2.0.0 开发期），但全仓没有任何一处用它表达"锚点之外的父"
+            //（传的都是锚点本身，与不传等价），却在父未就绪时被静默丢弃、还逼出"覆写 Awake 后别先调
+            //base.Awake()"这条陷阱式文档，故 2026-10-16 移除。
+            var parentBootstrap = ResolveParentBootstrap() ?? root;
             if (parentBootstrap != null && parentBootstrap != this)
                 parentBootstrap.AddBootstrap(this);
             else if (root == null)
@@ -211,7 +206,8 @@ namespace SimplifyIoC.Bootstraps
         ///
         /// 尚未 Init 的祖先会被跳过（见 <see cref="isReady"/>）：宁可继续往上找、或落到锚点上，
         /// 也不能挂到一个还没有跨域根 binder 的父上。
-        /// 返回 null 表示本 Bootstrap 是链根，据此 <see cref="AddCoreComponents"/> 决定是否创建共享跨域根 binder。
+        /// 返回 null 只表示"Transform 层级上没有父"——<see cref="Init"/> 会再回落到框架级锚点
+        /// <see cref="root"/>；锚点也为空时本 Bootstrap 才自任链根（见 <see cref="isRoot"/>）。
         /// </summary>
         protected virtual Bootstrap ResolveParentBootstrap()
         {
@@ -281,7 +277,7 @@ namespace SimplifyIoC.Bootstraps
             //It's possible for views to fire their Awake before bindings. This catches any early risers and attaches their Mediators.
             MediateViewCache();
             //Ensure that all Views underneath the BootstrapView are triggered
-            //mediationBinder.Trigger(MediationEvent.AWAKE, _contextView);
+            //mediationBinder.Trigger(MediationEvent.AWAKE, this);
         }
 
         /// Add another Bootstrap to this one.
@@ -289,9 +285,11 @@ namespace SimplifyIoC.Bootstraps
         /// 并在两端共享同一个跨域根 binder。这样父 Dispose 可级联释放子，
         /// 子 Dispose 也可把自己从父的链上摘除。
         ///
-        /// 5.6：建议在 Pending Bootstrap 尚未 Init（尚未登记 .CrossContext() 绑定）时调用——
-        /// 通常就是 Init(parent)。事后再认父不会迁移已经落到"原跨域根 binder"上的
-        /// 跨域绑定（那些绑定留在旧 binder 上，随旧 binder 一起无人清理）。
+        /// 5.6：这是"指定具体父"的唯一通道——<see cref="Init"/> 无父参数，自动解析只会走
+        /// 「Transform 层级 → 框架级锚点」，挂不上锚点之外的某个 Bootstrap。
+        /// 建议在 Pending Bootstrap 尚未 Init（尚未登记 .CrossContext() 绑定）时调用；
+        /// 事后再认父不会迁移已经落到"原跨域根 binder"上的跨域绑定
+        /// （那些绑定留在旧 binder 上，随旧 binder 一起无人清理）。
         public virtual void AddBootstrap(Bootstrap bootstrap)
         {
             ThrowIfDisposed();
