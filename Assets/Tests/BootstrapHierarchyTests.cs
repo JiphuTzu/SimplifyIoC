@@ -1,14 +1,14 @@
 // 3.5：Bootstrap 父子成链释放（Composite）回归测试。
 // 覆盖：
 //   1. 挂在已有 Bootstrap 层级下的 Bootstrap 自动成为其子，并共享同一个跨域根 binder；
-//      没有 Transform 关系时可用 Init(parent) 显式认父或 AddBootstrap 组合（见最后一个用例）；
+//      没有 Transform 关系时用 AddBootstrap 组合（见最后一个用例；Init() 已无 parent 参数）；
 //   2. 父 Dispose 级联释放子 Bootstrap（子的注册表/命令绑定器一并清空）；
 //   3. 子 Dispose 从父的链上摘除，且不影响父自身的可用性；
 //   4. 链根 Dispose 清空共享的跨域根 binder（CrossContextBridge 单例宿主），
 //      否则整条链的跨域绑定与单例会随它一起泄漏；
 //   5. 链内跨域单例共享仍然成立（回归护栏）；
-//   6. 无关的两个 Bootstrap 仍会成链——没有显式 parent 也没 Transform 关系时，
-//      后构造的那个挂到框架级锚点（Bootstrap.root）之下，见最后一个用例。
+//   6. 无关的两个 Bootstrap 仍会成链——没有 Transform 关系时，后构造的那个挂到框架级锚点
+//      （Bootstrap.root）之下；把已建好的子转交给另一个父用 AddBootstrap（见最后一个用例）。
 
 // 5.6：上述层级归属依赖"祖先 Bootstrap 已经就绪"。改前这条链接靠框架回写 Bootstrap.bootstrap 维持；
 // 2026-10-15 合并（2.0.0）后锚点与容器同体，这条链接不可能再失效。
@@ -161,29 +161,44 @@ namespace SimplifyIoC.Tests
         }
 
         [Test]
-        public void ExplicitParentInitComposesBootstrapsWithoutTransformRelation()
+        public void AddBootstrapReassignsParentWithoutTransformRelation()
         {
-            //5.6：跨场景 / 跨 Prefab 组合的替代通道——两个 GameObject 没有任何层级关系，
-            //但要共享跨域绑定时，用 Init(parent) 显式认父（或事后 AddBootstrap）。
-            var otherObject = new GameObject("BootstrapHierarchyTests.ExplicitlyParented");
+            //Init() 已不再接收 parent 参数（2026-10-16 移除）——归属只剩「Transform 层级 → 锚点兜底」
+            //两条来源，要指定锚点之外的父就只有 AddBootstrap 这条通道。本用例覆盖它的语义：
+            //先从旧父摘除、再挂到新父、共享的跨域根 binder 不变、级联释放沿新链走。
+            var firstObject = new GameObject("BootstrapHierarchyTests.FirstChild");
+            var secondObject = new GameObject("BootstrapHierarchyTests.SecondParent");
             try
             {
-                var other = otherObject.AddComponent<ParentedHierarchyBootstrap>();
-                other.Init(_parent);
+                var first = firstObject.AddComponent<ChildHierarchyBootstrap>();
+                first.Init();
+                var second = secondObject.AddComponent<ChildHierarchyBootstrap>();
+                second.Init();
 
-                Assert.That(other.parentBootstrap, Is.SameAs(_parent));
-                Assert.That(other.isRoot, Is.False);
-                Assert.That(_parent.ExposedChildren, Does.Contain(other));
-                Assert.That(other.ExposedInjectionBinder.crossContextBinder,
-                    Is.SameAs(_parent.ExposedInjectionBinder.crossContextBinder));
+                //两者都没有 Transform 父 → 都先落到锚点 _parent 下
+                Assert.That(first.parentBootstrap, Is.SameAs(_parent));
+                Assert.That(second.parentBootstrap, Is.SameAs(_parent));
 
-                //级联释放同样成立
+                //把 first 转交给 second 当子
+                second.AddBootstrap(first);
+
+                Assert.That(first.parentBootstrap, Is.SameAs(second));
+                Assert.That(second.ExposedChildren, Does.Contain(first));
+                Assert.That(_parent.ExposedChildren, Has.No.Member(first), "转移归属时必须先从旧父摘除");
+                Assert.That(_parent.ExposedChildren, Does.Contain(second));
+                Assert.That(first.isRoot, Is.False);
+                Assert.That(first.ExposedInjectionBinder.crossContextBinder,
+                    Is.SameAs(_parent.ExposedInjectionBinder.crossContextBinder),
+                    "换父之后共享的仍是同一个跨域根 binder");
+
+                //级联释放沿新链走：_parent → second → first
                 _parent.Dispose();
-                Assert.That(other.ExposedCommandBinder, Is.Null);
+                Assert.That(first.ExposedCommandBinder, Is.Null);
             }
             finally
             {
-                Object.DestroyImmediate(otherObject);
+                Object.DestroyImmediate(firstObject);
+                Object.DestroyImmediate(secondObject);
             }
         }
 
@@ -200,15 +215,6 @@ namespace SimplifyIoC.Tests
         /// 子 Bootstrap：只做本地绑定——不重复登记跨域类型，
         /// 否则共享根 binder 上会出现同名非 weak 冲突，把根 binder 打进 conflicted 状态。
         private sealed class ChildHierarchyBootstrap : HierarchyTestBootstrap
-        {
-            protected override void MapBindings()
-            {
-                BindLocal();
-            }
-        }
-
-        /// 显式挂载到指定父 Bootstrap 的子（两侧 GameObject 无层级关系）
-        private sealed class ParentedHierarchyBootstrap : HierarchyTestBootstrap
         {
             protected override void MapBindings()
             {

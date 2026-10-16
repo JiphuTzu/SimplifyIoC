@@ -33,17 +33,22 @@ public class GameBootstrap : SimplifyBootstrap<GameStartupCommand>
 
 把 `GameBootstrap` 挂到场景中层级最顶部的 GameObject 上，View 放在它的子树里。
 
-需要自己控制归属或启动时机时，覆写 `Awake` / `Start`：
+需要控制启动时机时，覆写 `Start`——归属不必在那里表达，`Init()` 会自动解析父：
 
 ```csharp
 public class LevelBootstrap : SimplifyBootstrap<LevelStartupCommand>
 {
-    // 显式认父；直接 Init 即可，不要先调 base.Awake()（那样这里传的父会被忽略）
-    protected override void Awake() => Init(Bootstrap.root);
+    // 想在自己挑的时机启动就覆写它；base.Start() 即 Launch()
+    protected override void Start()
+    {
+        // ...先做自己的事
+        base.Start();
+    }
 }
 ```
 
-- `Init(Bootstrap parent = null)` 幂等：`Awake` 自动调用；EditMode 测试与运行时动态加组件请显式调用它。
+- `Init()` 幂等、**无父参数**，且可见性是 **`internal`**：`Awake` 自动调用，正常使用不需要（也调不到）它——运行时 `AddComponent<XxxBootstrap>()` 照常由 Unity 派发 `Awake`；只有框架自身与包内测试程序集经 `InternalsVisibleTo` 可见。归属自动解析——沿 Transform 向上找最近的已就绪 `Bootstrap`，找不到才落到框架级锚点 `Bootstrap.root`；要指定「锚点之外的某个父」用 `AddBootstrap`。
+- `Dispose()` 之后调用 `Init()` 会抛 `ObjectDisposedException`——幂等不等于可复活。
 - `Launch()` 永远显式：`SimplifyBootstrap<T>.Start` 自动补调；直接派生 `Bootstrap`（不经 `SimplifyBootstrap<T>`）的类需自行在 `Start` 里调用。
 - Unity 在 `Awake` 之前完成反序列化，所以 `BindValues` 里读序列化字段是安全的。
 
@@ -100,29 +105,26 @@ public class HudMediator : Mediator<HudView>
 它同时承担 5.6 之前 `firstBootstrap` 的两条兜底，场景侧只依赖框架类型即可取得父 Bootstrap，跨域绑定随之可用：
 
 ```csharp
-//App 层：常驻（DontDestroyOnLoad），先 Init 即可——锚点自动登记，无需额外声明
+//App 层：常驻（DontDestroyOnLoad）——Awake 默认就是建容器 + 定归属，这里只补自己的事
 public class AppBootstrap : SimplifyBootstrap<AppStartupCommand>
 {
     protected override void Awake()
     {
-        Init();
+        base.Awake();                 // 建容器 + 定归属 + 映射；锚点自动登记，无需额外声明
         DontDestroyOnLoad(gameObject);
     }
 }
 
-//场景层：不认识 AppBootstrap，只认识框架类型
-public class LevelBootstrap : SimplifyBootstrap<LevelStartupCommand>
-{
-    protected override void Awake() => Init(Bootstrap.root);
-}
+//场景层：不认识 AppBootstrap，也不需要认识——连 Awake 都不必覆写
+public class LevelBootstrap : SimplifyBootstrap<LevelStartupCommand> { }
 ```
 
 - 锚点**自动**产生：第一个构造的链根持有，后来的 Bootstrap 不抢占；锚点被 `Dispose()`（App 根销毁）后清空，下一个链根接任。
 - 两条**兜底**（1.3.2 恢复 5.6 之前 `firstBootstrap` 的行为）：
-  - `Init` 时没有显式 parent、Transform 层级也找不到父 ⇒ 自动挂到锚点下（跨场景并列加载时不必手写 parent）；
+  - `Init` 时 Transform 层级找不到父 ⇒ 自动挂到锚点下（跨场景并列加载时不必手写任何代码）；
   - View 找不到任何 Bootstrap ⇒ 注册到锚点而不是抛异常（`requiresBootstrap = false` 的 View 不参与）。
-  归属优先级始终是 **显式 parent > Transform 层级 > 锚点兜底**——能表达清楚的永远优先。
-- 锚点缺席（单独跑某个场景调试）时 `Bootstrap.root` 为 `null`，照常把它当 parent 传进去即 **自任链根**，功能照常。
+  归属始终是 **Transform 层级 > 锚点兜底**——层级上说得清楚时永远优先；要指定「锚点之外的某个父」用 `AddBootstrap`。
+- 锚点缺席（单独跑某个场景调试）时 `Bootstrap.root` 为 `null`，该 Bootstrap 即 **自任链根** 并接任锚点，功能照常。
 - 跨域绑定请只在锚点根声明一次并标 `.CrossContext()`，场景 Bootstrap 不要重复登记（会在共享根 binder 上同名冲突）。
 
 ## 声明式绑定

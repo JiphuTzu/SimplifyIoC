@@ -1,0 +1,45 @@
+# ── 行尾策略：文本一律 LF ──────────────────────────────────────────────────────
+#
+# 为什么是 LF（而不是 CRLF、也不是「交给各人本地的 core.autocrlf」）：
+#   1) 本仓库 index 现状本来就是全 LF（git ls-files --eol 实测 253/253 为 i/lf）。
+#      本文件的作用是把「工作区行尾」也钉死，不再取决于 checkout 者的 core.autocrlf
+#      （Windows 上 Git for Windows 默认 true，会把工作区文本全转成 CRLF）。
+#   2) Unity 保存 .meta / .asset / .unity / .prefab / ProjectSettings/** 时恒写 LF。
+#      工作区若是 CRLF，每次 Unity 保存都会被 git 认为「又变回去了」——这是最典型的噪音来源。
+#   3) 本工程 ProjectSettings/EditorSettings.asset：m_LineEndingsForNewScripts = 1(Unix)、
+#      m_SerializationMode = 2(Force Text)，即 Unity 新建脚本本就用 LF。
+#   4) Windows / macOS / Linux / CI clone 出来的字节完全一致，diff 里不会再混进整文件的行尾差异。
+#
+# 刻意不写 `*.asset text eol=lf` / `*.meta text eol=lf` 这类强制声明：
+#   `text=auto` 会按内容自动判定二进制（实测含 NUL 的 .png 得到 -text、字节零改动），
+#   而强制 text 会把少数二进制形态的 .asset 弄坏。
+* text=auto eol=lf
+
+# Windows 批处理不能吃 LF，例外保留 CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制：不转换行尾、不做文本 diff（text=auto 通常已能识别，这里对常见类型显式声明）
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.psd  binary
+*.tga  binary
+*.exr  binary
+*.fbx  binary
+*.obj  binary
+*.blend binary
+*.wav  binary
+*.mp3  binary
+*.ogg  binary
+*.mp4  binary
+*.mov  binary
+*.ttf  binary
+*.otf  binary
+*.dll  binary
+*.so   binary
+*.a    binary
+*.zip  binary
+*.pdf  binary
+*.unitypackage binary

@@ -38,15 +38,15 @@ namespace SimplifyIoC.Tests
         [Test]
         public void EachBootstrapCachesItsOwnEarlyViews()
         {
-            var contextA = CreateBootstrap();
-            var contextB = CreateBootstrap();
+            var bootstrapA = CreateBootstrap();
+            var bootstrapB = CreateBootstrap();
 
-            contextA.CacheEarlyView(CreateView());
-            contextA.CacheEarlyView(CreateView());
-            contextB.CacheEarlyView(CreateView());
+            bootstrapA.CacheEarlyView(CreateView());
+            bootstrapA.CacheEarlyView(CreateView());
+            bootstrapB.CacheEarlyView(CreateView());
 
-            Assert.That(contextA.ExposedViewCache.Count, Is.EqualTo(2));
-            Assert.That(contextB.ExposedViewCache.Count, Is.EqualTo(1));
+            Assert.That(bootstrapA.ExposedViewCache.Count, Is.EqualTo(2));
+            Assert.That(bootstrapB.ExposedViewCache.Count, Is.EqualTo(1));
         }
 
         [Test]
@@ -56,22 +56,22 @@ namespace SimplifyIoC.Tests
             //级联关系不影响本用例要钉的隔离性：ViewCache 是每 Bootstrap 实例一份，
             //Dispose 一个不会动到另一个的缓存（3.2 之前是 static 缓存，才会互相覆盖）。
             var root = CreateBootstrap();
-            var contextA = CreateBootstrap();
-            var contextB = CreateBootstrap();
+            var bootstrapA = CreateBootstrap();
+            var bootstrapB = CreateBootstrap();
 
             //顺带确认三者确实成链（本用例的前提）
             Assert.That(root.parentBootstrap, Is.Null);
-            Assert.That(contextA.parentBootstrap, Is.SameAs(root));
-            Assert.That(contextB.parentBootstrap, Is.SameAs(root));
+            Assert.That(bootstrapA.parentBootstrap, Is.SameAs(root));
+            Assert.That(bootstrapB.parentBootstrap, Is.SameAs(root));
 
-            contextA.CacheEarlyView(CreateView());
-            contextB.CacheEarlyView(CreateView());
+            bootstrapA.CacheEarlyView(CreateView());
+            bootstrapB.CacheEarlyView(CreateView());
 
-            contextA.Dispose();
+            bootstrapA.Dispose();
 
             //3.2 之前：static 缓存被 A 清空，B 的视图随之丢失
-            Assert.That(contextA.ExposedViewCache.Count, Is.EqualTo(0));
-            Assert.That(contextB.ExposedViewCache.Count, Is.EqualTo(1));
+            Assert.That(bootstrapA.ExposedViewCache.Count, Is.EqualTo(0));
+            Assert.That(bootstrapB.ExposedViewCache.Count, Is.EqualTo(1));
             Assert.That(root.ExposedViewCache.Count, Is.EqualTo(0));
         }
 

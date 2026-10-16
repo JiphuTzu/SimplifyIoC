@@ -130,10 +130,10 @@ namespace SimplifyIoC.Tests
         // ---- 池化 ----
 
         [Test]
-        public void PooledCommandIsRecycledAcrossDispatches()
+        public void CommandIsRecycledAcrossDispatches()
         {
             _binder.Bind<TestSignal>().ToSingleton();
-            _commandBinder.Bind<TestSignal>().To<TestCommand>().Pooled();
+            _commandBinder.Bind<TestSignal>().To<TestCommand>();
             var signal = _binder.GetInstance<TestSignal>();
 
             signal.Dispatch();
@@ -143,15 +143,14 @@ namespace SimplifyIoC.Tests
             var second = TestCommand.LastInstance;
 
             Assert.AreEqual(2, TestCommand.ExecutionCount);
-            Assert.AreSame(first, second, "池化路径应复用同一实例");
+            Assert.AreSame(first, second, "命令统一池化，应复用同一实例");
         }
 
-        // ---- 池化关闭 ----
+        // ---- 命令与容器隔离 ----
 
         [Test]
-        public void CommandWithoutPooledDeclarationStillExecutes()
+        public void CommandDoesNotLeakIntoTheInjectionBinder()
         {
-            //5.5：统一池化后 usePooling 开关已移除（Obsolete no-op），是否声明 Pooled() 不再影响执行
             _binder.Bind<TestSignal>().ToSingleton();
             _commandBinder.Bind<TestSignal>().To<TestCommand>();
             var signal = _binder.GetInstance<TestSignal>();
@@ -206,10 +205,10 @@ namespace SimplifyIoC.Tests
         }
 
         [Test]
-        public void PooledCommandReceivesPayloadOfEachDispatch()
+        public void CommandReceivesPayloadOfEachDispatch()
         {
             _binder.Bind<PayloadSignal>().ToSingleton();
-            _commandBinder.Bind<PayloadSignal>().To<PooledPayloadCommand>().Pooled();
+            _commandBinder.Bind<PayloadSignal>().To<PooledPayloadCommand>();
             var signal = _binder.GetInstance<PayloadSignal>();
 
             signal.Dispatch(new PayloadVO { value = 1 });

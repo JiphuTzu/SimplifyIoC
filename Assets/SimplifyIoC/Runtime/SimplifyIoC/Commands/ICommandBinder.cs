@@ -15,10 +15,13 @@
  * 该 Binder 同样支持序列：默认所有 Command 并行执行；
  * 若绑定指定了 InSequence()，Command 将串行执行，并可在任意时刻挂起链条。
  *
+ * 绑定的 key 只能是 Signal 类型：派发完全由 Signal 广播驱动，
+ * 字符串 / 枚举 key 虽然能编译通过，却没有任何触发路径（本框架已无 Event 系统）。
+ *
  * 绑定示例：
 		Bind<SomeSignal>().To<SomeCommand>();
 		Bind<StartupSignal>().To<StartCommand>().Once(); //单次使用后立即销毁该绑定
-		Bind<SomeSignal>().To<FirstCommand>().To<SecondCommand>().To<ThirdGCommand>().InSequence();
+		Bind<SomeSignal>().To<FirstCommand>().To<SecondCommand>().To<ThirdCommand>().InSequence();
  *
  * 异步 Command 与取消序列的细节参见 Command。
  */

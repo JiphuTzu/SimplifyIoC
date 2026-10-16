@@ -22,23 +22,23 @@ namespace SimplifyIoC.Tests
 {
     public class ViewWithoutMediatorTests
     {
-        private GameObject _contextObject;
-        private PlainTestBootstrap _context;
+        private GameObject _bootstrapObject;
+        private PlainTestBootstrap _bootstrap;
         private readonly List<GameObject> _objects = new List<GameObject>();
 
         [SetUp]
         public void SetUp()
         {
-            _contextObject = new GameObject("ViewWithoutMediatorTests.Bootstrap");
-            _objects.Add(_contextObject);
-            _context = _contextObject.AddComponent<PlainTestBootstrap>();
-            _context.Init();
+            _bootstrapObject = new GameObject("ViewWithoutMediatorTests.Bootstrap");
+            _objects.Add(_bootstrapObject);
+            _bootstrap = _bootstrapObject.AddComponent<PlainTestBootstrap>();
+            _bootstrap.Init();
         }
 
         [TearDown]
         public void TearDown()
         {
-            _context?.Dispose();
+            _bootstrap?.Dispose();
             foreach (var go in _objects)
             {
                 if (go != null) Object.DestroyImmediate(go);
@@ -55,7 +55,7 @@ namespace SimplifyIoC.Tests
         {
             var view = CreateAutoView();
 
-            _context.AddView(view);
+            _bootstrap.AddView(view);
 
             Assert.That(view.service, Is.Not.Null,
                 "没有 Mediator 的 View 也必须被注入——注入是 Bootstrap 的能力，不是 Mediator 的");
@@ -73,12 +73,12 @@ namespace SimplifyIoC.Tests
         public void LifecycleEventsAreSafeWithoutMediator()
         {
             var view = CreateAutoView();
-            _context.AddView(view);
+            _bootstrap.AddView(view);
 
             //没有 mediator 时这些事件无事可做，但绝不能抛
-            Assert.DoesNotThrow(() => _context.EnableView(view));
-            Assert.DoesNotThrow(() => _context.DisableView(view));
-            Assert.DoesNotThrow(() => _context.RemoveView(view));
+            Assert.DoesNotThrow(() => _bootstrap.EnableView(view));
+            Assert.DoesNotThrow(() => _bootstrap.DisableView(view));
+            Assert.DoesNotThrow(() => _bootstrap.RemoveView(view));
         }
 
         [Test]
@@ -87,7 +87,7 @@ namespace SimplifyIoC.Tests
             var root = CreateAutoView();
 
             //子视图与父视图同属"没有 Mediator"的情形，应各自完成注入与解析
-            _context.AddView(root);
+            _bootstrap.AddView(root);
 
             var sub = root.GetComponentInChildren<AutoSubView>();
             Assert.That(sub, Is.Not.Null);

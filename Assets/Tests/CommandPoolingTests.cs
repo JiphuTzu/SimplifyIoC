@@ -75,7 +75,7 @@ namespace SimplifyIoC.Tests
         // ---- 统一池化 ----
 
         [Test]
-        public void CommandsAreRecycledWithoutPooledDeclaration()
+        public void CommandsAreAlwaysRecycled()
         {
             _binder.Bind<TestSignal>().ToSingleton();
             _commandBinder.Bind<TestSignal>().To<TestCommand>();
@@ -87,7 +87,7 @@ namespace SimplifyIoC.Tests
             var second = TestCommand.LastInstance;
 
             Assert.AreEqual(2, TestCommand.ExecutionCount);
-            Assert.AreSame(first, second, "统一池化后，未声明 Pooled() 的命令同样复用实例");
+            Assert.AreSame(first, second, "所有命令统一池化，应复用同一实例");
         }
 
         [Test]
@@ -120,7 +120,7 @@ namespace SimplifyIoC.Tests
         }
 
         /// <summary>
-        /// 5.5 的行为变更：旧实现里未声明 Pooled() 的命令执行完就没人管，注入值原样留着；
+        /// 5.5 的行为变更：旧实现里未池化的命令执行完就没人管，注入值原样留着；
         /// 统一池化后每条命令执行完都会归还并 Restore（Uninject），注入槽位随即清空。
         /// 好处是池不再长期持有对 Bootstrap/单例的引用；代价是命令引用在 Dispatch 返回后不可再用。
         /// 这条用例把该语义钉住——用户代码若在 Execute 之外持有 Command，看到的应是空槽位而非脏数据。
@@ -224,27 +224,6 @@ namespace SimplifyIoC.Tests
 
             Assert.IsFalse(pool is IPoolable,
                 "池不再实现 IPoolable：否则被归还时 Restore() 会把它自己清空");
-        }
-
-        // ---- 废弃开关 ----
-
-        [Test]
-        public void UsePoolingIsRetainedButInert()
-        {
-#pragma warning disable 618 // usePooling 已 Obsolete，这里正是要确认它不再改变行为
-            _commandBinder.usePooling = false;
-#pragma warning restore 618
-
-            _binder.Bind<TestSignal>().ToSingleton();
-            _commandBinder.Bind<TestSignal>().To<TestCommand>();
-            var signal = _binder.GetInstance<TestSignal>();
-
-            signal.Dispatch();
-            var first = TestCommand.LastInstance;
-            signal.Dispatch();
-
-            Assert.AreEqual(2, TestCommand.ExecutionCount);
-            Assert.AreSame(first, TestCommand.LastInstance, "开关已无作用，命令依旧走池");
         }
 
         /// 只为测试开一扇窗：pools / activeCommands 都是 protected。

@@ -17,13 +17,6 @@ namespace SimplifyIoC.Commands
 		public bool isSequence{ get; set; }
 
 		/// <summary>
-		/// 5.5：池化声明。统一池化之后所有命令都走池，本标记对实际行为已无影响，
-		/// 保留只是为了兼容既有源码，以及继续参与 ToHandler 的互斥校验
-		/// （把两条互斥写法保留在同一处报错，比让其中一条变成无声的空操作好）。
-		/// </summary>
-		public bool isPooled{ get; set; }
-
-		/// <summary>
 		/// 4.3：短路处理器。非 null 时该绑定不再创建 Command，派发直接调用它。
 		/// 有意不放到 ICommandBinding 上——接口只暴露"怎么写"，读取只发生在 CommandBinder 内。
 		/// </summary>
@@ -57,20 +50,6 @@ namespace SimplifyIoC.Commands
 			if (handler != null)
 				throw new Exception("InSequence() cannot be combined with ToHandler(...): a signal handler is invoked directly and has no command chain.");
 			isSequence = true;
-			return this;
-		}
-
-		/// <summary>
-		/// 5.5：所有命令统一池化后，本方法已是 no-op（除 ToHandler 互斥校验外），保留仅为兼容。
-		/// 既有的 .Pooled() 调用照常编译、照常工作（Commands 仍会是复用的），无需修改。
-		/// </summary>
-		public ICommandBinding Pooled()
-		{
-			//4.3：D3——handler 不是可池化对象，绑定期即抛
-			if (handler != null)
-				throw new Exception("Pooled() cannot be combined with ToHandler(...): a signal handler is not a poolable instance.");
-			isPooled = true;
-			resolver (this);
 			return this;
 		}
 
@@ -134,8 +113,6 @@ namespace SimplifyIoC.Commands
 			//4.3：两条通路互斥，后到者抛异常（早失败，避免半配置的绑定静默失效）
 			if (isSequence)
 				throw new Exception("ToHandler(...) cannot be combined with InSequence().");
-			if (isPooled)
-				throw new Exception("ToHandler(...) cannot be combined with Pooled().");
 			if (_value.value != null)
 				throw new Exception("ToHandler(...) cannot be combined with To<T>() / To(value).");
 			//4.3：命名是另一处"来源声明"。Binding._name 是基类私有字段，故走公开的 name 属性——

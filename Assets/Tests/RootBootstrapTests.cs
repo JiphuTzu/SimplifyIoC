@@ -6,12 +6,12 @@
 //
 //     class LevelBootstrap : SimplifyBootstrap<LevelStartupCommand>
 //     {
-//         protected override void Awake() => Init(Bootstrap.root);
+//         // 什么都不必写：Init() 无父参数，Transform 上没有父时自动落到 Bootstrap.root 下
 //     }
 //
 // 2026-10-15：锚点同时承担 5.6 之前静态 firstContext 的三条语义（本文件刻意钉住）：
 //   1. 锚点自动产生——第一个 Init 的链根持有，后 Init 者不抢占；
-//   2. 后来者自动挂成子——没有显式 parent、也不在锚点 Transform 链上的 Bootstrap 挂到锚点下；
+//   2. 后来者自动挂成子——Transform 层级上没有父的 Bootstrap 挂到锚点下；
 //   3. View 兜底——找不到任何 Bootstrap 的 View（requiresBootstrap = true）注册到锚点，而不是抛异常。
 //
 // 注意：锚点是进程级静态槽，SetUp / TearDown 都要清干净，否则用例之间互相污染。
@@ -119,7 +119,7 @@ namespace SimplifyIoC.Tests
             //核心用例：两个 Bootstrap 组件在 Transform 上毫无关系（模拟不同场景分别加载），
             //场景侧只通过 Bootstrap.root 取父引用——不需要知道 App 侧的任何具体类型。
             var app = CreateAnchorRoot("AppRoot");
-            var level = CreatePlain("Level", Bootstrap.root);
+            var level = CreatePlain("Level");
 
             Assert.That(level.parentBootstrap, Is.SameAs(app));
             Assert.That(level.isRoot, Is.False);
@@ -140,7 +140,7 @@ namespace SimplifyIoC.Tests
         {
             //单独跑某个场景调试时锚点不在：Init 时读到的是 null，
             //于是该 Bootstrap 自任链根、功能照常；又因为锚点空着，它自己接下锚点。
-            var level = CreatePlain("Level", Bootstrap.root);
+            var level = CreatePlain("Level");
 
             Assert.That(level.parentBootstrap, Is.Null);
             Assert.That(level.isRoot, Is.True, "锚点缺席时自任链根，功能照常");
@@ -153,7 +153,7 @@ namespace SimplifyIoC.Tests
         {
             //场景卸载：子 Bootstrap Dispose 只摘自己，不带走锚点，也不清共享根 binder
             var app = CreateAnchorRoot("AppRoot");
-            var level = CreatePlain("Level", Bootstrap.root);
+            var level = CreatePlain("Level");
 
             level.Dispose();
 
@@ -215,19 +215,19 @@ namespace SimplifyIoC.Tests
         }
 
         /// <summary>锚点根：登记一个跨域单例（解析时会被搬到共享根 binder 上）。</summary>
-        private AnchorRootBootstrap CreateAnchorRoot(string name, Bootstrap parent = null)
+        private AnchorRootBootstrap CreateAnchorRoot(string name)
         {
             var bootstrap = NewObject(name).AddComponent<AnchorRootBootstrap>();
-            bootstrap.Init(parent);
+            bootstrap.Init();
             _bootstraps.Add(bootstrap);
             return bootstrap;
         }
 
-        /// <summary>普通 Bootstrap：只做本地绑定；parent 由调用方给出（多为 Bootstrap.root）。</summary>
-        private PlainBootstrap CreatePlain(string name, Bootstrap parent = null)
+        /// <summary>普通 Bootstrap：只做本地绑定；归属由框架自动解析（无 Transform 父时落到锚点）。</summary>
+        private PlainBootstrap CreatePlain(string name)
         {
             var bootstrap = NewObject(name).AddComponent<PlainBootstrap>();
-            bootstrap.Init(parent);
+            bootstrap.Init();
             _bootstraps.Add(bootstrap);
             return bootstrap;
         }

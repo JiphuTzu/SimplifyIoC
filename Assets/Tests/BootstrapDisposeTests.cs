@@ -13,49 +13,49 @@ namespace SimplifyIoC.Tests
 {
     public class BootstrapDisposeTests
     {
-        private GameObject _contextObject;
-        private DisposeTestBootstrap _context;
+        private GameObject _bootstrapObject;
+        private DisposeTestBootstrap _bootstrap;
 
         [SetUp]
         public void SetUp()
         {
-            //锚点是进程级静态槽：先归零，本类用例里 _context 才会是可预期的链根
+            //锚点是进程级静态槽：先归零，本类用例里 _bootstrap 才会是可预期的链根
             Bootstrap.root = null;
             TestCommand.ExecutionCount = 0;
-            _contextObject = new GameObject("BootstrapDisposeTests.Bootstrap");
-            _context = _contextObject.AddComponent<DisposeTestBootstrap>();
+            _bootstrapObject = new GameObject("BootstrapDisposeTests.Bootstrap");
+            _bootstrap = _bootstrapObject.AddComponent<DisposeTestBootstrap>();
             //EditMode 不派发 MonoBehaviour 生命周期（Awake），显式建容器
-            _context.Init();
+            _bootstrap.Init();
         }
 
         [TearDown]
         public void TearDown()
         {
-            _context?.Dispose();
-            if (_contextObject != null) Object.DestroyImmediate(_contextObject);
+            _bootstrap?.Dispose();
+            if (_bootstrapObject != null) Object.DestroyImmediate(_bootstrapObject);
             Bootstrap.root = null;
         }
 
         [Test]
         public void DisposeClearsBindingRegistries()
         {
-            var service = _context.ExposedInjectionBinder.GetInstance<ITestService>();
+            var service = _bootstrap.ExposedInjectionBinder.GetInstance<ITestService>();
             Assert.That(service, Is.Not.Null);
 
-            _context.Dispose();
+            _bootstrap.Dispose();
 
-            Assert.That(_context.ExposedInjectionBinder.GetBinding<ITestService>(), Is.Null);
-            Assert.That(_context.ExposedCommandBinder, Is.Null);
+            Assert.That(_bootstrap.ExposedInjectionBinder.GetBinding<ITestService>(), Is.Null);
+            Assert.That(_bootstrap.ExposedCommandBinder, Is.Null);
             //注册表已空 → 按既有行为抛"no binding"异常
-            Assert.Throws<Exception>(() => _context.ExposedInjectionBinder.GetInstance<ITestService>());
+            Assert.Throws<Exception>(() => _bootstrap.ExposedInjectionBinder.GetInstance<ITestService>());
         }
 
         [Test]
         public void DisposeIsIdempotent()
         {
-            _context.Dispose();
-            Assert.DoesNotThrow(() => _context.Dispose());
-            Assert.That(_context.ExposedInjectionBinder.GetBinding<ITestService>(), Is.Null);
+            _bootstrap.Dispose();
+            Assert.DoesNotThrow(() => _bootstrap.Dispose());
+            Assert.That(_bootstrap.ExposedInjectionBinder.GetBinding<ITestService>(), Is.Null);
         }
 
         [Test]
@@ -65,24 +65,24 @@ namespace SimplifyIoC.Tests
             //又因为 SetUp 已清空锚点，它就是第一个构造的链根 → 自任链根并接任锚点。
             //（"谁先构造谁当根"这条 2026-10-15 随 firstContext 一起恢复，但它只作用于兜底：
             //  显式 parent 与 Transform 层级仍然优先。）
-            Assert.That(_context.isRoot, Is.True);
-            Assert.That(_context.parentBootstrap, Is.Null);
+            Assert.That(_bootstrap.isRoot, Is.True);
+            Assert.That(_bootstrap.parentBootstrap, Is.Null);
 
-            _context.Dispose();
+            _bootstrap.Dispose();
 
-            Assert.That(_context.ExposedInjectionBinder.crossContextBinder, Is.Null,
+            Assert.That(_bootstrap.ExposedInjectionBinder.crossContextBinder, Is.Null,
                 "链根 Dispose 要断开并清空共享跨域根 binder");
         }
 
         [Test]
         public void SignalListenerRemovedAfterDispose()
         {
-            var signal = _context.ExposedInjectionBinder.GetInstance<TestSignal>();
+            var signal = _bootstrap.ExposedInjectionBinder.GetInstance<TestSignal>();
             signal.Dispatch();
             var countAfterDispatch = TestCommand.ExecutionCount;
             Assert.That(countAfterDispatch, Is.GreaterThan(0));
 
-            _context.Dispose();
+            _bootstrap.Dispose();
 
             //信号实例仍在，但其命令监听已被 OnRemove 移除
             signal.Dispatch();

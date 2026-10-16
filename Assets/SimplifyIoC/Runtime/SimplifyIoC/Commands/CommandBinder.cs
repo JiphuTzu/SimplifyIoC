@@ -15,15 +15,16 @@
  * CommandBinder 还支持序列（Sequence）：默认所有 Command 并行执行；
  * 若绑定指定了 InSequence()，Command 将串行执行，并可在任意时刻挂起链条。
  *
+ * 绑定的 key 只能是 Signal 类型：派发完全由 Signal 广播驱动，
+ * 字符串 / 枚举 key 虽然能编译通过，却没有任何触发路径（本框架已无 Event 系统）。
+ *
  * 绑定示例：
 
-		Bind("someEvent").To<SomeCommand>(); //可用，但不推荐字符串，建议改用下面的常量形式
+		Bind<SomeSignal>().To<SomeCommand>();
 
-		Bind(EventMap.SOME_EVENT).To<SomeCommand>(); //用常量代替字符串
+		Bind<StartupSignal>().To<StartCommand>().Once(); //单次使用后立即销毁该绑定
 
-		Bind(BootstrapEvent.START).To<StartCommand>().Once(); //单次使用后立即销毁该绑定
-
-		Bind(EventMap.END_GAME_EVENT).To<FirstCommand>().To<SecondCommand>().To<ThirdGCommand>().InSequence();
+		Bind<SomeSignal>().To<FirstCommand>().To<SecondCommand>().To<ThirdCommand>().InSequence(); //多个 Command 串行执行
 
  *
  * 异步 Command 与取消序列的细节参见 Command。
@@ -247,9 +248,9 @@ namespace SimplifyIoC.Commands
         {
             if (type == null) return null;
 
-            //5.5：单一创建路径——无论绑定声明没声明 Pooled()，命令实例一律来自该命令类型的池。
+            //5.5：单一创建路径——命令实例一律来自该命令类型的池。
             //旧实现在这两条路径间分叉（池化 vs 一次性 new），分叉的存在又反过来要求
-            //usePooling / isPooled 两个开关的表达一致，是既难解释又难维护的一处状态。
+            //usePooling / isPooled 两个开关的表达一致；2.0.0 起这三处一并移除，分叉与开关都不在了。
             var pool = GetOrCreatePool(type);
             if (pool.GetInstance(scope) is not Command command) return null;
             if (!command.isClean) return command;
@@ -355,15 +356,6 @@ namespace SimplifyIoC.Commands
                 Next(binding, data, command.sequenceId + 1);
             }
         }
-
-        /// <summary>
-        /// 5.5：已废弃的开关，保留为 no-op。
-        /// 旧语义是"派发时是否回收命令实例"：false 时每次派发都新建实例，true 且绑定声明 Pooled() 时才走池。
-        /// 现在所有命令统一池化，两条路径合并成一条，本开关不再有任何作用；
-        /// 读写仍然编译通过，避免升级时出现大面积源码报错。计划在后续主版本中移除。
-        /// </summary>
-        [Obsolete("所有命令现已统一池化，usePooling 不再影响行为（非池化路径已移除）。")]
-        public bool usePooling { get; set; }
 
         private void RemoveSequence(Command command)
         {

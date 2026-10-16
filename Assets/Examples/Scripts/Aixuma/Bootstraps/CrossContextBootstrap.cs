@@ -20,9 +20,7 @@ namespace Aixuma.Bootstraps
     {
         protected override void Awake()
         {
-            //常驻：跨场景共享的绑定与单例都挂在它这条链的共享跨域根 binder 上，
-            //因此它必须先 Init 才能被别的场景认作父（Init 里会跳过尚未就绪的祖先）。
-            Init();
+            base.Awake();
             DontDestroyOnLoad(gameObject);
         }
 

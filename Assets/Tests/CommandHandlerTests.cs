@@ -4,7 +4,7 @@
 //  2) 服务生命周期沿用绑定语义（单例共享 / transient 每次新建）；
 //  3) 载荷个数或类型不符时在派发期抛异常，绝不静默传 null；
 //  4) handler 内再次派发同一信号不互相破坏（与 3.4 的作用域结论一致）；
-//  5) Once() 复用命令路径语义；InSequence()/Pooled()/To<T>()/ToName() 混用在绑定期即被拒绝。
+//  5) Once() 复用命令路径语义；InSequence()/To<T>()/ToName() 混用在绑定期即被拒绝。
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;

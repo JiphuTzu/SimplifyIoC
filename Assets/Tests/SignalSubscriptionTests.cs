@@ -263,9 +263,9 @@ namespace SimplifyIoC.Tests
         [Test]
         public void RemovingMediatorDisposesItsSubscriptionGroup()
         {
-            var contextObject = NewGameObject("Bootstrap");
+            var bootstrapObject = NewGameObject("Bootstrap");
             var signal = new Signal();
-            var bootstrap = contextObject.AddComponent<SubscriptionTestBootstrap>();
+            var bootstrap = bootstrapObject.AddComponent<SubscriptionTestBootstrap>();
             bootstrap.Init();
             //注意时序：Init 内部就会跑 MapBindings，实例字段此刻还没赋值
             //（把 signal 传进构造参数的那一版正是死在 ToValue(null) 上），故值绑定放在 Init 之后。

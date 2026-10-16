@@ -20,23 +20,23 @@ namespace SimplifyIoC.Tests
 {
     public class DeclarationBindingTests
     {
-        private GameObject _contextObject;
-        private DeclarativeTestBootstrap _context;
+        private GameObject _bootstrapObject;
+        private DeclarativeTestBootstrap _bootstrap;
         private readonly List<GameObject> _objects = new List<GameObject>();
 
         [SetUp]
         public void SetUp()
         {
-            _contextObject = new GameObject("DeclarationBindingTests.Bootstrap");
-            _objects.Add(_contextObject);
-            _context = _contextObject.AddComponent<DeclarativeTestBootstrap>();
-            _context.Init();
+            _bootstrapObject = new GameObject("DeclarationBindingTests.Bootstrap");
+            _objects.Add(_bootstrapObject);
+            _bootstrap = _bootstrapObject.AddComponent<DeclarativeTestBootstrap>();
+            _bootstrap.Init();
         }
 
         [TearDown]
         public void TearDown()
         {
-            _context?.Dispose();
+            _bootstrap?.Dispose();
             foreach (var go in _objects)
             {
                 if (go != null) Object.DestroyImmediate(go);
@@ -46,7 +46,7 @@ namespace SimplifyIoC.Tests
             MainThreadProbe.Reset();
         }
 
-        private IMediationBinder MediationBinder => _context.ExposedMediationBinder;
+        private IMediationBinder MediationBinder => _bootstrap.ExposedMediationBinder;
 
         // ---- [Child] ----
 

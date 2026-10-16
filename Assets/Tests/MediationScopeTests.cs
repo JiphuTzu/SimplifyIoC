@@ -18,8 +18,8 @@ namespace SimplifyIoC.Tests
 {
     public class MediationScopeTests
     {
-        private GameObject _contextObject;
-        private MediationScopeTestBootstrap _context;
+        private GameObject _bootstrapObject;
+        private MediationScopeTestBootstrap _bootstrap;
         private readonly List<GameObject> _objects = new List<GameObject>();
 
         [SetUp]
@@ -27,17 +27,17 @@ namespace SimplifyIoC.Tests
         {
             MediationScopeProbeMediator.onViewInjected = null;
             MediationScopeProbeMediator.InjectedViews.Clear();
-            _contextObject = new GameObject("MediationScopeTests.Bootstrap");
-            _objects.Add(_contextObject);
-            _context = _contextObject.AddComponent<MediationScopeTestBootstrap>();
-            _context.Init();
+            _bootstrapObject = new GameObject("MediationScopeTests.Bootstrap");
+            _objects.Add(_bootstrapObject);
+            _bootstrap = _bootstrapObject.AddComponent<MediationScopeTestBootstrap>();
+            _bootstrap.Init();
         }
 
         [TearDown]
         public void TearDown()
         {
             MediationScopeProbeMediator.onViewInjected = null;
-            _context?.Dispose();
+            _bootstrap?.Dispose();
             foreach (var go in _objects)
             {
                 if (go != null) Object.DestroyImmediate(go);
@@ -46,8 +46,8 @@ namespace SimplifyIoC.Tests
             _objects.Clear();
         }
 
-        private IMediationBinder MediationBinder => _context.ExposedMediationBinder;
-        private IInjectionBinder InjectionBinder => _context.ExposedInjectionBinder;
+        private IMediationBinder MediationBinder => _bootstrap.ExposedMediationBinder;
+        private IInjectionBinder InjectionBinder => _bootstrap.ExposedInjectionBinder;
 
         [Test]
         public void MediatorReceivesItsOwnViewAndLeavesNoResidue()
