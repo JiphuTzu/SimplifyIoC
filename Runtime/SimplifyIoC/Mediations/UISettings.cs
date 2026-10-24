@@ -2,9 +2,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-#if AIXUMA_YOO_ASSET
-using YooAsset;
-#endif
 
 // ReSharper disable InconsistentNaming
 
@@ -20,14 +17,8 @@ namespace SimplifyIoC.Mediations
     [CreateAssetMenu(fileName = "UISettings", menuName = "Aixuma/UISettings")]
     public class UISettings : ScriptableObject
     {
-#if AIXUMA_YOO_ASSET
-        public string prefabPath = "Assets/Hotfix/Prefabs";
-        public string bootstrapPath = "Assets/Hotfix/Prefabs";
-#endif
-        [SerializeField] private List<SimplifyUI> _views;
-
+        public CustomPrefabCreator[] prefabCreators;
         private Transform _popupMask;
-        private readonly Dictionary<Type, SimplifyUI> _viewsMap = new();
         private readonly Dictionary<Type, Queue<SimplifyUI>> _viewCache = new();
         private readonly List<IToast> _toastsInShow = new();
         private readonly Dictionary<UIType, Transform> _viewRoot = new();
@@ -51,12 +42,6 @@ namespace SimplifyIoC.Mediations
             _viewRoot.Add(UIType.Screen, screen);
             _viewRoot.Add(UIType.Overlay, overlay);
             _viewRoot.Add(UIType.Toast, screen.parent);
-            foreach (var view in _views)
-            {
-                if (view != null)
-                    _viewsMap.Add(view.GetType(), view);
-            }
-
             //
             var safeArea = Screen.safeArea;
             var canvas = screen.GetComponentInParent<Canvas>();
@@ -120,51 +105,50 @@ namespace SimplifyIoC.Mediations
         {
             _popupMask = null;
             _viewRoot.Clear();
-            _viewsMap.Clear();
             _toastsInShow.Clear();
         }
 
         public SimplifyUI CreateView(string name)
         {
-            SimplifyUI prefab = null;
-            Type type = null;
-            foreach (var kv in _viewsMap)
-            {
-                if(kv.Value == null || kv.Value.name != name) continue;
-                prefab = kv.Value;
-                type = kv.Key;
-            }
-
-            if (prefab == null)
-            {
-                if (!GetPrefab(name, out prefab, out type)) return null;
-            }
-            return CreateView(type, prefab);
+            return GetCustomPrefab(name, out var prefab) 
+                ? CreateView(prefab.GetType(), prefab)
+                : null;
         }
 
-        private bool GetPrefab(string name, out SimplifyUI prefab, out Type type)
+        private bool GetCustomPrefab(string name, out SimplifyUI prefab)
         {
+            foreach (var creator in prefabCreators)
+            {
+                if (creator == null)  continue;
+                if (creator.GetUIPrefab(name, out prefab)) return true;
+            }
             prefab = null;
-            type = null;
-#if AIXUMA_YOO_ASSET
-            var handle = YooAssets.LoadAssetSync($"{prefabPath}/{name}");
-            if (handle == null || handle.AssetObject is not GameObject go) return false;
-            prefab = go.GetComponent<BaseView>();
-#endif
-            if (prefab == null) return false;
-            type = prefab.GetType();
-            Debug.Log($"Get Hotfix Prefab From YooAssets: {prefab} of type {type}");
-            return true;
+            return false;
+        }
+        private bool GetCustomPrefab(Type type, out SimplifyUI prefab)
+        {
+            foreach (var creator in prefabCreators)
+            {
+                if (creator == null)  continue;
+                if (creator.GetUIPrefab(type, out prefab))
+                    return true;
+            }
+            prefab = null;
+            return false;
         }
 
-        public void CreateBootstrap(string name)
+        public void CreateCustomBootstrap(string name)
         {
-#if AIXUMA_YOO_ASSET
-            var handle = YooAssets.LoadAssetSync($"{bootstrapPath}/{name}");
-            if (handle == null || handle.AssetObject is not GameObject prefab) return;
-            var bs = Instantiate(prefab, _viewRoot[ViewType.Toast]);
-            bs.name = prefab.name;
-#endif
+            foreach (var creator in prefabCreators)
+            {
+                if (creator == null)  continue;
+                if (creator.GetBootstrapPrefab(name, out var prefab))
+                {
+                    var bs = Instantiate(prefab, _viewRoot[UIType.Toast]);
+                    bs.name = prefab.name;
+                }
+                break;
+            }
         }
 
         private SimplifyUI CreateView(Type type, SimplifyUI prefab)
@@ -198,11 +182,8 @@ namespace SimplifyIoC.Mediations
         public T CreateView<T>() where T : SimplifyUI
         {
             var type = typeof(T);
-            if (_viewsMap.TryGetValue(type, out var prefab))
-                return CreateView(type, prefab) as T;
-            var name = type.Name;
-            Debug.Log($"Create View By Name {name}");
-            if (GetPrefab(name, out prefab, out type))
+            Debug.Log($"Create View By Type {type}");
+            if (GetCustomPrefab(type, out var prefab))
                 return CreateView(type, prefab) as T;
             return null;
         }
@@ -210,8 +191,7 @@ namespace SimplifyIoC.Mediations
         public UISettings ReleaseView<T>() where T: SimplifyUI
         {
             var type = typeof(T);
-            _viewsMap.TryGetValue(type, out var prefab);
-            if (prefab == null) return this;
+            if (!GetCustomPrefab(type, out var prefab)) return this;
             var parent = _viewRoot[prefab.type];
             for (var i = parent.childCount - 1; i >= 0; i--)
             {
