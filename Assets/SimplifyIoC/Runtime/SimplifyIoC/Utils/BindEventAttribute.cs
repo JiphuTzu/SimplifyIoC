@@ -30,16 +30,16 @@ namespace SimplifyIoC.Utils
         //成员查找按 (Type, name) 缓存（targetNames 解析事件宿主用，两个查找的 FLAGS 相同，共用常量）
         private const BindingFlags _LOOKUP_FLAGS = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic |
                                                   BindingFlags.IgnoreCase;
-        private static readonly Dictionary<(Type, string), FieldInfo> _fieldLookup = new();
-        private static readonly Dictionary<(Type, string), PropertyInfo> _propertyLookup = new();
+        private static readonly Dictionary<(Type, string), FieldInfo> _FIELD_LOOKUP = new();
+        private static readonly Dictionary<(Type, string), PropertyInfo> _PROPERTY_LOOKUP = new();
 
         private static FieldInfo GetFieldCached(Type type, string name)
         {
             var key = (type, name);
-            if (!_fieldLookup.TryGetValue(key, out var value))
+            if (!_FIELD_LOOKUP.TryGetValue(key, out var value))
             {
                 value = type.GetField(name, _LOOKUP_FLAGS);
-                _fieldLookup[key] = value;
+                _FIELD_LOOKUP[key] = value;
             }
             return value;
         }
@@ -47,10 +47,10 @@ namespace SimplifyIoC.Utils
         private static PropertyInfo GetPropertyCached(Type type, string name)
         {
             var key = (type, name);
-            if (!_propertyLookup.TryGetValue(key, out var value))
+            if (!_PROPERTY_LOOKUP.TryGetValue(key, out var value))
             {
                 value = type.GetProperty(name, _LOOKUP_FLAGS);
-                _propertyLookup[key] = value;
+                _PROPERTY_LOOKUP[key] = value;
             }
             return value;
         }
@@ -141,32 +141,32 @@ namespace SimplifyIoC.Utils
         }
 
         //2.3.e：AddListener 的 MethodInfo 按事件类型缓存（原每次调用都 GetMethod）
-        private static readonly Dictionary<Type, MethodInfo> _addListenerCache = new();
+        private static readonly Dictionary<Type, MethodInfo> _ADD_LISTENER_CACHE = new();
 
         private static void AddListener(UnityEventBase ue, object target, MethodInfo method)
         {
             var type = ue.GetType();
-            if (!_addListenerCache.TryGetValue(type, out var ual))
+            if (!_ADD_LISTENER_CACHE.TryGetValue(type, out var ual))
             {
                 ual = type.GetMethod("AddListener", BindingFlags.Instance | BindingFlags.NonPublic);
-                _addListenerCache[type] = ual;
+                _ADD_LISTENER_CACHE[type] = ual;
             }
             ual?.Invoke(ue, new[] { target, method });
         }
 
         //2.3.e：事件成员查找按 (类型, 名称) 缓存；MemberInfo 为 null 表示确认无此成员
-        private static readonly Dictionary<(Type, string), MemberInfo> _eventMemberCache = new();
+        private static readonly Dictionary<(Type, string), MemberInfo> _EVENT_MEMBER_CACHE = new();
 
         private static UnityEventBase GetEvent(object target, string name)
         {
             if (target == null) return null;
             var type = target.GetType();
             var key = (type, name);
-            if (!_eventMemberCache.TryGetValue(key, out var member))
+            if (!_EVENT_MEMBER_CACHE.TryGetValue(key, out var member))
             {
                 member = type.GetField(name, BindingFlags.Instance | BindingFlags.Public)
                          ?? (MemberInfo)type.GetProperty(name, BindingFlags.Instance | BindingFlags.Public);
-                _eventMemberCache[key] = member;
+                _EVENT_MEMBER_CACHE[key] = member;
             }
             switch (member)
             {

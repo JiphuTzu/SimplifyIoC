@@ -119,8 +119,9 @@ namespace SimplifyIoC.Mediations
         {
             foreach (var creator in prefabCreators)
             {
-                if (creator == null)  continue;
-                if (creator.GetUIPrefab(name, out prefab)) return true;
+                if (creator != null 
+                    && creator.GetUIPrefab(name, out prefab)) 
+                    return true;
             }
             prefab = null;
             return false;
@@ -129,8 +130,8 @@ namespace SimplifyIoC.Mediations
         {
             foreach (var creator in prefabCreators)
             {
-                if (creator == null)  continue;
-                if (creator.GetUIPrefab(type, out prefab))
+                if (creator != null 
+                    && creator.GetUIPrefab(type, out prefab))
                     return true;
             }
             prefab = null;
@@ -141,13 +142,12 @@ namespace SimplifyIoC.Mediations
         {
             foreach (var creator in prefabCreators)
             {
-                if (creator == null)  continue;
-                if (creator.GetBootstrapPrefab(name, out var prefab))
-                {
-                    parent ??= _viewRoot[UIType.Toast];
-                    var bs = Instantiate(prefab, parent);
-                    bs.name = prefab.name;
-                }
+                if (creator == null 
+                    || !creator.GetBootstrapPrefab(name, out var prefab)) 
+                    continue;
+                parent ??= _viewRoot[UIType.Toast];
+                var bs = Instantiate(prefab, parent);
+                bs.name = prefab.name;
                 break;
             }
         }
@@ -218,12 +218,10 @@ namespace SimplifyIoC.Mediations
             for (var i = 0; i < n; i++)
             {
                 var child = root.GetChild(i);
-                if (child != _popupMask && child.gameObject.activeSelf)
-                {
-                    var popup = child.GetComponent<SimplifyUI>();
-                    popup.Hide(false); //不调用OnViewHide重置Mask
-                    RecycleView(popup);
-                }
+                if (child == _popupMask || !child.gameObject.activeSelf) continue;
+                var popup = child.GetComponent<SimplifyUI>();
+                popup.Hide(false); //不调用OnViewHide重置Mask
+                RecycleView(popup);
             }
 
             _popupMask.gameObject.SetActive(false);

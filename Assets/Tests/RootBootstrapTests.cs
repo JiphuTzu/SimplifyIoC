@@ -234,7 +234,7 @@ namespace SimplifyIoC.Tests
 
         private sealed class AnchorRootBootstrap : Bootstrap
         {
-            public IReadOnlyList<Bootstrap> ExposedChildren => children;
+            public IReadOnlyList<Bootstrap> ExposedChildren => _children;
             public ICrossContextInjectionBinder ExposedInjectionBinder => injectionBinder;
 
             protected override void MapBindings()
@@ -246,7 +246,7 @@ namespace SimplifyIoC.Tests
 
         private sealed class PlainBootstrap : Bootstrap
         {
-            public IReadOnlyList<Bootstrap> ExposedChildren => children;
+            public IReadOnlyList<Bootstrap> ExposedChildren => _children;
             public ICrossContextInjectionBinder ExposedInjectionBinder => injectionBinder;
 
             protected override void MapBindings()

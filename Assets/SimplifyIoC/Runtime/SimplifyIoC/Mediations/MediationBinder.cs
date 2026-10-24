@@ -13,7 +13,6 @@ using SimplifyIoC.Injectors;
 using SimplifyIoC.Framework;
 using SimplifyIoC.Signals;
 using SimplifyIoC.Utils;
-using UnityEngine;
 using Binder = SimplifyIoC.Framework.Binder;
 
 namespace SimplifyIoC.Mediations
@@ -170,9 +169,9 @@ namespace SimplifyIoC.Mediations
         {
             var viewType = view.GetType();
 
-            if (bindings.ContainsKey(viewType))
+            if (_bindings.ContainsKey(viewType) && binding.value is object[] values)
             {
-                var values = binding.value as object[];
+                //var values = binding.value as object[];
                 var aa = values.Length;
                 for (var a = 0; a < aa; a++)
                 {
@@ -213,9 +212,9 @@ namespace SimplifyIoC.Mediations
         {
             var viewType = view.GetType();
 
-            if (bindings.ContainsKey(viewType))
+            if (_bindings.ContainsKey(viewType) && binding.value is object[] values)
             {
-                var values = binding.value as object[];
+                //var values = binding.value as object[];
                 var aa = values.Length;
                 for (var a = 0; a < aa; a++)
                 {

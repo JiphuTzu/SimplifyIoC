@@ -44,10 +44,10 @@ namespace SimplifyIoC.Pools
 		public IInstanceProvider instanceProvider { get; set; }
 
 		/// Stack of instances still in the Pool.
-		protected Stack<object> instancesAvailable = new Stack<object> ();
+		protected readonly Stack<object> _instancesAvailable = new();
 
 		/// A HashSet of the objects checked out of the Pool.
-		protected HashSet<object> instancesInUse = new HashSet<object> ();
+		protected HashSet<object> _instancesInUse = new();
 
 		public Pool ()
 		{
@@ -55,8 +55,8 @@ namespace SimplifyIoC.Pools
 			constraint = BindingConstraintType.Pool;
 			uniqueValues = true;
 			
-			overflowBehavior = PoolOverflowBehavior.EXCEPTION;
-			inflationType = PoolInflationType.DOUBLE;
+			overflowBehavior = PoolOverflowBehavior.Exception;
+			inflationType = PoolInflationType.Double;
 		}
 
 		#region IManagedList implementation
@@ -66,7 +66,7 @@ namespace SimplifyIoC.Pools
 			//2.2 优化：消息拼接改为惰性求值，Add 高频路径不再白构造字符串
 			FailIf(value.GetType () != poolType, () => "Pool Type mismatch. Pools must consist of a common concrete type.\n\t\tPool type: " + poolType + "\n\t\tMismatch type: " + value.GetType ());
 			instanceCount++;
-			instancesAvailable.Push(value);
+			_instancesAvailable.Push(value);
 			return this;
 		}
 
@@ -130,10 +130,10 @@ namespace SimplifyIoC.Pools
 		public virtual object GetInstance (InjectionScope scope)
 		{
 			// Is an instance available?
-			if (instancesAvailable.Count > 0)
+			if (_instancesAvailable.Count > 0)
 			{
-				var retv = instancesAvailable.Pop ();
-				instancesInUse.Add (retv);
+				var retv = _instancesAvailable.Pop ();
+				_instancesInUse.Add (retv);
 				return retv;
 			}
 
@@ -150,10 +150,10 @@ namespace SimplifyIoC.Pools
 				else
 				{
 					//Illegal overflow. Report and return null
-					FailIf (overflowBehavior == PoolOverflowBehavior.EXCEPTION,
+					FailIf (overflowBehavior == PoolOverflowBehavior.Exception,
 						"A pool has overflowed its limit.\n\t\tPool type: " + poolType);
 
-					if (overflowBehavior == PoolOverflowBehavior.WARNING)
+					if (overflowBehavior == PoolOverflowBehavior.Warning)
 					{
 						Debug.Log("WARNING: A pool has overflowed its limit.\n\t\tPool type: " + poolType);
 					}
@@ -163,7 +163,7 @@ namespace SimplifyIoC.Pools
 			else
 			{
 				//Zero-sized pools will expand.
-				if (instanceCount == 0 || inflationType == PoolInflationType.INCREMENT)
+				if (instanceCount == 0 || inflationType == PoolInflationType.Increment)
 				{
 					instancesToCreate = 1;
 				}
@@ -191,21 +191,21 @@ namespace SimplifyIoC.Pools
 
 		public virtual void ReturnInstance (object value)
 		{
-			if (instancesInUse.Contains (value))
+			if (_instancesInUse.Contains (value))
 			{
 				if (value is IPoolable)
 				{
 					(value as IPoolable).Restore ();
 				}
-				instancesInUse.Remove (value);
-				instancesAvailable.Push (value);
+				_instancesInUse.Remove (value);
+				_instancesAvailable.Push (value);
 			}
 		}
 
 		public virtual void Clean()
 		{
-			instancesAvailable.Clear ();
-			instancesInUse = new HashSet<object> ();
+			_instancesAvailable.Clear ();
+			_instancesInUse = new HashSet<object> ();
 			instanceCount = 0;
 		}
 
@@ -213,7 +213,7 @@ namespace SimplifyIoC.Pools
 		{
 			get
 			{
-				return instancesAvailable.Count;
+				return _instancesAvailable.Count;
 			}
 		}
 
@@ -235,13 +235,13 @@ namespace SimplifyIoC.Pools
 		protected virtual void RemoveInstance(object value)
 		{
 			FailIf (value.GetType() != poolType, "Attempt to remove a instance from a pool that is of the wrong Type:\n\t\tPool type: " + poolType + "\n\t\tInstance type: " + value.GetType());
-			if (instancesInUse.Contains(value))
+			if (_instancesInUse.Contains(value))
 			{
-				instancesInUse.Remove (value);
+				_instancesInUse.Remove (value);
 			}
 			else
 			{
-				instancesAvailable.Pop ();
+				_instancesAvailable.Pop ();
 			}
 		}
 

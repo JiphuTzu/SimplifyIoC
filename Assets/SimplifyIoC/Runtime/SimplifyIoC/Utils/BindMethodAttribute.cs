@@ -79,7 +79,7 @@ namespace SimplifyIoC.Utils
         //唯一清理入口是用户手写 UnbindMethods()，框架不保证调用，组件销毁后条目永久残留。
         //改为 ConditionalWeakTable：组件一旦不可达，条目被 GC 连带清除，零钩子依赖。
         //（CWT 按引用标识比较，不受 UnityEngine.Object 重写的 ==/Equals 影响。）
-        private static readonly ConditionalWeakTable<Component, Dictionary<object, BindGroup>> _methods = new();
+        private static readonly ConditionalWeakTable<Component, Dictionary<object, BindGroup>> _METHODS = new();
 
         public static Action<T,BindMethodAttribute, MethodInfo, Type> GetBindMethodParser<T>(this T target) where T : Component
         {
@@ -92,10 +92,10 @@ namespace SimplifyIoC.Utils
         private static void MethodParser<T>(T target, BindMethodAttribute attribute, MethodInfo method, Type
             targetType) where T : Component
         {
-            if (!_methods.TryGetValue(target, out var methods))
+            if (!_METHODS.TryGetValue(target, out var methods))
             {
                 methods = new Dictionary<object, BindGroup>();
-                _methods.Add(target, methods);
+                _METHODS.Add(target, methods);
             }
             var names = attribute.names;
             if (names.Length == 0) names = new object[] { method.Name };
@@ -130,8 +130,8 @@ namespace SimplifyIoC.Utils
             //用 ReferenceEquals 而非 GameObject 重载的 == ：View.OnDestroy 期间组件可能已是
             //"伪 null"（== null 为真），若在这里提前返回，条目就摘不掉了。
             if (ReferenceEquals(target, null)) return;
-            if (_methods.TryGetValue(target, out var map)) ClearBinds(map);
-            _methods.Remove(target);
+            if (_METHODS.TryGetValue(target, out var map)) ClearBinds(map);
+            _METHODS.Remove(target);
             //Debug.Log($"unbind methods for {target}");
         }
 
@@ -141,7 +141,7 @@ namespace SimplifyIoC.Utils
             if (target == null) return;
             //4.4：自动解析已在 View/Mediator.InitAttributes 接入，这里不再需要懒解析
             //Debug.Log($"Invoke Bind {name}");
-            if (!_methods.TryGetValue(target, out var attributeMap))
+            if (!_METHODS.TryGetValue(target, out var attributeMap))
             {
                 Debug.Log($"{target} has no method bound to {name}()");
                 return;

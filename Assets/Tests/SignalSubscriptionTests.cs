@@ -74,7 +74,7 @@ namespace SimplifyIoC.Tests
 
             subscription.Dispose();
             Assert.DoesNotThrow(() => subscription.Dispose());
-            Assert.That(subscription.IsActive, Is.False);
+            Assert.That(subscription.isActive, Is.False);
         }
 
         [Test]
@@ -82,8 +82,8 @@ namespace SimplifyIoC.Tests
         {
             var subscription = default(SignalSubscription);
 
-            Assert.That(subscription.IsValid, Is.False);
-            Assert.That(subscription.IsActive, Is.False);
+            Assert.That(subscription.isValid, Is.False);
+            Assert.That(subscription.isActive, Is.False);
             Assert.DoesNotThrow(() => subscription.Dispose(), "空句柄 Dispose 必须是 no-op");
         }
 
@@ -92,14 +92,14 @@ namespace SimplifyIoC.Tests
         {
             var signal = new Signal();
             var subscription = signal.AddListener(Handler);
-            Assert.That(subscription.IsActive, Is.True);
+            Assert.That(subscription.isActive, Is.True);
 
             subscription.Dispose();
-            Assert.That(subscription.IsActive, Is.False);
+            Assert.That(subscription.isActive, Is.False);
 
             var other = signal.AddListener(Handler);
             signal.RemoveAllListeners();
-            Assert.That(other.IsActive, Is.False, "被 RemoveAllListeners 清空后同样为 false");
+            Assert.That(other.isActive, Is.False, "被 RemoveAllListeners 清空后同样为 false");
         }
 
         [Test]
@@ -175,12 +175,12 @@ namespace SimplifyIoC.Tests
         {
             var signal = new Signal();
             var subscription = signal.AddOnce(Handler);
-            Assert.That(subscription.IsActive, Is.True);
+            Assert.That(subscription.isActive, Is.True);
 
             signal.Dispatch();
 
             Assert.That(_counter, Is.EqualTo(1));
-            Assert.That(subscription.IsActive, Is.False, "一次性订阅派发后自然失效");
+            Assert.That(subscription.isActive, Is.False, "一次性订阅派发后自然失效");
         }
 
         [Test]
@@ -207,7 +207,7 @@ namespace SimplifyIoC.Tests
 
             group.Listen(a, Handler);
             group.Listen(b, PayloadHandler);
-            Assert.That(group.Count, Is.EqualTo(2));
+            Assert.That(group.count, Is.EqualTo(2));
 
             group.Dispose();
             a.Dispatch();
@@ -215,7 +215,7 @@ namespace SimplifyIoC.Tests
 
             Assert.That(_counter, Is.Zero);
             Assert.That(_payloads, Is.Empty);
-            Assert.That(group.Count, Is.Zero, "Dispose 后组应清空（且可重复 Dispose）");
+            Assert.That(group.count, Is.Zero, "Dispose 后组应清空（且可重复 Dispose）");
         }
 
         [Test]

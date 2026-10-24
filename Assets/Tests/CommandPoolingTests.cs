@@ -229,19 +229,19 @@ namespace SimplifyIoC.Tests
         /// 只为测试开一扇窗：pools / activeCommands 都是 protected。
         private sealed class ProbeCommandBinder : CommandBinder
         {
-            public int PoolCount => pools.Count;
+            public int PoolCount => _pools.Count;
 
             public bool HasPool(Type commandType)
             {
-                return pools.ContainsKey(commandType);
+                return _pools.ContainsKey(commandType);
             }
 
             public int Available(Type commandType)
             {
-                return pools.TryGetValue(commandType, out var pool) ? pool.available : -1;
+                return _pools.TryGetValue(commandType, out var pool) ? pool.available : -1;
             }
 
-            public int ActiveCommands => activeCommands.Count;
+            public int ActiveCommands => _activeCommands.Count;
         }
     }
 }

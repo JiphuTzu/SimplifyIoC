@@ -48,7 +48,6 @@ ExportedObj/
 *.mdb
 *.opendb
 *.VC.db
-*.DotSettings
 *.dwlt
 
 # Unity3D generated meta files

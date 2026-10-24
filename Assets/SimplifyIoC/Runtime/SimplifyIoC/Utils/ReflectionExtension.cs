@@ -78,17 +78,17 @@ namespace SimplifyIoC.Utils
 
         //2.4：Type+flags → 成员表缓存。ParseAttributes 每组件实例都会调用，
         //同一类型的成员枚举结果不变，按 (Type, flags) 只枚举一次
-        private static readonly Dictionary<(Type, BindingFlags), MethodInfo[]> _methodsTable = new();
-        private static readonly Dictionary<(Type, BindingFlags), FieldInfo[]> _fieldsTable = new();
-        private static readonly Dictionary<(Type, BindingFlags), PropertyInfo[]> _propertiesTable = new();
+        private static readonly Dictionary<(Type, BindingFlags), MethodInfo[]> _METHODS_TABLE = new();
+        private static readonly Dictionary<(Type, BindingFlags), FieldInfo[]> _FIELDS_TABLE = new();
+        private static readonly Dictionary<(Type, BindingFlags), PropertyInfo[]> _PROPERTIES_TABLE = new();
 
         private static MethodInfo[] GetMethodsCached(Type type, BindingFlags flags)
         {
             var key = (type, flags);
-            if (!_methodsTable.TryGetValue(key, out var value))
+            if (!_METHODS_TABLE.TryGetValue(key, out var value))
             {
                 value = type.GetMethods(flags);
-                _methodsTable[key] = value;
+                _METHODS_TABLE[key] = value;
             }
             return value;
         }
@@ -96,10 +96,10 @@ namespace SimplifyIoC.Utils
         private static FieldInfo[] GetFieldsCached(Type type, BindingFlags flags)
         {
             var key = (type, flags);
-            if (!_fieldsTable.TryGetValue(key, out var value))
+            if (!_FIELDS_TABLE.TryGetValue(key, out var value))
             {
                 value = type.GetFields(flags);
-                _fieldsTable[key] = value;
+                _FIELDS_TABLE[key] = value;
             }
             return value;
         }
@@ -107,10 +107,10 @@ namespace SimplifyIoC.Utils
         private static PropertyInfo[] GetPropertiesCached(Type type, BindingFlags flags)
         {
             var key = (type, flags);
-            if (!_propertiesTable.TryGetValue(key, out var value))
+            if (!_PROPERTIES_TABLE.TryGetValue(key, out var value))
             {
                 value = type.GetProperties(flags);
-                _propertiesTable[key] = value;
+                _PROPERTIES_TABLE[key] = value;
             }
             return value;
         }
@@ -129,7 +129,7 @@ namespace SimplifyIoC.Utils
 
         private sealed class Match
         {
-            public static readonly Match Empty = new Match
+            public static readonly Match EMPTY = new Match
             {
                 members = Array.Empty<MemberInfo>(),
                 attributes = Array.Empty<Attribute>()
@@ -139,12 +139,12 @@ namespace SimplifyIoC.Utils
             public Attribute[] attributes;
         }
 
-        private static readonly Dictionary<(Type, Type, MemberKind, BindingFlags), Match> _matchCache = new();
+        private static readonly Dictionary<(Type, Type, MemberKind, BindingFlags), Match> _MATCH_CACHE = new();
 
         private static Match GetMatchCached(Type targetType, Type attributeType, BindingFlags flags, MemberKind kind)
         {
             var key = (targetType, attributeType, kind, flags);
-            if (_matchCache.TryGetValue(key, out var cached)) return cached;
+            if (_MATCH_CACHE.TryGetValue(key, out var cached)) return cached;
 
             //三分支返回 MethodInfo[]/FieldInfo[]/PropertyInfo[]，无目标类型时 switch 表达式
             //推导不出共同「最佳类型」（数组协变不参与推导），故显式标注 MemberInfo[]。
@@ -169,9 +169,9 @@ namespace SimplifyIoC.Utils
             }
 
             var match = hitMembers.Count == 0
-                ? Match.Empty
+                ? Match.EMPTY
                 : new Match { members = hitMembers.ToArray(), attributes = hitAttributes.ToArray() };
-            _matchCache[key] = match;
+            _MATCH_CACHE[key] = match;
             return match;
         }
 

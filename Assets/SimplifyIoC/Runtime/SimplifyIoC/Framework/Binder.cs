@@ -26,7 +26,7 @@ namespace SimplifyIoC.Framework
         /// Two-layer keys. First key to individual Binding keys,
         /// then to Binding names. (This wouldn't be required if
         /// Unity supported Tuple or HashSet.)
-        protected readonly Dictionary<object, Dictionary<object, IBinding>> bindings = new();
+        protected readonly Dictionary<object, Dictionary<object, IBinding>> _bindings = new();
 
         private readonly Dictionary<object, Dictionary<IBinding, object>> _conflicts = new();
 
@@ -97,7 +97,7 @@ namespace SimplifyIoC.Framework
                 throw new Exception("Binder cannot fetch Bindings when the binder is in a conflicted state.\nConflicts: " + conflictSummary);
             }
 
-            if (!bindings.TryGetValue(key, out var dict)) return null;
+            if (!_bindings.TryGetValue(key, out var dict)) return null;
             name ??= NULL_BINDING;
             return dict.GetValueOrDefault(name);
         }
@@ -127,7 +127,7 @@ namespace SimplifyIoC.Framework
 
         public virtual void Unbind(object key, object name)
         {
-            if (!bindings.TryGetValue(key, out var dict)) return;
+            if (!_bindings.TryGetValue(key, out var dict)) return;
             var bindingName = name ?? NULL_BINDING;
             dict.Remove(bindingName);
         }
@@ -144,7 +144,7 @@ namespace SimplifyIoC.Framework
 
             var key = binding.key;
             //P0#2 修复：原条件写反（存在时 return、不存在时直索引抛异常）
-            if (!bindings.TryGetValue(key, out var dict)) return;
+            if (!_bindings.TryGetValue(key, out var dict)) return;
             var name = binding.name ?? NULL_BINDING;
             if (!dict.TryGetValue(name, out var useBinding)) return;
 
@@ -160,7 +160,7 @@ namespace SimplifyIoC.Framework
 
         public virtual void RemoveKey(IBinding binding, object key)
         {
-            if (binding == null || key == null || !bindings.TryGetValue(key, out var dict))
+            if (binding == null || key == null || !_bindings.TryGetValue(key, out var dict))
             {
                 return;
             }
@@ -188,7 +188,7 @@ namespace SimplifyIoC.Framework
                 return;
 
             //P0#9 修复：key 不存在时直索引会抛 KeyNotFoundException
-            if (!bindings.TryGetValue(key, out var dict)) return;
+            if (!_bindings.TryGetValue(key, out var dict)) return;
             if (!dict.TryGetValue(name, out var useBinding)) return;
             useBinding.RemoveName(name);
         }
@@ -248,7 +248,7 @@ namespace SimplifyIoC.Framework
             //Check for and assign new conflicts
             var bindingName = binding.name ?? NULL_BINDING;
             Dictionary<object, IBinding> dict;
-            if ((bindings.TryGetValue(key, out var binding1)))
+            if ((_bindings.TryGetValue(key, out var binding1)))
             {
                 dict = binding1;
                 //Will my registration create a new conflict?
@@ -286,7 +286,7 @@ namespace SimplifyIoC.Framework
             else
             {
                 dict = new Dictionary<object, IBinding>();
-                bindings[key] = dict;
+                _bindings[key] = dict;
             }
 
             //Remove nulloid bindings
@@ -381,7 +381,7 @@ namespace SimplifyIoC.Framework
         {
             //3.1：由空实现改为真实清理——清空绑定注册表与冲突表。
             //子类 override 时应调用 base.OnRemove() 以获得注册表清理。
-            bindings.Clear();
+            _bindings.Clear();
             _conflicts.Clear();
         }
     }

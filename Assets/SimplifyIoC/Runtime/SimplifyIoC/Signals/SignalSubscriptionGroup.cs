@@ -29,14 +29,14 @@ namespace SimplifyIoC.Signals
         private List<SignalSubscription> _items;
 
         /// 组内已登记订阅数（未登记过为 0，不触发列表分配）
-        public int Count => _items != null ? _items.Count : 0;
+        public int count => _items?.Count ?? 0;
 
         /// <summary>
         /// 登记一条订阅。返回同一句柄以便链式使用；重复 Dispose 由句柄自身保证幂等。
         /// </summary>
         public SignalSubscription Track(SignalSubscription subscription)
         {
-            if (_items == null) _items = new List<SignalSubscription>(4);
+            _items ??= new List<SignalSubscription>(4);
             _items.Add(subscription);
             return subscription;
         }

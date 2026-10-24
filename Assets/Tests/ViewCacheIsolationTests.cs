@@ -105,11 +105,11 @@ namespace SimplifyIoC.Tests
 
         private sealed class CacheProbeBootstrap : Bootstrap
         {
-            public ViewCache ExposedViewCache => viewCache;
+            public ViewCache ExposedViewCache => _viewCache;
             //本夹具要测的是"缓存中的早期视图"本身（ViewCache 的隔离与随 Dispose 清空）。
             //ContextStartupFlags 移除后 Init 期即完成映射，AddView 不再走缓存分支，
             //故直接写入 _viewCache 复现缓存状态（原缓存分支的效果就是这一行）。
-            public void CacheEarlyView(View view) => viewCache.Add(view);
+            public void CacheEarlyView(View view) => _viewCache.Add(view);
         }
 
         /// 不自动向 Bootstrap 注册，测试里显式调用 CacheView，避免依赖 Awake 触发时机
