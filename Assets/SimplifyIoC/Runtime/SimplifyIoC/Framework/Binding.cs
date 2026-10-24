@@ -76,8 +76,8 @@ namespace SimplifyIoC.Framework
             set => _name.constraint = value;
         }
 
-        private bool _isWeak = false;
-        public bool isWeak => _isWeak;
+        //private bool _isWeak = false;
+        public bool isWeak {get; private set;}
 
         // ------------------------------------------------------------------
         // 5.2：单一收口（single choke point）
@@ -181,7 +181,7 @@ namespace SimplifyIoC.Framework
 
         public virtual IBinding Weak()
         {
-            _isWeak = true;
+            isWeak = true;
             return this;
         }
         #endregion

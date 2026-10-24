@@ -224,7 +224,7 @@ namespace SimplifyIoC.Tests
 
         private abstract class HierarchyTestBootstrap : Bootstrap
         {
-            public IReadOnlyList<Bootstrap> ExposedChildren => _children;
+            public IReadOnlyList<Bootstrap> ExposedChildren => children;
             public ICrossContextInjectionBinder ExposedInjectionBinder => injectionBinder;
             public ICommandBinder ExposedCommandBinder => commandBinder;
 

@@ -32,10 +32,6 @@
  *
  * 可以为 PostConstructor 指定可选的优先级 int，
  * 多个 PostConstructor 将按可预期的顺序依次执行。
- *
- * @class Deconstruct
- *
- * 暂不支持。
  */
 
 using System;
@@ -74,9 +70,7 @@ public class Construct : Attribute
 }
 
 //Tag [PostConstruct] to perform post-injection construction actions
-[AttributeUsage(AttributeTargets.Method,
-        AllowMultiple = false,
-        Inherited = true)]
+[AttributeUsage(AttributeTargets.Method)]
 public class PostConstruct : Attribute
 {
     public PostConstruct() { }
@@ -87,12 +81,4 @@ public class PostConstruct : Attribute
     }
 
     public int priority { get; set; }
-}
-
-[AttributeUsage(AttributeTargets.Method,
-        AllowMultiple = false,
-        Inherited = true)]
-public class Deconstruct : Attribute
-{
-    public Deconstruct() { }
 }

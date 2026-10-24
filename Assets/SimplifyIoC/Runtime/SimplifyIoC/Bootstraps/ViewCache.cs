@@ -17,10 +17,10 @@ namespace SimplifyIoC.Bootstraps
     /// </summary>
     public class ViewCache
     {
-        private readonly List<View> _views = new List<View>();
+        private readonly List<View> _views = new();
 
         /// 当前缓存的 View 数量（测试与调试用）
-        public int Count => _views.Count;
+        public int count => _views.Count;
 
         public void Add(View view)
         {

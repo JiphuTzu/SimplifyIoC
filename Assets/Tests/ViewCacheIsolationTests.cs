@@ -45,8 +45,8 @@ namespace SimplifyIoC.Tests
             bootstrapA.CacheEarlyView(CreateView());
             bootstrapB.CacheEarlyView(CreateView());
 
-            Assert.That(bootstrapA.ExposedViewCache.Count, Is.EqualTo(2));
-            Assert.That(bootstrapB.ExposedViewCache.Count, Is.EqualTo(1));
+            Assert.That(bootstrapA.ExposedViewCache.count, Is.EqualTo(2));
+            Assert.That(bootstrapB.ExposedViewCache.count, Is.EqualTo(1));
         }
 
         [Test]
@@ -70,9 +70,9 @@ namespace SimplifyIoC.Tests
             bootstrapA.Dispose();
 
             //3.2 之前：static 缓存被 A 清空，B 的视图随之丢失
-            Assert.That(bootstrapA.ExposedViewCache.Count, Is.EqualTo(0));
-            Assert.That(bootstrapB.ExposedViewCache.Count, Is.EqualTo(1));
-            Assert.That(root.ExposedViewCache.Count, Is.EqualTo(0));
+            Assert.That(bootstrapA.ExposedViewCache.count, Is.EqualTo(0));
+            Assert.That(bootstrapB.ExposedViewCache.count, Is.EqualTo(1));
+            Assert.That(root.ExposedViewCache.count, Is.EqualTo(0));
         }
 
         [Test]
@@ -84,7 +84,7 @@ namespace SimplifyIoC.Tests
 
             bootstrap.Dispose();
 
-            Assert.That(bootstrap.ExposedViewCache.Count, Is.EqualTo(0));
+            Assert.That(bootstrap.ExposedViewCache.count, Is.EqualTo(0));
         }
 
         private CacheProbeBootstrap CreateBootstrap()
@@ -105,11 +105,11 @@ namespace SimplifyIoC.Tests
 
         private sealed class CacheProbeBootstrap : Bootstrap
         {
-            public ViewCache ExposedViewCache => _viewCache;
+            public ViewCache ExposedViewCache => viewCache;
             //本夹具要测的是"缓存中的早期视图"本身（ViewCache 的隔离与随 Dispose 清空）。
             //ContextStartupFlags 移除后 Init 期即完成映射，AddView 不再走缓存分支，
             //故直接写入 _viewCache 复现缓存状态（原缓存分支的效果就是这一行）。
-            public void CacheEarlyView(View view) => _viewCache.Add(view);
+            public void CacheEarlyView(View view) => viewCache.Add(view);
         }
 
         /// 不自动向 Bootstrap 注册，测试里显式调用 CacheView，避免依赖 Awake 触发时机
