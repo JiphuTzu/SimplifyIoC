@@ -31,7 +31,7 @@ namespace SimplifyIoC.Mediations
         public RectTransform canvasRectTrans { get; private set; }
         public Camera camera { get; private set; }
 
-        public void InitRoot(Transform screen, Transform overlay, Transform popup, Transform mask)
+        public void InitRoots(Transform screen, Transform overlay, Transform popup, Transform mask)
         {
             _popupMask = mask;
             _popupMask.GetComponent<Button>().onClick.AddListener(HideCurrentPopup);
@@ -108,10 +108,10 @@ namespace SimplifyIoC.Mediations
             _toastsInShow.Clear();
         }
 
-        public SimplifyUI CreateView(string name)
+        public SimplifyUI CreateView(string name, Dictionary<UIType, Transform> roots = null)
         {
             return GetCustomPrefab(name, out var prefab) 
-                ? CreateView(prefab.GetType(), prefab)
+                ? CreateView(prefab.GetType(), prefab, roots)
                 : null;
         }
 
@@ -137,27 +137,31 @@ namespace SimplifyIoC.Mediations
             return false;
         }
 
-        public void CreateCustomBootstrap(string name)
+        public void CreateCustomBootstrap(string name, Transform parent = null)
         {
             foreach (var creator in prefabCreators)
             {
                 if (creator == null)  continue;
                 if (creator.GetBootstrapPrefab(name, out var prefab))
                 {
-                    var bs = Instantiate(prefab, _viewRoot[UIType.Toast]);
+                    parent ??= _viewRoot[UIType.Toast];
+                    var bs = Instantiate(prefab, parent);
                     bs.name = prefab.name;
                 }
                 break;
             }
         }
 
-        private SimplifyUI CreateView(Type type, SimplifyUI prefab)
+        private SimplifyUI CreateView(Type type, SimplifyUI prefab, Dictionary<UIType, Transform> roots)
         {
             if (prefab == null) return null;
             SimplifyUI view;
             if (!_viewCache.TryGetValue(type, out var views) || views == null || views.Count == 0)
             {
-                view = Instantiate(prefab, _viewRoot[prefab.type]);
+                var parent = _viewRoot[prefab.type];
+                if(roots != null && roots.TryGetValue(prefab.type, out var customParent) && customParent != null)
+                    parent = customParent;
+                view = Instantiate(prefab, parent);
                 view.gameObject.SetActive(false);
                 view.name = prefab.name;
                 view.onRecycle.AddListener(OnViewRecycle);
@@ -179,12 +183,12 @@ namespace SimplifyIoC.Mediations
             return view;
         }
 
-        public T CreateView<T>() where T : SimplifyUI
+        public T CreateView<T>(Dictionary<UIType, Transform> roots = null) where T : SimplifyUI
         {
             var type = typeof(T);
             Debug.Log($"Create View By Type {type}");
             if (GetCustomPrefab(type, out var prefab))
-                return CreateView(type, prefab) as T;
+                return CreateView(type, prefab, roots) as T;
             return null;
         }
 
