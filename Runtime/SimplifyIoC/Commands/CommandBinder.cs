@@ -44,24 +44,22 @@ namespace SimplifyIoC.Commands
         [Inject]
         public IInjectionBinder injectionBinder { get; set; }
 
-        protected Dictionary<Type, Pool> pools = new Dictionary<Type, Pool>();
+        protected readonly Dictionary<Type, Pool> pools = new();
 
         /// Tracker for parallel commands in progress
-        protected HashSet<Command> activeCommands = new HashSet<Command>();
+        protected readonly HashSet<Command> activeCommands = new();
 
         /// Tracker for sequences in progress
-        protected Dictionary<Command, ICommandBinding> activeSequences = new Dictionary<Command, ICommandBinding>();
+        protected readonly Dictionary<Command, ICommandBinding> activeSequences = new();
 
         public override void ResolveBinding(IBinding binding, object key)
         {
             base.ResolveBinding(binding, key);
 
-            if (bindings.ContainsKey(key)) //If this key already exists, don't bind this again
-            {
-                //P0#9 修复：key 未必是信号（字符串/枚举也可作 key），无条件强转会崩
-                if (key is BaseSignal signal)
-                    signal.AddListener(ReactTo);
-            }
+            if (!bindings.ContainsKey(key)) return; //If this key already exists, don't bind this again
+            //P0#9 修复：key 未必是信号（字符串/枚举也可作 key），无条件强转会崩
+            if (key is BaseSignal signal)
+                signal.AddListener(ReactTo);
         }
         public override void OnRemove()
         {
@@ -106,18 +104,17 @@ namespace SimplifyIoC.Commands
                 InvokeHandler(commandBinding, data);
                 return;
             }
-
+            if(binding.value is not object[] values) return;
             if (binding.isSequence)
             {
-                Next(binding, data, 0);
+                Next(binding, data, values, 0);
             }
             else
             {
-                var values = binding.value as object[];
                 var aa = values.Length + 1;
                 for (var a = 0; a < aa; a++)
                 {
-                    Next(binding, data, a);
+                    Next(binding, data, values, a);
                 }
             }
         }
@@ -136,9 +133,9 @@ namespace SimplifyIoC.Commands
                 Unbind(binding);
         }
 
-        protected void Next(ICommandBinding binding, object data, int depth)
+        private void Next(ICommandBinding binding, object data,object[] values, int depth)
         {
-            var values = binding.value as object[];
+            //var values = binding.value as object[];
             if (depth < values.Length)
             {
                 var cmd = values[depth] as Type;
@@ -353,7 +350,7 @@ namespace SimplifyIoC.Commands
                 var binding = activeSequences[command];
                 var data = command.data;
                 activeSequences.Remove(command);
-                Next(binding, data, command.sequenceId + 1);
+                Next(binding, data, binding.value as object[], command.sequenceId + 1);
             }
         }
 

@@ -35,17 +35,17 @@ namespace SimplifyIoC.Bootstraps
     public class Bootstrap : MonoBehaviour, IDisposable
     {
         /// 3.1：Dispose 幂等标志
-        protected bool _disposed;
+        protected bool disposed;
 
         /// 3.5：子 Bootstrap 列表（Composite）。父 Dispose 时级联释放，实现成链回收。
         /// protected 以便派生类（含测试夹具）检查链结构。
-        protected readonly List<Bootstrap> _children = new List<Bootstrap>();
+        protected readonly List<Bootstrap> children = new();
 
-        /// 3.5：父 Bootstrap 引用。子 Dispose 时据此从父的子列表摘除自己，实现双向解绑。
-        private Bootstrap _parentBootstrap;
+        // 3.5：父 Bootstrap 引用。子 Dispose 时据此从父的子列表摘除自己，实现双向解绑。
+        //private Bootstrap _parentBootstrap;
 
         /// 5.6：划归关系的内读取入口（供测试夹具核对链结构）。<see cref="AddBootstrap"/> / Dispose 维护它。
-        internal Bootstrap parentBootstrap => _parentBootstrap;
+        internal Bootstrap parentBootstrap { get; private set; }
 
         /// 本 Bootstrap 是否为链根——只有链根持有共享 crossContextBinder
         /// （CrossContextBridge 单例与所有 .CrossContext() 绑定的宿主）。
@@ -59,7 +59,7 @@ namespace SimplifyIoC.Bootstraps
         /// 5.6+：本 Bootstrap 是否已 Init 到"容器已建"（走过 InstantiateCoreComponents）。
         /// 取代原来"祖先 Bootstrap 的 context 属性非空"这条就绪判定：父查找据此跳过尚未 Init 的祖先，
         /// 免得把子 Bootstrap 挂到一个还没有跨域根 binder 的父上（两条链各持一个 binder ⇒ 跨域绑定静默分叉）。
-        internal bool isReady => _coreInstantiated;
+        internal bool isReady { get; private set; }
 
         /// <summary>
         /// 5.6+：框架级锚点——「跨场景 / 并列的 Bootstrap 组件」在 Init 时取得父 Bootstrap 的公开入口。
@@ -119,13 +119,7 @@ namespace SimplifyIoC.Bootstraps
         /// A list of Views Awake before the Bootstrap is fully set up.
         /// 3.2：由 static SemiBinding 改为实例级 ViewCache——多 Bootstrap 互不干扰，
         /// 也不再因 static 长期持有 View 引用而跨场景泄漏。
-        protected readonly ViewCache _viewCache = new ViewCache();
-
-        /// 4.7：核心组件是否已实例化（Init 走过 InstantiateCoreComponents 之后）。
-        /// 用于区分两种"没有 mediationBinder"：
-        ///   ① Bootstrap 尚未就绪（早到的 View）——先缓存，等 PostBindings 统一处理；
-        ///   ② Bootstrap 本就不使用 Mediator 机制——直接给 View 走注入 + 声明式解析的兜底路径。
-        private bool _coreInstantiated;
+        protected readonly ViewCache viewCache = new();
 
         /// <summary>
         /// Unity 生命周期：组件装载即建容器（内部调 <see cref="Init"/>，幂等）。
@@ -170,7 +164,7 @@ namespace SimplifyIoC.Bootstraps
             //（幂等判据是 2.0.0 合并时新增的；旧 Context.Start() 没有它，守卫在首位，这条契约才成立。）
             ThrowIfDisposed();
 
-            if (_coreInstantiated) return;
+            if (isReady) return;
 
             //归属确定顺序 —— Transform 层级向上查找 > 回落框架级锚点。
             //后一段就是 5.6 之前静态 firstContext 的语义：谁先构造谁当根，后来者自动挂成它的子。
@@ -180,9 +174,9 @@ namespace SimplifyIoC.Bootstraps
             //注：Init 一度接收过 parent 参数（2.0.0 开发期），但全仓没有任何一处用它表达"锚点之外的父"
             //（传的都是锚点本身，与不传等价），却在父未就绪时被静默丢弃、还逼出"覆写 Awake 后别先调
             //base.Awake()"这条陷阱式文档，故 2026-10-16 移除。
-            var parentBootstrap = ResolveParentBootstrap() ?? root;
-            if (parentBootstrap != null && parentBootstrap != this)
-                parentBootstrap.AddBootstrap(this);
+            var parent = ResolveParentBootstrap() ?? root;
+            if (parent != null && parent != this)
+                parent.AddBootstrap(this);
             else if (root == null)
                 root = this;
 
@@ -193,7 +187,7 @@ namespace SimplifyIoC.Bootstraps
             //注意 MapBindings 在 Init 内即被调用（虚调用陷阱）：派生类实例字段尚未赋值，
             //MapBindings 里只放类型绑定，值绑定请在 Init 完成后再补。
             InstantiateCoreComponents();
-            _coreInstantiated = true;
+            isReady = true;
             MapBindings();
             PostBindings();
         }
@@ -211,10 +205,10 @@ namespace SimplifyIoC.Bootstraps
         /// </summary>
         protected virtual Bootstrap ResolveParentBootstrap()
         {
-            const int loopMax = 100;
+            const int LOOP_MAX = 100;
             var loopLimiter = 0;
             var trans = transform.parent;
-            while (trans != null && loopLimiter < loopMax)
+            while (trans != null && loopLimiter < LOOP_MAX)
             {
                 loopLimiter++;
                 var candidate = trans.GetComponent<Bootstrap>();
@@ -296,13 +290,13 @@ namespace SimplifyIoC.Bootstraps
             if (bootstrap == null || bootstrap == this) return;
 
             //5.6：转移归属前先从旧父摘除，避免出现"同一个 Bootstrap 同时是两个节点的子"
-            if (bootstrap._parentBootstrap != null && bootstrap._parentBootstrap != this)
-                bootstrap._parentBootstrap._children.Remove(bootstrap);
+            if (bootstrap.parentBootstrap != null && bootstrap.parentBootstrap != this)
+                bootstrap.parentBootstrap.children.Remove(bootstrap);
 
             //已登记则只保证共享桥接仍然成立（幂等）
-            if (!_children.Contains(bootstrap))
-                _children.Add(bootstrap);
-            bootstrap._parentBootstrap = this;
+            if (!children.Contains(bootstrap))
+                children.Add(bootstrap);
+            bootstrap.parentBootstrap = this;
             //非链根：与父共享同一个跨域根 binder（链根由锚点派生，挂上父之后自动不再成立）
             bootstrap.injectionBinder.crossContextBinder = injectionBinder.crossContextBinder;
         }
@@ -312,10 +306,10 @@ namespace SimplifyIoC.Bootstraps
         {
             if (bootstrap == null) return;
             //3.5：双向解绑——从子列表摘除并断开子的父引用
-            _children.Remove(bootstrap);
-            if (bootstrap._parentBootstrap == this)
+            children.Remove(bootstrap);
+            if (bootstrap.parentBootstrap == this)
             {
-                bootstrap._parentBootstrap = null;
+                bootstrap.parentBootstrap = null;
                 //3.1/5.6+：被摘掉的若正是锚点，锚点随之落空，由下一个 Init 的链根接任。
                 //不能留：它的跨域根 binder 在下一行就被断开了，留着会让新 Bootstrap 挂到
                 //一个没有跨域能力的锚点上。（5.6 之前这里是「摘掉的正好是锚点就把锚点置空」那一行，语义同下）
@@ -334,25 +328,25 @@ namespace SimplifyIoC.Bootstraps
         /// </summary>
         public void Dispose()
         {
-            if (_disposed) return;
-            _disposed = true;
+            if (disposed) return;
+            disposed = true;
 
             //3.5：级联释放子 Bootstrap（Composite 成链回收）。
             //倒序 + 先断开子侧的父引用，避免子 Dispose 时反向再操作本对象。
-            for (var i = _children.Count - 1; i >= 0; i--)
+            for (var i = children.Count - 1; i >= 0; i--)
             {
-                var child = _children[i];
+                var child = children[i];
                 if (child == null) continue;
-                child._parentBootstrap = null;
+                child.parentBootstrap = null;
                 child.Dispose();
             }
-            _children.Clear();
+            children.Clear();
 
             //3.5：双向解绑的另一半——把自己从父的子列表摘除
-            if (_parentBootstrap != null)
+            if (parentBootstrap != null)
             {
-                _parentBootstrap._children.Remove(this);
-                _parentBootstrap = null;
+                parentBootstrap.children.Remove(this);
+                parentBootstrap = null;
             }
 
             //3.5：无论角色如何都断开共享桥接。
@@ -377,7 +371,7 @@ namespace SimplifyIoC.Bootstraps
 
         private void ThrowIfDisposed()
         {
-            if (_disposed) throw new ObjectDisposedException(nameof(Bootstrap));
+            if (disposed) throw new ObjectDisposedException(GetType().Name);
         }
 
         /// Register a View with this Bootstrap
@@ -399,7 +393,7 @@ namespace SimplifyIoC.Bootstraps
 
             //Bootstrap 已就绪却仍无 mediationBinder ⇒ 本 Bootstrap 不使用 Mediator 机制。
             //尚未就绪则说明是"早到的 View"，照旧缓存，等 PostBindings 统一处理。
-            if (_coreInstantiated)
+            if (isReady)
                 InjectViewWithoutMediation(view);
             else
                 CacheView(view);
@@ -452,7 +446,7 @@ namespace SimplifyIoC.Bootstraps
             commandBinder?.OnRemove();
             mediationBinder?.OnRemove();
             //未被 Mediate 的残留视图引用一并释放
-            _viewCache.Clear();
+            viewCache.Clear();
         }
 
         protected virtual void MediateViewCache()
@@ -462,11 +456,11 @@ namespace SimplifyIoC.Bootstraps
             //不依赖 Mediator，改走兜底路径，使"不使用 Mediator 机制"的 Bootstrap 也能驱动 View。
             if (mediationBinder != null)
             {
-                _viewCache.MediateWith(mediationBinder);
+                viewCache.MediateWith(mediationBinder);
                 return;
             }
 
-            _viewCache.ForEach(InjectViewWithoutMediation);
+            viewCache.ForEach(InjectViewWithoutMediation);
         }
         /// Caches early-riser Views.
         /// 
@@ -477,7 +471,7 @@ namespace SimplifyIoC.Bootstraps
         protected virtual void CacheView(View view)
         {
             //3.2：原 SemiBinding 的 One→Many 约束逻辑随 static 缓存一并移除
-            _viewCache.Add(view);
+            viewCache.Add(view);
         }
     }
 }

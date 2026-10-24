@@ -22,7 +22,7 @@ namespace SimplifyIoC.Commands
 		/// </summary>
 		internal SignalHandler handler;
 
-		public CommandBinding() : base()
+		public CommandBinding()
 		{
 			_value.uniqueValues = false;
 		}
@@ -55,57 +55,57 @@ namespace SimplifyIoC.Commands
 
 		// ---- 4.3：ToHandler 短路通路 ----
 
-		public ICommandBinding ToHandler<TService>(Action<TService> handler)
+		public ICommandBinding ToHandler<TService>(Action<TService> callback)
 		{
 			return SetHandler(typeof(TService), (service, payload) =>
 			{
 				RequirePayloadCount(payload, 0);
-				handler((TService)service);
+				callback((TService)service);
 			});
 		}
 
-		public ICommandBinding ToHandler<TService, T1>(Action<TService, T1> handler)
+		public ICommandBinding ToHandler<TService, T1>(Action<TService, T1> callback)
 		{
 			return SetHandler(typeof(TService), (service, payload) =>
 			{
 				RequirePayloadCount(payload, 1);
-				handler((TService)service, CastPayload<T1>(payload[0]));
+				callback((TService)service, CastPayload<T1>(payload[0]));
 			});
 		}
 
-		public ICommandBinding ToHandler<TService, T1, T2>(Action<TService, T1, T2> handler)
+		public ICommandBinding ToHandler<TService, T1, T2>(Action<TService, T1, T2> callback)
 		{
 			return SetHandler(typeof(TService), (service, payload) =>
 			{
 				RequirePayloadCount(payload, 2);
-				handler((TService)service, CastPayload<T1>(payload[0]), CastPayload<T2>(payload[1]));
+				callback((TService)service, CastPayload<T1>(payload[0]), CastPayload<T2>(payload[1]));
 			});
 		}
 
-		public ICommandBinding ToHandler<TService, T1, T2, T3>(Action<TService, T1, T2, T3> handler)
+		public ICommandBinding ToHandler<TService, T1, T2, T3>(Action<TService, T1, T2, T3> callback)
 		{
 			return SetHandler(typeof(TService), (service, payload) =>
 			{
 				RequirePayloadCount(payload, 3);
-				handler((TService)service, CastPayload<T1>(payload[0]), CastPayload<T2>(payload[1]),
+				callback((TService)service, CastPayload<T1>(payload[0]), CastPayload<T2>(payload[1]),
 					CastPayload<T3>(payload[2]));
 			});
 		}
 
-		public ICommandBinding ToHandler<TService, T1, T2, T3, T4>(Action<TService, T1, T2, T3, T4> handler)
+		public ICommandBinding ToHandler<TService, T1, T2, T3, T4>(Action<TService, T1, T2, T3, T4> callback)
 		{
 			return SetHandler(typeof(TService), (service, payload) =>
 			{
 				RequirePayloadCount(payload, 4);
-				handler((TService)service, CastPayload<T1>(payload[0]), CastPayload<T2>(payload[1]),
+				callback((TService)service, CastPayload<T1>(payload[0]), CastPayload<T2>(payload[1]),
 					CastPayload<T3>(payload[2]), CastPayload<T4>(payload[3]));
 			});
 		}
 
-		public ICommandBinding ToHandler<TService>(Action<TService, object[]> handler)
+		public ICommandBinding ToHandler<TService>(Action<TService, object[]> callback)
 		{
 			//弱类型兜底：载荷原样透传，不做个数/类型校验
-			return SetHandler(typeof(TService), (service, payload) => handler((TService)service, payload));
+			return SetHandler(typeof(TService), (service, payload) => callback((TService)service, payload));
 		}
 
 		private ICommandBinding SetHandler(Type serviceType, Action<object, object[]> invoke)
@@ -183,37 +183,37 @@ namespace SimplifyIoC.Commands
 
 		public new ICommandBinding Bind(object key)
 		{
-			return base.Bind (key) as ICommandBinding;
+			return base.Bind(key) as ICommandBinding;
 		}
 
 		public new ICommandBinding To<T>()
 		{
-			return base.To<T> () as ICommandBinding;
+			return base.To<T>() as ICommandBinding;
 		}
 
 		public new ICommandBinding To(object o)
 		{
-			return base.To (o) as ICommandBinding;
+			return base.To(o) as ICommandBinding;
 		}
 
 		public new ICommandBinding ToName<T>()
 		{
-			return base.ToName<T> () as ICommandBinding;
+			return base.ToName<T>() as ICommandBinding;
 		}
 
 		public new ICommandBinding ToName(object o)
 		{
-			return base.ToName (o) as ICommandBinding;
+			return base.ToName(o) as ICommandBinding;
 		}
 
 		public new ICommandBinding Named<T>()
 		{
-			return base.Named<T> () as ICommandBinding;
+			return base.Named<T>() as ICommandBinding;
 		}
 
 		public new ICommandBinding Named(object o)
 		{
-			return base.Named (o) as ICommandBinding;
+			return base.Named(o) as ICommandBinding;
 		}
 	}
 }

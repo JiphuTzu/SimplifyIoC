@@ -72,7 +72,7 @@ namespace SimplifyIoC.Framework
         /// </summary>
         public virtual IBinding GetBinding(Enum key)
         {
-            return GetBinding((object)key, null);
+            return GetBinding(key, null);
         }
 
         public virtual IBinding GetBinding<T>(object name)
@@ -117,7 +117,7 @@ namespace SimplifyIoC.Framework
         /// </summary>
         public virtual void Unbind(Enum key)
         {
-            Unbind((object)key, null);
+            Unbind(key, null);
         }
 
         public virtual void Unbind<T>(object name)
@@ -177,19 +177,15 @@ namespace SimplifyIoC.Framework
         public virtual void RemoveName(IBinding binding, object name)
         {
             if (binding == null || name == null)
-            {
                 return;
-            }
+            
             object key;
             if (binding.keyConstraint.Equals(BindingConstraintType.One))
-            {
                 key = binding.key;
-            }
-            else
-            {
-                var keys = binding.key as object[];
+            else if(binding.key is object[] keys)
                 key = keys[0];
-            }
+            else
+                return;
 
             //P0#9 修复：key 不存在时直索引会抛 KeyNotFoundException
             if (!bindings.TryGetValue(key, out var dict)) return;
@@ -210,9 +206,9 @@ namespace SimplifyIoC.Framework
             {
                 ResolveBinding(binding, key);
             }
-            else
+            else if(binding.key is object[] keys)
             {
-                var keys = key as object[];
+                //var keys = key as object[];
                 var aa = keys.Length;
                 for (var a = 0; a < aa; a++)
                 {
@@ -273,7 +269,7 @@ namespace SimplifyIoC.Framework
                             return;
                         }
 
-                        if (existingBinding.isWeak && (!binding.isWeak || existingBinding.value == null || existingBinding.value is System.Type))
+                        if (existingBinding.isWeak && (!binding.isWeak || existingBinding.value == null || existingBinding.value is Type))
                         {
                             //SDM2014-01-20: (in relation to the cross-context implicit bindings fix)
                             // 1) if the previous binding is weak and the new binding is not weak, then the new binding replaces the previous;
