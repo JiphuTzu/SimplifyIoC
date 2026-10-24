@@ -44,26 +44,26 @@ namespace SimplifyIoC.Commands
         [Inject]
         public IInjectionBinder injectionBinder { get; set; }
 
-        protected readonly Dictionary<Type, Pool> pools = new();
+        protected readonly Dictionary<Type, Pool> _pools = new();
 
         /// Tracker for parallel commands in progress
-        protected readonly HashSet<Command> activeCommands = new();
+        protected readonly HashSet<Command> _activeCommands = new();
 
         /// Tracker for sequences in progress
-        protected readonly Dictionary<Command, ICommandBinding> activeSequences = new();
+        protected readonly Dictionary<Command, ICommandBinding> _activeSequences = new();
 
         public override void ResolveBinding(IBinding binding, object key)
         {
             base.ResolveBinding(binding, key);
 
-            if (!bindings.ContainsKey(key)) return; //If this key already exists, don't bind this again
+            if (!_bindings.ContainsKey(key)) return; //If this key already exists, don't bind this again
             //P0#9 修复：key 未必是信号（字符串/枚举也可作 key），无条件强转会崩
             if (key is BaseSignal signal)
                 signal.AddListener(ReactTo);
         }
         public override void OnRemove()
         {
-            foreach (var key in bindings.Keys)
+            foreach (var key in _bindings.Keys)
             {
                 if (key is BaseSignal signal)
                     signal.RemoveListener(ReactTo);
@@ -71,11 +71,11 @@ namespace SimplifyIoC.Commands
             //5.5：归还池持有的全部命令实例（统一池化后每条命令类型都常驻一个池），
             //并清空两组"进行中命令"追踪集合——旧实现只 Clear() 了 pools 字典本身，
             //实例与追踪集合都留着等 GC，Bootstrap 销毁后这些引用依然存在。
-            foreach (var pool in pools.Values)
+            foreach (var pool in _pools.Values)
                 pool.Clean();
-            pools.Clear();
-            activeCommands.Clear();
-            activeSequences.Clear();
+            _pools.Clear();
+            _activeCommands.Clear();
+            _activeSequences.Clear();
             //3.1：释放绑定注册表与冲突表（放在最后：上面还要读 bindings）
             base.OnRemove();
         }
@@ -268,10 +268,10 @@ namespace SimplifyIoC.Commands
         /// </summary>
         protected Pool GetOrCreatePool(Type commandType)
         {
-            if (pools.TryGetValue(commandType, out var existing)) return existing;
+            if (_pools.TryGetValue(commandType, out var existing)) return existing;
 
             var pool = MakePoolFromType(commandType);
-            pools[commandType] = pool;
+            _pools[commandType] = pool;
             return pool;
         }
 
@@ -299,11 +299,11 @@ namespace SimplifyIoC.Commands
         {
             if (binding.isSequence)
             {
-                activeSequences.Add(command, binding);
+                _activeSequences.Add(command, binding);
             }
             else
             {
-                activeCommands.Add(command);
+                _activeCommands.Add(command);
             }
         }
 
@@ -314,14 +314,14 @@ namespace SimplifyIoC.Commands
 
         public virtual void Stop(object key)
         {
-            if (key is Command command1 && activeSequences.ContainsKey(command1))
+            if (key is Command command1 && _activeSequences.ContainsKey(command1))
             {
                 RemoveSequence(command1);
             }
             else if (GetBinding(key) is ICommandBinding binding)
             {
-                if (!activeSequences.ContainsValue(binding)) return;
-                foreach (var sequence in activeSequences)
+                if (!_activeSequences.ContainsValue(binding)) return;
+                foreach (var sequence in _activeSequences)
                 {
                     if (sequence.Value != binding) continue;
                     var command = sequence.Key;
@@ -337,28 +337,28 @@ namespace SimplifyIoC.Commands
             if (command.retain) return;
             var t = command.GetType();
             //5.5：不再分支——统一池化后该命令类型的池一定存在（不存在说明本 Binder 没创建过它，忽略即可）
-            if (pools.TryGetValue(t, out var pool))
+            if (_pools.TryGetValue(t, out var pool))
             {
                 pool.ReturnInstance(command);
             }
-            if (activeCommands.Contains(command))
+            if (_activeCommands.Contains(command))
             {
-                activeCommands.Remove(command);
+                _activeCommands.Remove(command);
             }
-            else if (activeSequences.ContainsKey(command))
+            else if (_activeSequences.ContainsKey(command))
             {
-                var binding = activeSequences[command];
+                var binding = _activeSequences[command];
                 var data = command.data;
-                activeSequences.Remove(command);
+                _activeSequences.Remove(command);
                 Next(binding, data, binding.value as object[], command.sequenceId + 1);
             }
         }
 
         private void RemoveSequence(Command command)
         {
-            if (!activeSequences.ContainsKey(command)) return;
+            if (!_activeSequences.ContainsKey(command)) return;
             command.Cancel();
-            activeSequences.Remove(command);
+            _activeSequences.Remove(command);
         }
 
         public new virtual ICommandBinding Bind<T>()
@@ -398,7 +398,7 @@ namespace SimplifyIoC.Commands
         /// <param name="key">Instance of IBaseSignal</param>
         public override void Unbind(object key, object name)
         {
-            if (bindings.ContainsKey(key) && key is BaseSignal signal)
+            if (_bindings.ContainsKey(key) && key is BaseSignal signal)
             {
                 signal.RemoveListener(ReactTo);
             }
@@ -436,11 +436,11 @@ namespace SimplifyIoC.Commands
         /// </summary>
         protected void DropOrphanPools()
         {
-            if (pools.Count == 0) return;
+            if (_pools.Count == 0) return;
 
             var referenced = CommandTypesInUse();
             List<Type> orphans = null;
-            foreach (var pair in pools)
+            foreach (var pair in _pools)
             {
                 if (referenced.Contains(pair.Key)) continue;
                 orphans ??= new List<Type>();
@@ -450,15 +450,15 @@ namespace SimplifyIoC.Commands
 
             foreach (var type in orphans)
             {
-                pools[type].Clean();
-                pools.Remove(type);
+                _pools[type].Clean();
+                _pools.Remove(type);
             }
         }
 
         private HashSet<Type> CommandTypesInUse()
         {
             var types = new HashSet<Type>();
-            foreach (var dict in bindings.Values)
+            foreach (var dict in _bindings.Values)
             {
                 foreach (var binding in dict.Values)
                 {

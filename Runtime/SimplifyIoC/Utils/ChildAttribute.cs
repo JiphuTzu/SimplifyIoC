@@ -194,13 +194,13 @@ namespace SimplifyIoC.Utils
         private static readonly Type _TOL = typeof(List<>);
 
         //2.4：字段类型分类按 FieldInfo 缓存（含类型层级判断，同一字段的分类结果不变）
-        private static readonly Dictionary<FieldInfo, int> _fieldTypeCache = new();
+        private static readonly Dictionary<FieldInfo, int> _FIELD_TYPE_CACHE = new();
 
         private static int GetFieldType(FieldInfo field)
         {
-            if (_fieldTypeCache.TryGetValue(field, out var cached)) return cached;
+            if (_FIELD_TYPE_CACHE.TryGetValue(field, out var cached)) return cached;
             var result = ComputeFieldType(field);
-            _fieldTypeCache[field] = result;
+            _FIELD_TYPE_CACHE[field] = result;
             return result;
         }
 

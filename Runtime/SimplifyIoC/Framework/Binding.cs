@@ -30,7 +30,7 @@ namespace SimplifyIoC.Framework
     }
     public class Binding : IBinding
     {
-        protected Binder.BindingResolver resolver;
+        protected Binder.BindingResolver _resolver;
 
         private readonly ISemiBinding _key;
         protected readonly ISemiBinding _value;
@@ -38,7 +38,7 @@ namespace SimplifyIoC.Framework
 
         public Binding(Binder.BindingResolver resolver)
         {
-            this.resolver = resolver;
+            this._resolver = resolver;
 
             _key = new SemiBinding();
             _value = new SemiBinding();
@@ -105,7 +105,7 @@ namespace SimplifyIoC.Framework
         protected virtual IBinding ToCore(object o)
         {
             _value.Add(o);
-            resolver?.Invoke(this);
+            _resolver?.Invoke(this);
             return this;
         }
 
@@ -114,7 +114,7 @@ namespace SimplifyIoC.Framework
         {
             var toName = o ?? Binder.NULL_BINDING;
             _name.Add(toName);
-            resolver?.Invoke(this);
+            _resolver?.Invoke(this);
             return this;
         }
 

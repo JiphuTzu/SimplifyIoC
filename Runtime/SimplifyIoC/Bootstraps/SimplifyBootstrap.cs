@@ -17,7 +17,6 @@ namespace SimplifyIoC.Bootstraps
     public abstract class SimplifyBootstrap<T> : Bootstrap where T : Command
     {
         /// <summary>
-        /// Unity 生命周期：同场景 Awake 全部结束后启动——广播 StartupSignal（= <see cref="Bootstrap.Launch"/>）。
         /// 要控制启动时机就覆写它（记得调 base.Start()），或干脆自己调 <see cref="Bootstrap.Launch"/>。
         /// </summary>
         protected virtual void Start()

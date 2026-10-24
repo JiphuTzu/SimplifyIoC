@@ -179,7 +179,7 @@ namespace SimplifyIoC.Injectors
         public int ReflectAll()
         {
             var list = new List<Type>();
-            foreach (var pair in bindings)
+            foreach (var pair in _bindings)
             {
                 var dict = pair.Value;
                 foreach (var bPair in dict)
@@ -219,7 +219,7 @@ namespace SimplifyIoC.Injectors
         public virtual IInjectionBinding GetSupplier(Type injectionType, Type targetType)
         {
             if (injectionType == null || targetType == null) return null;
-            return FindSupplied(bindings.TryGetValue(injectionType, out var dict) ? dict : null, targetType);
+            return FindSupplied(_bindings.TryGetValue(injectionType, out var dict) ? dict : null, targetType);
         }
 
         private static IInjectionBinding FindSupplied(Dictionary<object, IBinding> dict, Type targetType)

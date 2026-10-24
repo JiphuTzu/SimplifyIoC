@@ -122,7 +122,7 @@ namespace SimplifyIoC.Commands
 
 			handler = new SignalHandler { serviceType = serviceType, invoke = invoke };
 			//与 To<T>() 同路径：通知 Binder 把此绑定登记进注册表
-			resolver?.Invoke(this);
+			_resolver?.Invoke(this);
 			return this;
 		}
 

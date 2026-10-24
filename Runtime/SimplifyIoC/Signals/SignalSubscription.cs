@@ -41,19 +41,19 @@ namespace SimplifyIoC.Signals
         /// <summary>
         /// 句柄是否指向一条真实订阅。default(SignalSubscription) 为 false。
         /// </summary>
-        public bool IsValid => _signal != null && _callback != null;
+        public bool isValid => _signal != null && _callback != null;
 
         /// <summary>
         /// 回调当前是否仍挂在 Signal 上。AddOnce 的句柄在派发之后自然转为 false。
         /// </summary>
-        public bool IsActive => IsValid && _signal.ContainsSubscription(_callback, _once);
+        public bool isActive => isValid && _signal.ContainsSubscription(_callback, _once);
 
         /// <summary>
         /// 退订。幂等；重复调用、或对已自然结束的一次性订阅调用均无副作用。
         /// </summary>
         public void Dispose()
         {
-            if (!IsValid) return;
+            if (!isValid) return;
             _signal.RemoveSubscription(_callback, _once);
         }
 
@@ -79,7 +79,7 @@ namespace SimplifyIoC.Signals
 
         public override string ToString()
         {
-            return IsValid
+            return isValid
                 ? $"SignalSubscription({_signal.GetType().Name}, once={_once})"
                 : "SignalSubscription(default)";
         }

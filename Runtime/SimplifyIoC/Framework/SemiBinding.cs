@@ -10,7 +10,7 @@ namespace SimplifyIoC.Framework
 {
     public class SemiBinding : ISemiBinding
     {
-        protected object[] objectValue;
+        protected object[] _objectValue;
 
         public BindingConstraintType constraint { get; set; }
         public bool uniqueValues { get; set; }
@@ -25,18 +25,18 @@ namespace SimplifyIoC.Framework
 
         public IManagedList Add(object o)
         {
-            if (objectValue == null || constraint == BindingConstraintType.One)
+            if (_objectValue == null || constraint == BindingConstraintType.One)
             {
-                objectValue = new object[1];
+                _objectValue = new object[1];
             }
             else
             {
                 if (uniqueValues)
                 {
-                    var aa = objectValue.Length;
+                    var aa = _objectValue.Length;
                     for (var a = 0; a < aa; a++)
                     {
-                        var val = objectValue[a];
+                        var val = _objectValue[a];
                         if (val.Equals(o))
                         {
                             return this;
@@ -44,12 +44,12 @@ namespace SimplifyIoC.Framework
                     }
                 }
 
-                var tempList = objectValue;
+                var tempList = _objectValue;
                 var len = tempList.Length;
-                objectValue = new object[len + 1];
-                tempList.CopyTo(objectValue, 0);
+                _objectValue = new object[len + 1];
+                tempList.CopyTo(_objectValue, 0);
             }
-            objectValue[objectValue.Length - 1] = o;
+            _objectValue[_objectValue.Length - 1] = o;
 
             return this;
         }
@@ -65,11 +65,11 @@ namespace SimplifyIoC.Framework
         public IManagedList Remove(object o)
         {
             //P0#9 修复：原来先 o.Equals(objectValue)（与内部数组比引用，无意义且 o 为 null 时 NRE）
-            if (objectValue == null) return this;
-            var aa = objectValue.Length;
+            if (_objectValue == null) return this;
+            var aa = _objectValue.Length;
             for (var a = 0; a < aa; a++)
             {
-                var currVal = objectValue[a];
+                var currVal = _objectValue[a];
                 var matched = (o == null) ? (currVal == null) : o.Equals(currVal);
                 if (matched)
                 {
@@ -93,9 +93,9 @@ namespace SimplifyIoC.Framework
             {
                 if (constraint.Equals(BindingConstraintType.One))
                 {
-                    return objectValue?[0];
+                    return _objectValue?[0];
                 }
-                return objectValue;
+                return _objectValue;
             }
         }
 
@@ -104,9 +104,9 @@ namespace SimplifyIoC.Framework
         /// Remove the value at index splicePos
         protected void SpliceValueAt(int splicePos)
         {
-            var newList = new object[objectValue.Length - 1];
+            var newList = new object[_objectValue.Length - 1];
             var mod = 0;
-            var aa = objectValue.Length;
+            var aa = _objectValue.Length;
             for (var a = 0; a < aa; a++)
             {
                 if (a == splicePos)
@@ -114,9 +114,9 @@ namespace SimplifyIoC.Framework
                     mod = -1;
                     continue;
                 }
-                newList[a + mod] = objectValue[a];
+                newList[a + mod] = _objectValue[a];
             }
-            objectValue = newList.Length == 0 ? null : newList;
+            _objectValue = newList.Length == 0 ? null : newList;
         }
     }
 }

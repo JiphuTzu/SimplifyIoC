@@ -36,21 +36,21 @@ namespace SimplifyIoC.Pools
 	public enum PoolInflationType
 	{
 		/// When a dynamic pool inflates, add one to the pool.
-		INCREMENT,
+		Increment,
 
 		/// When a dynamic pool inflates, double the size of the pool
-		DOUBLE
+		Double
 	}
 	public enum PoolOverflowBehavior
 	{
 		/// Requesting more than the fixed size will throw an exception.
-		EXCEPTION,
+		Exception,
 
 		/// Requesting more than the fixed size will throw a warning.
-		WARNING,
+		Warning,
 
 		/// Requesting more than the fixed size will return null and not throw an error.
-		IGNORE
+		Ignore
 	}
     public interface IPool<T> : IPool
 	{

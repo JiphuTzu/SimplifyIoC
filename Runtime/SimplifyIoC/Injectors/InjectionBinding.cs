@@ -23,7 +23,7 @@ namespace SimplifyIoC.Injectors
 
         public InjectionBinding(Binder.BindingResolver resolver)
         {
-            this.resolver = resolver;
+            this._resolver = resolver;
             keyConstraint = BindingConstraintType.Many;
             valueConstraint = BindingConstraintType.One;
         }
@@ -47,9 +47,9 @@ namespace SimplifyIoC.Injectors
                 return this;
 
             type = InjectionBindingType.Singleton;
-            if (resolver != null)
+            if (_resolver != null)
             {
-                resolver(this);
+                _resolver(this);
             }
             return this;
         }
@@ -108,7 +108,7 @@ namespace SimplifyIoC.Injectors
         public IInjectionBinding CrossContext()
         {
             isCrossContext = true;
-            resolver?.Invoke(this);
+            _resolver?.Invoke(this);
             return this;
         }
 
@@ -123,7 +123,7 @@ namespace SimplifyIoC.Injectors
         {
             if (type != null) _suppliedTo.Add(type);
             //保留 resolver 调用：与旧行为一致（SupplyTo 会重新解析一次绑定）
-            resolver?.Invoke(this);
+            _resolver?.Invoke(this);
             return this;
         }
 
