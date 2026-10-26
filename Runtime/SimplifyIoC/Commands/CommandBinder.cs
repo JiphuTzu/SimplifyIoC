@@ -99,9 +99,9 @@ namespace SimplifyIoC.Commands
             //4.3：短路通路——绑定声明了 handler 时直接解析服务并调用，不创建 Command、不进命令链。
             //放在这里（而不是另起一个 signal listener）是为了与命令路径共用同一套订阅/退订逻辑：
             //ResolveBinding/Unbind/OnRemove 三处的 signal.AddListener/RemoveListener 都无需改动。
-            if (binding is CommandBinding commandBinding && commandBinding.handler != null)
+            if (binding.hasHandler)
             {
-                InvokeHandler(commandBinding, data);
+                InvokeHandler(binding, data);
                 return;
             }
             if(binding.value is not object[] values) return;
@@ -125,10 +125,9 @@ namespace SimplifyIoC.Commands
         /// isOneOff 沿用命令路径语义——调用一次后移除绑定。
         /// 无载荷信号（Signal）的 data 为 null，统一归一为空数组，避免 handler 侧出现 null/空两种形态。
         /// </summary>
-        private void InvokeHandler(CommandBinding binding, object data)
+        private void InvokeHandler(ICommandBinding binding, object data)
         {
-            var service = injectionBinder.GetInstance(binding.handler.serviceType, false);
-            binding.handler.invoke(service, data as object[] ?? Array.Empty<object>());
+            binding.InvokeHandler(injectionBinder, data);
             if (binding.isOneOff)
                 Unbind(binding);
         }

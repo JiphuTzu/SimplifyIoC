@@ -8,6 +8,7 @@
  */
 using System;
 using SimplifyIoC.Framework;
+using SimplifyIoC.Injectors;
 namespace SimplifyIoC.Commands
 {
     public class CommandBinding : Binding, ICommandBinding
@@ -18,9 +19,19 @@ namespace SimplifyIoC.Commands
 
 		/// <summary>
 		/// 4.3：短路处理器。非 null 时该绑定不再创建 Command，派发直接调用它。
-		/// 有意不放到 ICommandBinding 上——接口只暴露"怎么写"，读取只发生在 CommandBinder 内。
+		/// SignalHandler 是私有嵌套类，绑定内部结构不外泄；对外只暴露 ICommandBinding.hasHandler / InvokeHandler 两个读取口。
 		/// </summary>
-		internal SignalHandler handler;
+		private SignalHandler _handler;
+
+		//ICommandBinding.hasHandler：是否声明了短路处理器。
+		public bool hasHandler => _handler != null;
+
+		/// <summary>ICommandBinding.InvokeHandler：经完整注入链解析服务并执行短路处理器（载荷 null 归一为空数组）。</summary>
+		public void InvokeHandler(IInjectionBinder injectionBinder, object data)
+		{
+			var service = injectionBinder.GetInstance(_handler.serviceType, false);
+			_handler.invoke(service, data as object[] ?? Array.Empty<object>());
+		}
 
 		public CommandBinding()
 		{
@@ -47,7 +58,7 @@ namespace SimplifyIoC.Commands
 		public ICommandBinding InSequence()
 		{
 			//4.3：D3——没有命令链，isSequence 无意义，静默忽略比报错更糟，绑定期即抛
-			if (handler != null)
+			if (_handler != null)
 				throw new Exception("InSequence() cannot be combined with ToHandler(...): a signal handler is invoked directly and has no command chain.");
 			isSequence = true;
 			return this;
@@ -120,7 +131,7 @@ namespace SimplifyIoC.Commands
 			if (!Equals(name, Binder.NULL_BINDING))
 				throw new Exception("ToHandler(...) cannot be combined with ToName(...).");
 
-			handler = new SignalHandler { serviceType = serviceType, invoke = invoke };
+			_handler = new SignalHandler { serviceType = serviceType, invoke = invoke };
 			//与 To<T>() 同路径：通知 Binder 把此绑定登记进注册表
 			_resolver?.Invoke(this);
 			return this;
@@ -157,7 +168,7 @@ namespace SimplifyIoC.Commands
 		/// <param name="memberName">报错文案里的入口名。收口处已无法区分调用的是哪个重载，故统称。</param>
 		private void ThrowIfHandlerSet(string memberName)
 		{
-			if (handler != null)
+			if (_handler != null)
 				throw new Exception($"{memberName} cannot be combined with ToHandler(...): the signal handler is invoked directly and there is no command to resolve.");
 		}
 
@@ -214,6 +225,24 @@ namespace SimplifyIoC.Commands
 		public new ICommandBinding Named(object o)
 		{
 			return base.Named(o) as ICommandBinding;
+		}
+
+		/// <summary>
+		/// 4.3：Bind&lt;TSignal&gt;().ToHandler(...) 的短路处理器（私有嵌套类，仅供本绑定与 CommandBinder 经 internal 口使用）。
+		///
+		/// 信号派发时由 CommandBinder 直接解析服务并调用 invoke，**不创建 Command、不进命令链**。
+		/// 这是框架里第三条"信号 → 目标"通路（另两条：To&lt;C&gt;() 信号→命令，[ListensTo] 信号→Mediator 方法）：
+		/// 它补的是"在绑定期声明、直达任意服务、且不需要 Mediator/View"这条路。
+		///
+		/// 不持有静态/长生命周期状态，随绑定一起被回收。
+		/// </summary>
+		private sealed class SignalHandler
+		{
+			/// <summary>要解析的服务类型（经完整注入链获取实例）。</summary>
+			public Type serviceType;
+
+			/// <summary>调用体：(服务实例, 信号载荷数组)。typed 重载在闭包里做参数个数与类型校验。</summary>
+			public Action<object, object[]> invoke;
 		}
 	}
 }

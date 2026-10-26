@@ -10,6 +10,7 @@
 
 using System;
 using SimplifyIoC.Framework;
+using SimplifyIoC.Injectors;
 
 namespace SimplifyIoC.Commands
 {
@@ -54,6 +55,17 @@ namespace SimplifyIoC.Commands
 		/// 服务类型不可静态确定、或载荷形状多变时使用。
 		/// </summary>
 		ICommandBinding ToHandler<TService>(Action<TService, object[]> callback);
+
+		// ---- 短路通路的读取口（放接口上，派发端免 CommandBinding 类型判断） ----
+
+		/// <summary>是否声明了 ToHandler(...) 短路处理器（派发时 CommandBinder 读取）。</summary>
+		bool hasHandler { get; }
+
+		/// <summary>
+		/// 执行短路处理器：经完整注入链解析服务并调用（载荷 null 归一为空数组）。
+		/// 正常只应由 CommandBinder 在信号派发时调用。
+		/// </summary>
+		void InvokeHandler(IInjectionBinder injectionBinder, object data);
 
 		new ICommandBinding Bind<T>();
 		new ICommandBinding Bind(object key);
