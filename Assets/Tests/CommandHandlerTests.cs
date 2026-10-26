@@ -31,11 +31,11 @@ namespace SimplifyIoC.Tests
             _binder.Bind<IInstanceProvider>().ToValue(_binder);
             _commandBinder.injectionBinder = _binder;
 
-            HandlerService.Instances = 0;
-            TestCommand.ExecutionLog.Clear();
-            TestCommand.ExecutionCount = 0;
-            TestCommand.LastInstance = null;
-            ValueCommand.Received.Clear();
+            HandlerService.instances = 0;
+            TestCommand.executionLog.Clear();
+            TestCommand.executionCount = 0;
+            TestCommand.lastInstance = null;
+            ValueCommand.received.Clear();
         }
 
         // ---- 基本调用 ----
@@ -51,8 +51,8 @@ namespace SimplifyIoC.Tests
             _binder.GetInstance<TestValueSignal>().Dispatch(42);
 
             Assert.That(received, Is.EqualTo(new[] { 42 }));
-            Assert.That(TestCommand.ExecutionCount, Is.EqualTo(0), "短路通路不得创建 Command");
-            Assert.That(ValueCommand.Received, Is.Empty);
+            Assert.That(TestCommand.executionCount, Is.EqualTo(0), "短路通路不得创建 Command");
+            Assert.That(ValueCommand.received, Is.Empty);
         }
 
         [Test]
@@ -84,7 +84,7 @@ namespace SimplifyIoC.Tests
             signal.Dispatch();
 
             Assert.That(services[0], Is.Not.SameAs(services[1]), "transient 绑定：每次派发应是新实例");
-            Assert.That(HandlerService.Instances, Is.EqualTo(2));
+            Assert.That(HandlerService.instances, Is.EqualTo(2));
         }
 
         // ---- 载荷校验：不静默传 null ----
@@ -222,7 +222,7 @@ namespace SimplifyIoC.Tests
 
             _binder.GetInstance<TestSignal>().Dispatch();
 
-            Assert.That(TestCommand.ExecutionCount, Is.EqualTo(1));
+            Assert.That(TestCommand.executionCount, Is.EqualTo(1));
         }
 
         // ---- 夹具 ----
@@ -233,9 +233,9 @@ namespace SimplifyIoC.Tests
 
         private sealed class HandlerService : IHandlerService
         {
-            public static int Instances;
+            public static int instances;
 
-            public HandlerService() => Instances++;
+            public HandlerService() => instances++;
         }
     }
 }

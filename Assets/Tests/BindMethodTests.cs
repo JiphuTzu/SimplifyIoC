@@ -7,6 +7,7 @@
 //  5) 注册表以弱引用持有组件，且对"已销毁（伪 null）"的组件仍能定向摘除条目。
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using NUnit.Framework;
@@ -146,8 +147,23 @@ namespace SimplifyIoC.Tests
             return go.AddComponent<T>();
         }
 
-        private static readonly FieldInfo RegistryField =
-            typeof(BindMethodExtension).GetField("_methods", BindingFlags.Static | BindingFlags.NonPublic);
+        /// <summary>
+        /// 按"static readonly ConditionalWeakTable&lt;Component,…&gt;"的类型契约定位注册表字段，
+        /// 不耦合字段名（字段曾由 _methods 更名 _METHODS 导致字符串探针断链 NRE）。
+        /// </summary>
+        private static readonly FieldInfo RegistryField = FindRegistryField();
+
+        private static FieldInfo FindRegistryField()
+        {
+            var field = typeof(BindMethodExtension)
+                .GetFields(BindingFlags.Static | BindingFlags.NonPublic)
+                .SingleOrDefault(f => f.IsInitOnly
+                    && f.FieldType.IsGenericType
+                    && f.FieldType.GetGenericTypeDefinition() == typeof(ConditionalWeakTable<,>));
+            Assert.That(field, Is.Not.Null,
+                "BindMethodExtension 应持有唯一一个 static readonly ConditionalWeakTable 注册表字段");
+            return field;
+        }
 
         /// <summary>
         /// 显式派发一个 Unity 生命周期消息（编辑模式下引擎不保证为未标 [ExecuteInEditMode]

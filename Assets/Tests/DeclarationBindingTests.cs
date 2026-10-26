@@ -46,7 +46,7 @@ namespace SimplifyIoC.Tests
             MainThreadProbe.Reset();
         }
 
-        private IMediationBinder MediationBinder => _bootstrap.ExposedMediationBinder;
+        private IMediationBinder mediationBinder => _bootstrap.exposedMediationBinder;
 
         // ---- [Child] ----
 
@@ -55,12 +55,12 @@ namespace SimplifyIoC.Tests
         {
             var view = CreateView<ChildMappingView>("ChildMappingView");
 
-            MediationBinder.Trigger(MediationEvent.Awake, view);
+            mediationBinder.Trigger(MediationEvent.Awake, view);
 
             Assert.That(view.mappedChild, Is.Not.Null, "[Child(\"child\")] 应自动填上子对象");
             Assert.That(view.mappedChild.name, Is.EqualTo("child"));
-            Assert.That(view.MappedList.Count, Is.EqualTo(2), "List<GameObject> 形态应收集到两个孙对象");
-            Assert.That(view.MappedArray.Length, Is.EqualTo(2), "数组形态应收集到两个孙对象");
+            Assert.That(view.mappedList.Count, Is.EqualTo(2), "List<GameObject> 形态应收集到两个孙对象");
+            Assert.That(view.mappedArray.Length, Is.EqualTo(2), "数组形态应收集到两个孙对象");
         }
 
         [Test]
@@ -68,14 +68,14 @@ namespace SimplifyIoC.Tests
         {
             var view = CreateView<ChildMappingView>("ChildMappingView");
 
-            MediationBinder.Trigger(MediationEvent.Awake, view);
+            mediationBinder.Trigger(MediationEvent.Awake, view);
             var firstChild = view.mappedChild;
-            var firstList = view.MappedList;
+            var firstList = view.mappedList;
 
-            MediationBinder.Trigger(MediationEvent.Awake, view);   // 二次解析
+            mediationBinder.Trigger(MediationEvent.Awake, view);   // 二次解析
 
             Assert.That(view.mappedChild, Is.SameAs(firstChild), "已赋值的 [Child] 字段不应被重建");
-            Assert.That(view.MappedList, Is.SameAs(firstList), "List 形态已赋值后应被 HasValue 短路");
+            Assert.That(view.mappedList, Is.SameAs(firstList), "List 形态已赋值后应被 HasValue 短路");
         }
 
         // ---- [BindEvent]（含幂等） ----
@@ -85,9 +85,9 @@ namespace SimplifyIoC.Tests
         {
             var view = CreateView<EventMappingView>("EventMappingView");
 
-            MediationBinder.Trigger(MediationEvent.Awake, view);
+            mediationBinder.Trigger(MediationEvent.Awake, view);
             //二次触发（含 Awake 兜底 + 注入后解析两条路径重叠的情形）不得重复挂载
-            MediationBinder.Trigger(MediationEvent.Awake, view);
+            mediationBinder.Trigger(MediationEvent.Awake, view);
 
             view.holder.onClick.Invoke();
 
@@ -100,7 +100,7 @@ namespace SimplifyIoC.Tests
         {
             var view = CreateView<MultiTargetEventMappingView>("MultiTargetEventMappingView");
 
-            MediationBinder.Trigger(MediationEvent.Awake, view);
+            mediationBinder.Trigger(MediationEvent.Awake, view);
 
             view.holderA.onClick.Invoke();
             view.holderB.onClick.Invoke();
@@ -115,7 +115,7 @@ namespace SimplifyIoC.Tests
         {
             var view = CreateView<InvalidTargetEventMappingView>("InvalidTargetEventMappingView");
 
-            MediationBinder.Trigger(MediationEvent.Awake, view);
+            mediationBinder.Trigger(MediationEvent.Awake, view);
 
             //targetNames 里混入不存在的名字"missing"：应跳过该名字继续解析其余目标
             view.holderA.onClick.Invoke();
@@ -146,7 +146,7 @@ namespace SimplifyIoC.Tests
         {
             var view = CreateView<MediatorViewA>("MediatorViewA");
 
-            MediationBinder.Trigger(MediationEvent.Awake, view);
+            mediationBinder.Trigger(MediationEvent.Awake, view);
 
             var mediator = view.GetComponent<InjectedViewMediator>();
             Assert.That(mediator, Is.Not.Null);
@@ -165,7 +165,7 @@ namespace SimplifyIoC.Tests
         {
             var view = CreateView<MediatorViewB>("MediatorViewB");
 
-            MediationBinder.Trigger(MediationEvent.Awake, view);
+            mediationBinder.Trigger(MediationEvent.Awake, view);
 
             var mediator = view.GetComponent<GenericViewMediator>();
             Assert.That(mediator, Is.Not.Null);
@@ -184,7 +184,7 @@ namespace SimplifyIoC.Tests
         {
             var view = CreateView<MainThreadView>("MainThreadView");
 
-            Assert.DoesNotThrow(() => MediationBinder.Trigger(MediationEvent.Awake, view));
+            Assert.DoesNotThrow(() => mediationBinder.Trigger(MediationEvent.Awake, view));
 
             Assert.That(MainThreadProbe.RecordCount(), Is.EqualTo(1),
                 "[MainThread] 标注的无参方法应被自动登记进 MainThreadRunner");
@@ -201,7 +201,7 @@ namespace SimplifyIoC.Tests
 
             Assert.That(view.mappedChild, Is.Not.Null,
                 "!autoRegisterWithBootstrap 的 View 拿不到注入后解析，应由 Awake 兜底完成");
-            Assert.That(view.AwakeParseCount, Is.EqualTo(1), "兜底路径同样只解析一次");
+            Assert.That(view.awakeParseCount, Is.EqualTo(1), "兜底路径同样只解析一次");
         }
 
         private T CreateView<T>(string name) where T : View
@@ -228,7 +228,7 @@ namespace SimplifyIoC.Tests
 
         private sealed class DeclarativeTestBootstrap : Bootstrap
         {
-            public IMediationBinder ExposedMediationBinder => mediationBinder;
+            public IMediationBinder exposedMediationBinder => mediationBinder;
 
             protected override void MapBindings()
             {
@@ -253,8 +253,8 @@ namespace SimplifyIoC.Tests
             [Child("child")] private List<GameObject> _children = new List<GameObject>();
             [Child("child")] private GameObject[] _childArray = Array.Empty<GameObject>();
 
-            public IList<GameObject> MappedList => _children;
-            public GameObject[] MappedArray => _childArray;
+            public IList<GameObject> mappedList => _children;
+            public GameObject[] mappedArray => _childArray;
         }
 
         private sealed class EventMappingView : ProbeView
@@ -296,7 +296,7 @@ namespace SimplifyIoC.Tests
         private sealed class FallbackView : View
         {
             [Child("child")] public GameObject mappedChild;
-            public int AwakeParseCount;
+            public int awakeParseCount;
 
             public FallbackView()
             {
@@ -308,7 +308,7 @@ namespace SimplifyIoC.Tests
 
             protected override void InitAttributes()
             {
-                AwakeParseCount++;
+                awakeParseCount++;
                 base.InitAttributes();
             }
         }
@@ -369,20 +369,20 @@ namespace SimplifyIoC.Tests
             private static readonly FieldInfo RunnerField =
                 typeof(RunInMainThreadExtension).GetField("_runner", BindingFlags.Static | BindingFlags.NonPublic);
 
-            private static readonly FieldInfo RecordsField;
+            private static readonly FieldInfo _recordsField;
 
             static MainThreadProbe()
             {
                 var runnerType = typeof(RunInMainThreadExtension).GetNestedType("MainThreadRunner",
                     BindingFlags.NonPublic);
-                RecordsField = runnerType?.GetField("_records", BindingFlags.Instance | BindingFlags.NonPublic);
+                _recordsField = runnerType?.GetField("_records", BindingFlags.Instance | BindingFlags.NonPublic);
             }
 
             public static int RecordCount()
             {
                 var runner = RunnerField?.GetValue(null);
                 if (runner == null) return 0;
-                return (RecordsField?.GetValue(runner) as IList)?.Count ?? 0;
+                return (_recordsField?.GetValue(runner) as IList)?.Count ?? 0;
             }
 
             public static void Reset()

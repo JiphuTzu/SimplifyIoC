@@ -74,9 +74,9 @@ namespace SimplifyIoC.Tests
             Assert.That(Bootstrap.root, Is.SameAs(app), "锚点先到先得，后来的 Bootstrap 不许抢占");
             Assert.That(second.parentBootstrap, Is.SameAs(app), "后来者自动挂到锚点下（firstContext 的挂子语义）");
             Assert.That(second.isRoot, Is.False);
-            Assert.That(app.ExposedChildren, Does.Contain(second));
-            Assert.That(second.ExposedInjectionBinder.crossContextBinder,
-                Is.SameAs(app.ExposedInjectionBinder.crossContextBinder),
+            Assert.That(app.exposedChildren, Does.Contain(second));
+            Assert.That(second.exposedInjectionBinder.crossContextBinder,
+                Is.SameAs(app.exposedInjectionBinder.crossContextBinder),
                 "自动认父后共享同一个跨域根 binder");
         }
 
@@ -110,7 +110,7 @@ namespace SimplifyIoC.Tests
             other.Dispose();
 
             Assert.That(Bootstrap.root, Is.SameAs(app), "别的 Bootstrap 销毁不许误清锚点");
-            Assert.That(app.ExposedChildren, Is.Empty, "子销毁只把自己从链上摘除");
+            Assert.That(app.exposedChildren, Is.Empty, "子销毁只把自己从链上摘除");
         }
 
         [Test]
@@ -123,14 +123,14 @@ namespace SimplifyIoC.Tests
 
             Assert.That(level.parentBootstrap, Is.SameAs(app));
             Assert.That(level.isRoot, Is.False);
-            Assert.That(app.ExposedChildren, Does.Contain(level));
-            Assert.That(level.ExposedInjectionBinder.crossContextBinder,
-                Is.SameAs(app.ExposedInjectionBinder.crossContextBinder),
+            Assert.That(app.exposedChildren, Does.Contain(level));
+            Assert.That(level.exposedInjectionBinder.crossContextBinder,
+                Is.SameAs(app.exposedInjectionBinder.crossContextBinder),
                 "认父后两端共享同一个跨域根 binder");
 
             //锚点根上登记的跨域绑定，场景 Bootstrap 里要能拿到，且是同一个单例
-            var fromRoot = app.ExposedInjectionBinder.GetInstance<ITestService>();
-            var fromLevel = level.ExposedInjectionBinder.GetInstance<ITestService>();
+            var fromRoot = app.exposedInjectionBinder.GetInstance<ITestService>();
+            var fromLevel = level.exposedInjectionBinder.GetInstance<ITestService>();
             Assert.That(fromLevel, Is.Not.Null, "跨域绑定跨场景可用");
             Assert.That(fromLevel, Is.SameAs(fromRoot), "跨域单例整条链共享一个实例");
         }
@@ -144,7 +144,7 @@ namespace SimplifyIoC.Tests
 
             Assert.That(level.parentBootstrap, Is.Null);
             Assert.That(level.isRoot, Is.True, "锚点缺席时自任链根，功能照常");
-            Assert.That(level.ExposedChildren, Is.Empty);
+            Assert.That(level.exposedChildren, Is.Empty);
             Assert.That(Bootstrap.root, Is.SameAs(level), "锚点空着，于是它就是唯一在册的锚点");
         }
 
@@ -158,7 +158,7 @@ namespace SimplifyIoC.Tests
             level.Dispose();
 
             Assert.That(Bootstrap.root, Is.SameAs(app), "场景卸载不得带走锚点");
-            Assert.That(app.ExposedChildren, Is.Empty);
+            Assert.That(app.exposedChildren, Is.Empty);
         }
 
         [Test]
@@ -202,7 +202,7 @@ namespace SimplifyIoC.Tests
 
             Assert.That(level.parentBootstrap, Is.SameAs(app));
             Assert.That(level.isRoot, Is.False);
-            Assert.That(app.ExposedChildren, Does.Contain(level));
+            Assert.That(app.exposedChildren, Does.Contain(level));
         }
 
         // ---- 辅助 ----
@@ -234,8 +234,8 @@ namespace SimplifyIoC.Tests
 
         private sealed class AnchorRootBootstrap : Bootstrap
         {
-            public IReadOnlyList<Bootstrap> ExposedChildren => _children;
-            public ICrossContextInjectionBinder ExposedInjectionBinder => injectionBinder;
+            public IReadOnlyList<Bootstrap> exposedChildren => _children;
+            public ICrossContextInjectionBinder exposedInjectionBinder => injectionBinder;
 
             protected override void MapBindings()
             {
@@ -246,8 +246,8 @@ namespace SimplifyIoC.Tests
 
         private sealed class PlainBootstrap : Bootstrap
         {
-            public IReadOnlyList<Bootstrap> ExposedChildren => _children;
-            public ICrossContextInjectionBinder ExposedInjectionBinder => injectionBinder;
+            public IReadOnlyList<Bootstrap> exposedChildren => _children;
+            public ICrossContextInjectionBinder exposedInjectionBinder => injectionBinder;
 
             protected override void MapBindings()
             {

@@ -12,19 +12,19 @@ namespace SimplifyIoC.Tests
 
     public interface ITestService
     {
-        string Name { get; }
+        string name { get; }
     }
 
     public class TestServiceImpl : ITestService
     {
-        public static int InstanceCount;
+        public static int instanceCount;
 
         public TestServiceImpl()
         {
-            InstanceCount++;
+            instanceCount++;
         }
 
-        public string Name => "impl";
+        public string name => "impl";
     }
 
     /// 持有 [Inject] 属性的普通消费者
@@ -111,24 +111,24 @@ namespace SimplifyIoC.Tests
     /// 池化命令：每次取用都必须拿到本次派发的载荷
     public class PooledPayloadCommand : Command
     {
-        public static readonly System.Collections.Generic.List<PayloadVO> Received = new();
+        public static readonly System.Collections.Generic.List<PayloadVO> received = new();
 
         [Inject] public PayloadVO payload { get; set; }
 
-        public override void Execute() => Received.Add(payload);
+        public override void Execute() => received.Add(payload);
     }
 
     /// 嵌套派发：在 Execute 内再次派发同一信号，验证内外层载荷互不覆盖
     public class ReentrantValueCommand : Command
     {
-        public static readonly System.Collections.Generic.List<int> Received = new();
+        public static readonly System.Collections.Generic.List<int> received = new();
         public static bool reentered;
 
         [Inject] public int value { get; set; }
 
         public override void Execute()
         {
-            Received.Add(value);
+            received.Add(value);
             if (reentered) return;
             reentered = true;
             injectionBinder.GetInstance<TestValueSignal>().Dispatch(77);
@@ -151,7 +151,7 @@ namespace SimplifyIoC.Tests
     ///    旧实现会与外层临时绑定冲突并把 Binder 打进 conflicted 状态。
     public class CreateProbeCommand : Command
     {
-        public static int Executions;
+        public static int executions;
         public static bool sawGlobalCommandBinding;
         public static bool nestedDispatch;
 
@@ -177,53 +177,53 @@ namespace SimplifyIoC.Tests
             }
         }
 
-        public override void Execute() => Executions++;
+        public override void Execute() => executions++;
     }
 
     // ---- Command 夹具 ----
 
     public class TestCommand : Command
     {
-        public static readonly System.Collections.Generic.List<string> ExecutionLog = new();
-        public static int ExecutionCount;
-        public static Command LastInstance;
+        public static readonly System.Collections.Generic.List<string> executionLog = new();
+        public static int executionCount;
+        public static Command lastInstance;
 
         /// 5.5：命令执行完即被归还并 Restore（Uninject），注入值在 Dispatch 返回后就观测不到了。
         /// 要断言"命令拿到了注入"，只能在 Execute 里留快照。
-        public static ICommandBinder LastCommandBinder;
-        public static IInjectionBinder LastInjectionBinder;
+        public static ICommandBinder lastCommandBinder;
+        public static IInjectionBinder lastInjectionBinder;
 
         public override void Execute()
         {
-            ExecutionCount++;
-            ExecutionLog.Add(nameof(TestCommand));
-            LastInstance = this;
-            LastCommandBinder = commandBinder;
-            LastInjectionBinder = injectionBinder;
+            executionCount++;
+            executionLog.Add(nameof(TestCommand));
+            lastInstance = this;
+            lastCommandBinder = commandBinder;
+            lastInjectionBinder = injectionBinder;
         }
     }
 
     /// 接收信号载荷的命令
     public class ValueCommand : Command
     {
-        public static readonly System.Collections.Generic.List<int> Received = new();
+        public static readonly System.Collections.Generic.List<int> received = new();
 
         [Inject] public int value { get; set; }
 
         public override void Execute()
         {
-            Received.Add(value);
+            received.Add(value);
         }
     }
 
     public class SeqCommandA : Command
     {
-        public override void Execute() => TestCommand.ExecutionLog.Add(nameof(SeqCommandA));
+        public override void Execute() => TestCommand.executionLog.Add(nameof(SeqCommandA));
     }
 
     public class SeqCommandB : Command
     {
-        public override void Execute() => TestCommand.ExecutionLog.Add(nameof(SeqCommandB));
+        public override void Execute() => TestCommand.executionLog.Add(nameof(SeqCommandB));
     }
 
     // ---- Pool 夹具 ----

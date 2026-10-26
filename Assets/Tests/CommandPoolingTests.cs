@@ -16,7 +16,7 @@ namespace SimplifyIoC.Tests
     public class RecyclingProbeCommand : Command
     {
         public static int instances;
-        public static readonly List<bool> SawServiceOnExecute = new();
+        public static readonly List<bool> sawServiceOnExecute = new();
 
         [Inject]
         public ITestService service { get; set; }
@@ -28,7 +28,7 @@ namespace SimplifyIoC.Tests
 
         public override void Execute()
         {
-            SawServiceOnExecute.Add(service != null);
+            sawServiceOnExecute.Add(service != null);
         }
     }
 
@@ -63,12 +63,12 @@ namespace SimplifyIoC.Tests
             _binder.Bind<IInstanceProvider>().ToValue(_binder);
             _commandBinder.injectionBinder = _binder;
 
-            TestCommand.ExecutionCount = 0;
-            TestCommand.LastInstance = null;
-            TestCommand.LastCommandBinder = null;
-            TestCommand.LastInjectionBinder = null;
+            TestCommand.executionCount = 0;
+            TestCommand.lastInstance = null;
+            TestCommand.lastCommandBinder = null;
+            TestCommand.lastInjectionBinder = null;
             RecyclingProbeCommand.instances = 0;
-            RecyclingProbeCommand.SawServiceOnExecute.Clear();
+            RecyclingProbeCommand.sawServiceOnExecute.Clear();
             RetainingCommand.last = null;
         }
 
@@ -82,11 +82,11 @@ namespace SimplifyIoC.Tests
             var signal = _binder.GetInstance<TestSignal>();
 
             signal.Dispatch();
-            var first = TestCommand.LastInstance;
+            var first = TestCommand.lastInstance;
             signal.Dispatch();
-            var second = TestCommand.LastInstance;
+            var second = TestCommand.lastInstance;
 
-            Assert.AreEqual(2, TestCommand.ExecutionCount);
+            Assert.AreEqual(2, TestCommand.executionCount);
             Assert.AreSame(first, second, "所有命令统一池化，应复用同一实例");
         }
 
@@ -115,7 +115,7 @@ namespace SimplifyIoC.Tests
             signal.Dispatch();
 
             Assert.AreEqual(1, RecyclingProbeCommand.instances, "两次派发应复用同一实例");
-            Assert.AreEqual(new[] { true, true }, RecyclingProbeCommand.SawServiceOnExecute.ToArray(),
+            Assert.AreEqual(new[] { true, true }, RecyclingProbeCommand.sawServiceOnExecute.ToArray(),
                 "回收实例在每次 Execute 前都必须重新拿到依赖（Restore 会把上一次的注入清掉）");
         }
 
@@ -134,7 +134,7 @@ namespace SimplifyIoC.Tests
 
             signal.Dispatch();
 
-            var executed = TestCommand.LastInstance;
+            var executed = TestCommand.lastInstance;
             Assert.IsNotNull(executed);
             Assert.IsTrue(executed.isClean, "执行完即归还并被 Restore");
             Assert.IsNull(executed.commandBinder);
@@ -204,15 +204,15 @@ namespace SimplifyIoC.Tests
             _binder.GetInstance<TestSignal>().Dispatch();
 
             Assert.AreEqual(1, _commandBinder.Available(typeof(TestCommand)));
-            var dispatched = TestCommand.LastInstance;
+            var dispatched = TestCommand.lastInstance;
 
             _commandBinder.OnRemove();
 
             //归还时刻（而非销毁时刻）执行的 Restore 已经把它置为 clean；
             //OnRemove 负责的是把池连同其中的引用一起释放掉。
             Assert.IsTrue(dispatched.isClean);
-            Assert.AreEqual(0, _commandBinder.PoolCount);
-            Assert.AreEqual(0, _commandBinder.ActiveCommands);
+            Assert.AreEqual(0, _commandBinder.poolCount);
+            Assert.AreEqual(0, _commandBinder.activeCommands);
         }
 
         // ---- Pool 自身 ----
@@ -229,7 +229,7 @@ namespace SimplifyIoC.Tests
         /// 只为测试开一扇窗：pools / activeCommands 都是 protected。
         private sealed class ProbeCommandBinder : CommandBinder
         {
-            public int PoolCount => _pools.Count;
+            public int poolCount => _pools.Count;
 
             public bool HasPool(Type commandType)
             {
@@ -241,7 +241,7 @@ namespace SimplifyIoC.Tests
                 return _pools.TryGetValue(commandType, out var pool) ? pool.available : -1;
             }
 
-            public int ActiveCommands => _activeCommands.Count;
+            public int activeCommands => _activeCommands.Count;
         }
     }
 }

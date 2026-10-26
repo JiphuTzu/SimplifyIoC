@@ -53,7 +53,7 @@ namespace SimplifyIoC.Tests
 
             Assert.That(view.registeredWithBootstrap, Is.True);
             Assert.That(view.owningBootstrap, Is.SameAs(recorder), "归属应在注册那一刻记下");
-            Assert.That(recorder.AddCalls, Is.EqualTo(1));
+            Assert.That(recorder.addCalls, Is.EqualTo(1));
         }
 
         [Test]
@@ -72,11 +72,11 @@ namespace SimplifyIoC.Tests
             view.CallOnEnable();
             view.CallOnDisable();
 
-            Assert.That(owner.EnableCalls, Is.EqualTo(1), "事件必须回到当初做 Mediate 的那个 Bootstrap");
-            Assert.That(owner.DisableCalls, Is.EqualTo(1));
-            Assert.That(stranger.EnableCalls, Is.EqualTo(0),
+            Assert.That(owner.enableCalls, Is.EqualTo(1), "事件必须回到当初做 Mediate 的那个 Bootstrap");
+            Assert.That(owner.disableCalls, Is.EqualTo(1));
+            Assert.That(stranger.enableCalls, Is.EqualTo(0),
                 "改前这里会变成 1：每次事件重新向上查找，会把通知错投给新的父 Bootstrap");
-            Assert.That(stranger.AddCalls, Is.EqualTo(0));
+            Assert.That(stranger.addCalls, Is.EqualTo(0));
         }
 
         [Test]
@@ -88,7 +88,7 @@ namespace SimplifyIoC.Tests
 
             view.CallOnDestroy();
 
-            Assert.That(recorder.RemoveCalls, Is.EqualTo(1));
+            Assert.That(recorder.removeCalls, Is.EqualTo(1));
             Assert.That(view.owningBootstrap, Is.Null, "销毁后不得继续持有 Bootstrap 引用");
             Assert.That(view.registeredWithBootstrap, Is.False);
 
@@ -109,7 +109,7 @@ namespace SimplifyIoC.Tests
             Assert.DoesNotThrow(() => view.CallStart(), "Start 阶段回落到锚点");
             Assert.That(view.owningBootstrap, Is.SameAs(anchor), "兜底注册同样写下归属");
             Assert.That(view.registeredWithBootstrap, Is.True);
-            Assert.That(anchor.AddCalls, Is.EqualTo(1));
+            Assert.That(anchor.addCalls, Is.EqualTo(1));
         }
 
         [Test]
@@ -122,7 +122,7 @@ namespace SimplifyIoC.Tests
             var signal = view.ExposedGet<TestSignal>();
 
             Assert.That(signal, Is.Not.Null);
-            Assert.That(signal, Is.SameAs(recorder.ExposedInjectionBinder.GetInstance<TestSignal>()),
+            Assert.That(signal, Is.SameAs(recorder.exposedInjectionBinder.GetInstance<TestSignal>()),
                 "Get<T>() 应等价于 injectionBinder.GetInstance<T>()");
         }
 
@@ -166,34 +166,34 @@ namespace SimplifyIoC.Tests
 
         private sealed class RecordingBootstrap : Bootstrap
         {
-            public int AddCalls { get; private set; }
-            public int RemoveCalls { get; private set; }
-            public int EnableCalls { get; private set; }
-            public int DisableCalls { get; private set; }
+            public int addCalls { get; private set; }
+            public int removeCalls { get; private set; }
+            public int enableCalls { get; private set; }
+            public int disableCalls { get; private set; }
 
-            public ICrossContextInjectionBinder ExposedInjectionBinder => injectionBinder;
+            public ICrossContextInjectionBinder exposedInjectionBinder => injectionBinder;
 
             public override void AddView(View view)
             {
-                AddCalls++;
+                addCalls++;
                 base.AddView(view);
             }
 
             public override void RemoveView(View view)
             {
-                RemoveCalls++;
+                removeCalls++;
                 base.RemoveView(view);
             }
 
             public override void EnableView(View view)
             {
-                EnableCalls++;
+                enableCalls++;
                 base.EnableView(view);
             }
 
             public override void DisableView(View view)
             {
-                DisableCalls++;
+                disableCalls++;
                 base.DisableView(view);
             }
 

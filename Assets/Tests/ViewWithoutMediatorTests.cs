@@ -107,7 +107,7 @@ namespace SimplifyIoC.Tests
             bootstrap.Init();
             try
             {
-                Assert.That(bootstrap.ExposedMediationBinder, Is.Null,
+                Assert.That(bootstrap.exposedMediationBinder, Is.Null,
                     "本 Bootstrap 刻意不绑定 IMediationBinder，且不得在装配期抛异常");
 
                 var view = CreateAutoView();
@@ -205,7 +205,7 @@ namespace SimplifyIoC.Tests
 
         private sealed class PlainTestBootstrap : Bootstrap
         {
-            public IMediationBinder ExposedMediationBinder => mediationBinder;
+            public IMediationBinder exposedMediationBinder => mediationBinder;
 
             protected override void MapBindings()
             {
@@ -216,7 +216,7 @@ namespace SimplifyIoC.Tests
 
         private class NoMediatorBootstrap : Bootstrap
         {
-            public IMediationBinder ExposedMediationBinder => mediationBinder;
+            public IMediationBinder exposedMediationBinder => mediationBinder;
 
             protected override void AddCoreComponents()
             {

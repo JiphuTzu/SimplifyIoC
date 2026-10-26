@@ -13,7 +13,7 @@ namespace SimplifyIoC.Tests
         public void SetUp()
         {
             _binder = new InjectionBinder();
-            TestServiceImpl.InstanceCount = 0;
+            TestServiceImpl.instanceCount = 0;
         }
 
         // ---- 生命周期类型 ----
@@ -27,7 +27,7 @@ namespace SimplifyIoC.Tests
             var b = _binder.GetInstance<ITestService>();
 
             Assert.AreNotSame(a, b);
-            Assert.AreEqual(2, TestServiceImpl.InstanceCount);
+            Assert.AreEqual(2, TestServiceImpl.instanceCount);
         }
 
         [Test]
@@ -39,7 +39,7 @@ namespace SimplifyIoC.Tests
             var b = _binder.GetInstance<ITestService>();
 
             Assert.AreSame(a, b);
-            Assert.AreEqual(1, TestServiceImpl.InstanceCount);
+            Assert.AreEqual(1, TestServiceImpl.instanceCount);
         }
 
         [Test]
@@ -60,7 +60,7 @@ namespace SimplifyIoC.Tests
             var a = _binder.GetInstance<ITestService>("a");
 
             Assert.IsNotNull(a);
-            Assert.AreEqual(1, TestServiceImpl.InstanceCount);
+            Assert.AreEqual(1, TestServiceImpl.instanceCount);
         }
 
         // ---- 错误路径 ----
@@ -103,7 +103,7 @@ namespace SimplifyIoC.Tests
             var consumer = _binder.GetInstance<ServiceConsumer>();
 
             Assert.IsNotNull(consumer.service);
-            Assert.AreEqual("impl", consumer.service.Name);
+            Assert.AreEqual("impl", consumer.service.name);
         }
 
         [Test]
@@ -116,11 +116,11 @@ namespace SimplifyIoC.Tests
             var consumer = _binder.GetInstance<ConsumerWithNonPublicSetters>();
 
             Assert.IsNotNull(consumer.ExposePrivateSet(), "private set 应被注入");
-            Assert.AreEqual("impl", consumer.ExposePrivateSet().Name);
+            Assert.AreEqual("impl", consumer.ExposePrivateSet().name);
             Assert.IsNotNull(consumer.ExposeProtectedSet(), "protected set 应被注入");
-            Assert.AreEqual("impl", consumer.ExposeProtectedSet().Name);
+            Assert.AreEqual("impl", consumer.ExposeProtectedSet().name);
             Assert.IsNotNull(consumer.ExposeFullyPrivate(), "全私有属性应被注入");
-            Assert.AreEqual("impl", consumer.ExposeFullyPrivate().Name);
+            Assert.AreEqual("impl", consumer.ExposeFullyPrivate().name);
         }
 
         [Test]
@@ -132,7 +132,7 @@ namespace SimplifyIoC.Tests
             var consumer = _binder.GetInstance<ConsumerWithCtor>();
 
             Assert.IsNotNull(consumer.service);
-            Assert.AreEqual("impl", consumer.service.Name);
+            Assert.AreEqual("impl", consumer.service.name);
         }
 
         [Test]

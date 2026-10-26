@@ -26,7 +26,7 @@ namespace SimplifyIoC.Tests
         public void SetUp()
         {
             MediationScopeProbeMediator.onViewInjected = null;
-            MediationScopeProbeMediator.InjectedViews.Clear();
+            MediationScopeProbeMediator.injectedViews.Clear();
             _bootstrapObject = new GameObject("MediationScopeTests.Bootstrap");
             _objects.Add(_bootstrapObject);
             _bootstrap = _bootstrapObject.AddComponent<MediationScopeTestBootstrap>();
@@ -46,20 +46,20 @@ namespace SimplifyIoC.Tests
             _objects.Clear();
         }
 
-        private IMediationBinder MediationBinder => _bootstrap.ExposedMediationBinder;
-        private IInjectionBinder InjectionBinder => _bootstrap.ExposedInjectionBinder;
+        private IMediationBinder mediationBinder => _bootstrap.exposedMediationBinder;
+        private IInjectionBinder injectionBinder => _bootstrap.exposedInjectionBinder;
 
         [Test]
         public void MediatorReceivesItsOwnViewAndLeavesNoResidue()
         {
             var view = CreateView();
 
-            MediationBinder.Trigger(MediationEvent.Awake, view);
+            mediationBinder.Trigger(MediationEvent.Awake, view);
 
             var mediator = view.GetComponent<MediationScopeProbeMediator>();
             Assert.That(mediator, Is.Not.Null);
             Assert.That(mediator.view, Is.SameAs(view), "mediator 必须拿到本 View 实例");
-            Assert.That(InjectionBinder.GetBinding<MediationScopeProbeView>(), Is.Null,
+            Assert.That(injectionBinder.GetBinding<MediationScopeProbeView>(), Is.Null,
                 "mediation 不应在全局容器里留下 view 绑定");
         }
 
@@ -67,15 +67,15 @@ namespace SimplifyIoC.Tests
         public void MediationKeepsExistingBindingForSameKey()
         {
             var kept = CreateView();
-            InjectionBinder.Bind<MediationScopeProbeView>().ToValue(kept).ToInject(false);
+            injectionBinder.Bind<MediationScopeProbeView>().ToValue(kept).ToInject(false);
 
             var view = CreateView();
 
             //旧实现：Bind(viewType).ToValue(view) 与上面这条既有绑定同名 → RegisterNameConflict
             //→ Binder 进入 conflicted 状态 → 紧接着的 Inject 解析任何注入点都抛异常
-            Assert.DoesNotThrow(() => MediationBinder.Trigger(MediationEvent.Awake, view));
+            Assert.DoesNotThrow(() => mediationBinder.Trigger(MediationEvent.Awake, view));
 
-            var binding = InjectionBinder.GetBinding<MediationScopeProbeView>();
+            var binding = injectionBinder.GetBinding<MediationScopeProbeView>();
             Assert.That(binding, Is.Not.Null, "旧实现收尾的 Unbind 会把用户的绑定整个删掉");
             Assert.That(binding.value, Is.SameAs(kept), "mediation 不应改写用户已有绑定的值");
 
@@ -91,17 +91,17 @@ namespace SimplifyIoC.Tests
             {
                 //外层 mediator 尚未注入完成时又 mediation 一个同类型 View：
                 //旧实现此刻外层临时绑定仍在容器里，内层 Bind 同一 key 直接冲突
-                MediationBinder.Trigger(MediationEvent.Awake, nestedView);
+                mediationBinder.Trigger(MediationEvent.Awake, nestedView);
             };
 
             var outerView = CreateView();
-            Assert.DoesNotThrow(() => MediationBinder.Trigger(MediationEvent.Awake, outerView));
+            Assert.DoesNotThrow(() => mediationBinder.Trigger(MediationEvent.Awake, outerView));
 
             Assert.That(outerView.GetComponent<MediationScopeProbeMediator>().view, Is.SameAs(outerView));
             Assert.That(nestedView.GetComponent<MediationScopeProbeMediator>().view, Is.SameAs(nestedView));
-            Assert.That(MediationScopeProbeMediator.InjectedViews.Count, Is.EqualTo(2),
+            Assert.That(MediationScopeProbeMediator.injectedViews.Count, Is.EqualTo(2),
                 "内外两个 mediator 的 view 注入都不应被吞掉");
-            Assert.That(InjectionBinder.GetBinding<MediationScopeProbeView>(), Is.Null);
+            Assert.That(injectionBinder.GetBinding<MediationScopeProbeView>(), Is.Null);
         }
 
         [Test]
@@ -109,7 +109,7 @@ namespace SimplifyIoC.Tests
         {
             var view = CreateView();
 
-            MediationBinder.Trigger(MediationEvent.Awake, view);
+            mediationBinder.Trigger(MediationEvent.Awake, view);
 
             var mediator = view.GetComponent<MediationScopeProbeMediator>();
             Assert.That(mediator.consumer, Is.Not.Null);
@@ -128,8 +128,8 @@ namespace SimplifyIoC.Tests
 
         private sealed class MediationScopeTestBootstrap : Bootstrap
         {
-            public IMediationBinder ExposedMediationBinder => mediationBinder;
-            public IInjectionBinder ExposedInjectionBinder => injectionBinder;
+            public IMediationBinder exposedMediationBinder => mediationBinder;
+            public IInjectionBinder exposedInjectionBinder => injectionBinder;
 
             protected override void MapBindings()
             {
@@ -158,7 +158,7 @@ namespace SimplifyIoC.Tests
         /// 注入点 setter 带钩子：用于在外层注入尚未结束时触发一次嵌套 mediation
         private sealed class MediationScopeProbeMediator : Mediator
         {
-            public static readonly List<MediationScopeProbeView> InjectedViews = new List<MediationScopeProbeView>();
+            public static readonly List<MediationScopeProbeView> injectedViews = new List<MediationScopeProbeView>();
             public static Action<MediationScopeProbeView> onViewInjected;
 
             [Inject] public ScopeViewConsumer consumer { get; set; }
@@ -172,7 +172,7 @@ namespace SimplifyIoC.Tests
                 set
                 {
                     _view = value;
-                    InjectedViews.Add(value);
+                    injectedViews.Add(value);
                     //先摘钩子再回调，嵌套调用不会再触发，避免无限递归
                     var hook = onViewInjected;
                     onViewInjected = null;

@@ -26,16 +26,16 @@ namespace SimplifyIoC.Tests
             _binder.Bind<IInstanceProvider>().ToValue(_binder);
             _commandBinder.injectionBinder = _binder;
 
-            TestCommand.ExecutionLog.Clear();
-            TestCommand.ExecutionCount = 0;
-            TestCommand.LastInstance = null;
-            TestCommand.LastCommandBinder = null;
-            TestCommand.LastInjectionBinder = null;
-            ValueCommand.Received.Clear();
-            PooledPayloadCommand.Received.Clear();
-            ReentrantValueCommand.Received.Clear();
+            TestCommand.executionLog.Clear();
+            TestCommand.executionCount = 0;
+            TestCommand.lastInstance = null;
+            TestCommand.lastCommandBinder = null;
+            TestCommand.lastInjectionBinder = null;
+            ValueCommand.received.Clear();
+            PooledPayloadCommand.received.Clear();
+            ReentrantValueCommand.received.Clear();
             ReentrantValueCommand.reentered = false;
-            CreateProbeCommand.Executions = 0;
+            CreateProbeCommand.executions = 0;
             CreateProbeCommand.sawGlobalCommandBinding = false;
             CreateProbeCommand.nestedDispatch = false;
         }
@@ -51,7 +51,7 @@ namespace SimplifyIoC.Tests
 
             signal.Dispatch();
 
-            Assert.AreEqual(1, TestCommand.ExecutionCount);
+            Assert.AreEqual(1, TestCommand.executionCount);
         }
 
         [Test]
@@ -63,7 +63,7 @@ namespace SimplifyIoC.Tests
 
             signal.Dispatch(42);
 
-            Assert.AreEqual(new[] { 42 }, ValueCommand.Received);
+            Assert.AreEqual(new[] { 42 }, ValueCommand.received);
         }
 
         [Test]
@@ -76,9 +76,9 @@ namespace SimplifyIoC.Tests
             signal.Dispatch();
 
             //5.5：命令执行完就被归还并 Restore（Uninject），Dispatch 返回后注入槽位已被清空，
-            //所以这里断言的是 Execute 时刻留下的快照，而不是 LastInstance 上的现值。
-            Assert.IsNotNull(TestCommand.LastCommandBinder);
-            Assert.IsNotNull(TestCommand.LastInjectionBinder);
+            //所以这里断言的是 Execute 时刻留下的快照，而不是 lastInstance 上的现值。
+            Assert.IsNotNull(TestCommand.lastCommandBinder);
+            Assert.IsNotNull(TestCommand.lastInjectionBinder);
         }
 
         // ---- Once ----
@@ -93,7 +93,7 @@ namespace SimplifyIoC.Tests
             signal.Dispatch();
             signal.Dispatch();
 
-            Assert.AreEqual(1, TestCommand.ExecutionCount);
+            Assert.AreEqual(1, TestCommand.executionCount);
             Assert.IsNull(_commandBinder.GetBinding(signal), "Once 后绑定应已移除");
         }
 
@@ -110,7 +110,7 @@ namespace SimplifyIoC.Tests
 
             Assert.AreEqual(
                 new[] { nameof(SeqCommandA), nameof(SeqCommandB) },
-                TestCommand.ExecutionLog.ToArray());
+                TestCommand.executionLog.ToArray());
         }
 
         [Test]
@@ -122,9 +122,9 @@ namespace SimplifyIoC.Tests
 
             signal.Dispatch();
 
-            Assert.AreEqual(2, TestCommand.ExecutionLog.Count);
-            CollectionAssert.Contains(TestCommand.ExecutionLog, nameof(SeqCommandA));
-            CollectionAssert.Contains(TestCommand.ExecutionLog, nameof(SeqCommandB));
+            Assert.AreEqual(2, TestCommand.executionLog.Count);
+            CollectionAssert.Contains(TestCommand.executionLog, nameof(SeqCommandA));
+            CollectionAssert.Contains(TestCommand.executionLog, nameof(SeqCommandB));
         }
 
         // ---- 池化 ----
@@ -137,12 +137,12 @@ namespace SimplifyIoC.Tests
             var signal = _binder.GetInstance<TestSignal>();
 
             signal.Dispatch();
-            var first = TestCommand.LastInstance;
+            var first = TestCommand.lastInstance;
 
             signal.Dispatch();
-            var second = TestCommand.LastInstance;
+            var second = TestCommand.lastInstance;
 
-            Assert.AreEqual(2, TestCommand.ExecutionCount);
+            Assert.AreEqual(2, TestCommand.executionCount);
             Assert.AreSame(first, second, "命令统一池化，应复用同一实例");
         }
 
@@ -157,7 +157,7 @@ namespace SimplifyIoC.Tests
 
             signal.Dispatch();
 
-            Assert.AreEqual(1, TestCommand.ExecutionCount);
+            Assert.AreEqual(1, TestCommand.executionCount);
             // 3.4.b：命令创建全程不入容器，dispatch 前后 key `Command` 都应无绑定
             Assert.IsNull(_binder.GetBinding<Command>());
         }
@@ -169,7 +169,7 @@ namespace SimplifyIoC.Tests
             var signal = _binder.GetInstance<TestSignal>();
 
             Assert.DoesNotThrow(() => signal.Dispatch());
-            Assert.AreEqual(0, TestCommand.ExecutionCount);
+            Assert.AreEqual(0, TestCommand.executionCount);
         }
 
         // ---- 3.4.a 调用级作用域 ----
@@ -184,7 +184,7 @@ namespace SimplifyIoC.Tests
 
             signal.Dispatch(42);
 
-            Assert.AreEqual(new[] { 42, 77 }, ReentrantValueCommand.Received.ToArray(),
+            Assert.AreEqual(new[] { 42, 77 }, ReentrantValueCommand.received.ToArray(),
                 "嵌套派发时外层命令必须保持自己的载荷，不能被内层覆盖");
         }
 
@@ -198,7 +198,7 @@ namespace SimplifyIoC.Tests
 
             signal.Dispatch(42);
 
-            Assert.AreEqual(new[] { 42 }, ValueCommand.Received.ToArray(),
+            Assert.AreEqual(new[] { 42 }, ValueCommand.received.ToArray(),
                 "调用级载荷应优先于全局同名绑定");
             Assert.AreEqual(7, _binder.GetInstance<int>(),
                 "全局绑定不应被载荷破坏");
@@ -215,10 +215,10 @@ namespace SimplifyIoC.Tests
             signal.Dispatch(new PayloadVO { value = 2 });
             signal.Dispatch(new PayloadVO { value = 3 });
 
-            Assert.AreEqual(3, PooledPayloadCommand.Received.Count, "三次派发都应执行");
-            Assert.AreEqual(1, PooledPayloadCommand.Received[0].value, "首次创建实例时就要注入载荷");
-            Assert.AreEqual(2, PooledPayloadCommand.Received[1].value);
-            Assert.AreEqual(3, PooledPayloadCommand.Received[2].value, "回收复用的实例应重新注入本次载荷");
+            Assert.AreEqual(3, PooledPayloadCommand.received.Count, "三次派发都应执行");
+            Assert.AreEqual(1, PooledPayloadCommand.received[0].value, "首次创建实例时就要注入载荷");
+            Assert.AreEqual(2, PooledPayloadCommand.received[1].value);
+            Assert.AreEqual(3, PooledPayloadCommand.received[2].value, "回收复用的实例应重新注入本次载荷");
         }
 
         [Test]
@@ -244,7 +244,7 @@ namespace SimplifyIoC.Tests
 
             signal.Dispatch();
 
-            Assert.AreEqual(1, CreateProbeCommand.Executions);
+            Assert.AreEqual(1, CreateProbeCommand.executions);
             Assert.IsFalse(CreateProbeCommand.sawGlobalCommandBinding,
                 "命令创建期间（[PostConstruct] 时）全局 key Command 上不应有任何临时绑定");
             Assert.IsNull(_binder.GetBinding<Command>());
@@ -265,7 +265,7 @@ namespace SimplifyIoC.Tests
             Assert.DoesNotThrow(() => signal.Dispatch(),
                 "命令创建期间再创建命令不得把 Binder 打进 conflicted 状态");
 
-            Assert.AreEqual(2, CreateProbeCommand.Executions, "内外两层命令都应执行完成");
+            Assert.AreEqual(2, CreateProbeCommand.executions, "内外两层命令都应执行完成");
             Assert.IsNull(_binder.GetBinding<Command>(), "容器中不应残留任何 Command 临时绑定");
         }
     }

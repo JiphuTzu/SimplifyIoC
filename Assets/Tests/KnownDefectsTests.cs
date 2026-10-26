@@ -18,7 +18,7 @@ namespace SimplifyIoC.Tests
         public void SetUp()
         {
             _binder = new InjectionBinder();
-            TestServiceImpl.InstanceCount = 0;
+            TestServiceImpl.instanceCount = 0;
         }
 
         // ---- P0 #2：Binder.RemoveValue 判断反向（已修复）----

@@ -269,10 +269,10 @@ namespace SimplifyIoC.Tests
             bootstrap.Init();
             //注意时序：Init 内部就会跑 MapBindings，实例字段此刻还没赋值
             //（把 signal 传进构造参数的那一版正是死在 ToValue(null) 上），故值绑定放在 Init 之后。
-            bootstrap.ExposedInjectionBinder.Bind<Signal>().ToValue(signal).ToInject(false);
+            bootstrap.exposedInjectionBinder.Bind<Signal>().ToValue(signal).ToInject(false);
 
             var view = NewComponent<SubscriptionProbeView>();
-            bootstrap.ExposedMediationBinder.Trigger(MediationEvent.Awake, view);
+            bootstrap.exposedMediationBinder.Trigger(MediationEvent.Awake, view);
 
             var mediator = view.GetComponent<SubscriptionProbeMediator>();
             Assert.That(mediator, Is.Not.Null, "mediation 应挂上 probe mediator");
@@ -280,7 +280,7 @@ namespace SimplifyIoC.Tests
             signal.Dispatch();
             Assert.That(mediator.hits, Is.EqualTo(1), "mediator 的组内订阅在注册后生效");
 
-            bootstrap.ExposedMediationBinder.Trigger(MediationEvent.Destroyed, view);
+            bootstrap.exposedMediationBinder.Trigger(MediationEvent.Destroyed, view);
 
             signal.Dispatch();
             Assert.That(mediator.hits, Is.EqualTo(1),
@@ -309,8 +309,8 @@ namespace SimplifyIoC.Tests
 
         private sealed class SubscriptionTestBootstrap : Bootstrap
         {
-            public IMediationBinder ExposedMediationBinder => mediationBinder;
-            public IInjectionBinder ExposedInjectionBinder => injectionBinder;
+            public IMediationBinder exposedMediationBinder => mediationBinder;
+            public IInjectionBinder exposedInjectionBinder => injectionBinder;
 
             protected override void MapBindings()
             {

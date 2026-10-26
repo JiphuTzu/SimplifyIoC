@@ -21,7 +21,7 @@ namespace SimplifyIoC.Tests
         {
             //锚点是进程级静态槽：先归零，本类用例里 _bootstrap 才会是可预期的链根
             Bootstrap.root = null;
-            TestCommand.ExecutionCount = 0;
+            TestCommand.executionCount = 0;
             _bootstrapObject = new GameObject("BootstrapDisposeTests.Bootstrap");
             _bootstrap = _bootstrapObject.AddComponent<DisposeTestBootstrap>();
             //EditMode 不派发 MonoBehaviour 生命周期（Awake），显式建容器
@@ -39,15 +39,15 @@ namespace SimplifyIoC.Tests
         [Test]
         public void DisposeClearsBindingRegistries()
         {
-            var service = _bootstrap.ExposedInjectionBinder.GetInstance<ITestService>();
+            var service = _bootstrap.exposedInjectionBinder.GetInstance<ITestService>();
             Assert.That(service, Is.Not.Null);
 
             _bootstrap.Dispose();
 
-            Assert.That(_bootstrap.ExposedInjectionBinder.GetBinding<ITestService>(), Is.Null);
-            Assert.That(_bootstrap.ExposedCommandBinder, Is.Null);
+            Assert.That(_bootstrap.exposedInjectionBinder.GetBinding<ITestService>(), Is.Null);
+            Assert.That(_bootstrap.exposedCommandBinder, Is.Null);
             //注册表已空 → 按既有行为抛"no binding"异常
-            Assert.Throws<Exception>(() => _bootstrap.ExposedInjectionBinder.GetInstance<ITestService>());
+            Assert.Throws<Exception>(() => _bootstrap.exposedInjectionBinder.GetInstance<ITestService>());
         }
 
         [Test]
@@ -55,7 +55,7 @@ namespace SimplifyIoC.Tests
         {
             _bootstrap.Dispose();
             Assert.DoesNotThrow(() => _bootstrap.Dispose());
-            Assert.That(_bootstrap.ExposedInjectionBinder.GetBinding<ITestService>(), Is.Null);
+            Assert.That(_bootstrap.exposedInjectionBinder.GetBinding<ITestService>(), Is.Null);
         }
 
         [Test]
@@ -70,23 +70,23 @@ namespace SimplifyIoC.Tests
 
             _bootstrap.Dispose();
 
-            Assert.That(_bootstrap.ExposedInjectionBinder.crossContextBinder, Is.Null,
+            Assert.That(_bootstrap.exposedInjectionBinder.crossContextBinder, Is.Null,
                 "链根 Dispose 要断开并清空共享跨域根 binder");
         }
 
         [Test]
         public void SignalListenerRemovedAfterDispose()
         {
-            var signal = _bootstrap.ExposedInjectionBinder.GetInstance<TestSignal>();
+            var signal = _bootstrap.exposedInjectionBinder.GetInstance<TestSignal>();
             signal.Dispatch();
-            var countAfterDispatch = TestCommand.ExecutionCount;
+            var countAfterDispatch = TestCommand.executionCount;
             Assert.That(countAfterDispatch, Is.GreaterThan(0));
 
             _bootstrap.Dispose();
 
             //信号实例仍在，但其命令监听已被 OnRemove 移除
             signal.Dispatch();
-            Assert.That(TestCommand.ExecutionCount, Is.EqualTo(countAfterDispatch));
+            Assert.That(TestCommand.executionCount, Is.EqualTo(countAfterDispatch));
         }
 
         [Test]
@@ -108,8 +108,8 @@ namespace SimplifyIoC.Tests
 
         private sealed class DisposeTestBootstrap : Bootstrap
         {
-            public ICrossContextInjectionBinder ExposedInjectionBinder => injectionBinder;
-            public ICommandBinder ExposedCommandBinder => commandBinder;
+            public ICrossContextInjectionBinder exposedInjectionBinder => injectionBinder;
+            public ICommandBinder exposedCommandBinder => commandBinder;
 
             protected override void MapBindings()
             {

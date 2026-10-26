@@ -43,9 +43,9 @@ namespace SimplifyIoC.Tests
         public void SetUp()
         {
             _binder = new InjectionBinder();
-            TestServiceImpl.InstanceCount = 0;
-            TestCommand.ExecutionCount = 0;
-            TestCommand.LastInstance = null;
+            TestServiceImpl.instanceCount = 0;
+            TestCommand.executionCount = 0;
+            TestCommand.lastInstance = null;
         }
 
         // ---- Binder：枚举键 ----
@@ -182,7 +182,7 @@ namespace SimplifyIoC.Tests
             commandBinder.Bind<TestSignal, TestCommand>();
             injectionBinder.GetInstance<TestSignal>().Dispatch();
 
-            Assert.AreEqual(1, TestCommand.ExecutionCount);
+            Assert.AreEqual(1, TestCommand.executionCount);
         }
 
         private static object FirstValue(IBinding binding)

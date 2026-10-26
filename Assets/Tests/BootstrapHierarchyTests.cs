@@ -35,7 +35,7 @@ namespace SimplifyIoC.Tests
         {
             //锚点是进程级静态槽：先归零，下面第一个构造的 _parent 才会成为本类用例的锚点
             Bootstrap.root = null;
-            TestCommand.ExecutionCount = 0;
+            TestCommand.executionCount = 0;
 
             // 第一个 Bootstrap 挂在场景根上 → 没有祖先 Bootstrap → 自任链根
             _parentObject = new GameObject("BootstrapHierarchyTests.Parent");
@@ -68,27 +68,27 @@ namespace SimplifyIoC.Tests
             Assert.That(_parent.isRoot, Is.True, "挂在场景根上的 Bootstrap 自任链根");
             Assert.That(_child.isRoot, Is.False);
             Assert.That(_child.parentBootstrap, Is.SameAs(_parent));
-            Assert.That(_parent.ExposedChildren, Does.Contain(_child));
-            Assert.That(_child.ExposedChildren, Is.Empty);
+            Assert.That(_parent.exposedChildren, Does.Contain(_child));
+            Assert.That(_child.exposedChildren, Is.Empty);
 
             // 子与父共享同一个跨域根 binder
-            Assert.That(_parent.ExposedInjectionBinder.crossContextBinder, Is.Not.Null);
-            Assert.That(_child.ExposedInjectionBinder.crossContextBinder,
-                Is.SameAs(_parent.ExposedInjectionBinder.crossContextBinder));
+            Assert.That(_parent.exposedInjectionBinder.crossContextBinder, Is.Not.Null);
+            Assert.That(_child.exposedInjectionBinder.crossContextBinder,
+                Is.SameAs(_parent.exposedInjectionBinder.crossContextBinder));
         }
 
         [Test]
         public void ParentDisposeCascadesToChild()
         {
-            var service = _child.ExposedInjectionBinder.GetInstance<ITestService>();
+            var service = _child.exposedInjectionBinder.GetInstance<ITestService>();
             Assert.That(service, Is.Not.Null);
 
             _parent.Dispose();
 
             // 子被级联销毁：跨域查询断开、注册表清空、命令绑定器置空
-            Assert.That(_child.ExposedInjectionBinder.GetBinding<ITestService>(), Is.Null);
-            Assert.That(_child.ExposedCommandBinder, Is.Null);
-            Assert.That(_parent.ExposedChildren, Is.Empty);
+            Assert.That(_child.exposedInjectionBinder.GetBinding<ITestService>(), Is.Null);
+            Assert.That(_child.exposedCommandBinder, Is.Null);
+            Assert.That(_parent.exposedChildren, Is.Empty);
         }
 
         [Test]
@@ -97,37 +97,37 @@ namespace SimplifyIoC.Tests
             _child.Dispose();
 
             // 子已从父的链上摘除
-            Assert.That(_parent.ExposedChildren, Is.Empty);
+            Assert.That(_parent.exposedChildren, Is.Empty);
 
             // 父自身不受影响：跨域绑定仍在、信号链路仍可执行
-            Assert.That(_parent.ExposedInjectionBinder.GetBinding<ITestService>(), Is.Not.Null);
-            _parent.ExposedInjectionBinder.GetInstance<TestSignal>().Dispatch();
-            Assert.That(TestCommand.ExecutionCount, Is.GreaterThan(0));
+            Assert.That(_parent.exposedInjectionBinder.GetBinding<ITestService>(), Is.Not.Null);
+            _parent.exposedInjectionBinder.GetInstance<TestSignal>().Dispatch();
+            Assert.That(TestCommand.executionCount, Is.GreaterThan(0));
         }
 
         [Test]
         public void RootDisposeClearsSharedCrossContextBinder()
         {
-            var shared = _parent.ExposedInjectionBinder.crossContextBinder;
+            var shared = _parent.exposedInjectionBinder.crossContextBinder;
             Assert.That(shared, Is.Not.Null);
             // CrossContextBridge 单例挂在共享根 binder 上（跨域绑定被 ResolveBinding 转交）
             Assert.That(shared.GetBinding<CrossContextBridge>(), Is.Not.Null);
             // 子的跨域查询也是回落到这个共享 binder
-            Assert.That(_child.ExposedInjectionBinder.GetBinding<ITestService>(), Is.Not.Null);
+            Assert.That(_child.exposedInjectionBinder.GetBinding<ITestService>(), Is.Not.Null);
 
             _parent.Dispose();
 
             // 共享根 binder 的注册表被清空，且两端都不再持有它
             Assert.That(shared.GetBinding<CrossContextBridge>(), Is.Null);
-            Assert.That(_parent.ExposedInjectionBinder.crossContextBinder, Is.Null);
-            Assert.That(_child.ExposedInjectionBinder.crossContextBinder, Is.Null);
+            Assert.That(_parent.exposedInjectionBinder.crossContextBinder, Is.Null);
+            Assert.That(_child.exposedInjectionBinder.crossContextBinder, Is.Null);
         }
 
         [Test]
         public void CrossContextSingletonIsSharedWithinHierarchy()
         {
-            var fromParent = _parent.ExposedInjectionBinder.GetInstance<ITestService>();
-            var fromChild = _child.ExposedInjectionBinder.GetInstance<ITestService>();
+            var fromParent = _parent.exposedInjectionBinder.GetInstance<ITestService>();
+            var fromChild = _child.exposedInjectionBinder.GetInstance<ITestService>();
 
             Assert.That(fromParent, Is.Not.Null);
             Assert.That(fromChild, Is.SameAs(fromParent));
@@ -148,9 +148,9 @@ namespace SimplifyIoC.Tests
 
                 Assert.That(other.isRoot, Is.False);
                 Assert.That(other.parentBootstrap, Is.SameAs(_parent));
-                Assert.That(_parent.ExposedChildren, Does.Contain(other));
-                Assert.That(other.ExposedInjectionBinder.crossContextBinder,
-                    Is.SameAs(_parent.ExposedInjectionBinder.crossContextBinder));
+                Assert.That(_parent.exposedChildren, Does.Contain(other));
+                Assert.That(other.exposedInjectionBinder.crossContextBinder,
+                    Is.SameAs(_parent.exposedInjectionBinder.crossContextBinder));
 
                 other.Dispose();
             }
@@ -183,17 +183,17 @@ namespace SimplifyIoC.Tests
                 second.AddBootstrap(first);
 
                 Assert.That(first.parentBootstrap, Is.SameAs(second));
-                Assert.That(second.ExposedChildren, Does.Contain(first));
-                Assert.That(_parent.ExposedChildren, Has.No.Member(first), "转移归属时必须先从旧父摘除");
-                Assert.That(_parent.ExposedChildren, Does.Contain(second));
+                Assert.That(second.exposedChildren, Does.Contain(first));
+                Assert.That(_parent.exposedChildren, Has.No.Member(first), "转移归属时必须先从旧父摘除");
+                Assert.That(_parent.exposedChildren, Does.Contain(second));
                 Assert.That(first.isRoot, Is.False);
-                Assert.That(first.ExposedInjectionBinder.crossContextBinder,
-                    Is.SameAs(_parent.ExposedInjectionBinder.crossContextBinder),
+                Assert.That(first.exposedInjectionBinder.crossContextBinder,
+                    Is.SameAs(_parent.exposedInjectionBinder.crossContextBinder),
                     "换父之后共享的仍是同一个跨域根 binder");
 
                 //级联释放沿新链走：_parent → second → first
                 _parent.Dispose();
-                Assert.That(first.ExposedCommandBinder, Is.Null);
+                Assert.That(first.exposedCommandBinder, Is.Null);
             }
             finally
             {
@@ -224,9 +224,9 @@ namespace SimplifyIoC.Tests
 
         private abstract class HierarchyTestBootstrap : Bootstrap
         {
-            public IReadOnlyList<Bootstrap> ExposedChildren => _children;
-            public ICrossContextInjectionBinder ExposedInjectionBinder => injectionBinder;
-            public ICommandBinder ExposedCommandBinder => commandBinder;
+            public IReadOnlyList<Bootstrap> exposedChildren => _children;
+            public ICrossContextInjectionBinder exposedInjectionBinder => injectionBinder;
+            public ICommandBinder exposedCommandBinder => commandBinder;
 
             protected void BindLocal()
             {
