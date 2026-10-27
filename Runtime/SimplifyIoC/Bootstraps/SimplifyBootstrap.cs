@@ -14,20 +14,29 @@ using SimplifyIoC.Signals;
 //============================================================
 namespace SimplifyIoC.Bootstraps
 {
-    public abstract class SimplifyBootstrap<T> : Bootstrap where T : Command
+    public abstract class SimplifyBootstrap : Bootstrap
     {
         /// <summary>
         /// 要控制启动时机就覆写它（记得调 base.Start()），或干脆自己调 <see cref="Bootstrap.Launch"/>。
         /// </summary>
         protected virtual void Start()
         {
+            SetStartupCommand();
             Launch();
+        }
+        /// <summary>
+        /// 手动调用SetStartupCommand<StartupCommand>();
+        /// </summary>
+        protected abstract void SetStartupCommand();
+
+        protected void SetStartupCommand<T>() where T : Command
+        {
+            BindCommand<StartupSignal, T>(true);
         }
 
         protected sealed override void MapBindings()
         {
             base.MapBindings();
-            BindCommand<StartupSignal, T>(true);
             BindCommands();
             BindViews();
             BindSignals();
