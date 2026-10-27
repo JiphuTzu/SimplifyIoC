@@ -45,7 +45,7 @@ namespace SimplifyIoC.Bootstraps
         //private Bootstrap _parentBootstrap;
 
         /// 5.6：划归关系的内读取入口（供测试夹具核对链结构）。<see cref="AddBootstrap"/> / Dispose 维护它。
-        internal Bootstrap parentBootstrap { get; private set; }
+        protected Bootstrap parentBootstrap { get; private set; }
 
         /// 本 Bootstrap 是否为链根——只有链根持有共享 crossContextBinder
         /// （CrossContextBridge 单例与所有 .CrossContext() 绑定的宿主）。
@@ -54,12 +54,12 @@ namespace SimplifyIoC.Bootstraps
         /// 全框架只有这一个"谁算链根"的判断（5.6 之前的 <c>_isRoot</c> 也只是
         /// <c>firstContext == this</c> 的缓存，缓存那一步是为了绕开 Dispose 里先清 firstContext 的顺序问题，
         /// 现在改为先做清理、后清锚点，缓存就没有必要了）。
-        internal bool isRoot => ReferenceEquals(root, this);
+        protected bool isRoot => ReferenceEquals(root, this);
 
         /// 5.6+：本 Bootstrap 是否已 Init 到"容器已建"（走过 InstantiateCoreComponents）。
         /// 取代原来"祖先 Bootstrap 的 context 属性非空"这条就绪判定：父查找据此跳过尚未 Init 的祖先，
         /// 免得把子 Bootstrap 挂到一个还没有跨域根 binder 的父上（两条链各持一个 binder ⇒ 跨域绑定静默分叉）。
-        internal bool isReady { get; private set; }
+        protected bool isReady { get; private set; }
 
         /// <summary>
         /// 5.6+：框架级锚点——「跨场景 / 并列的 Bootstrap 组件」在 Init 时取得父 Bootstrap 的公开入口。
@@ -119,7 +119,7 @@ namespace SimplifyIoC.Bootstraps
         /// A list of Views Awake before the Bootstrap is fully set up.
         /// 3.2：由 static SemiBinding 改为实例级 ViewCache——多 Bootstrap 互不干扰，
         /// 也不再因 static 长期持有 View 引用而跨场景泄漏。
-        protected readonly ViewCache _viewCache = new();
+        private readonly ViewCache _viewCache = new();
 
         /// <summary>
         /// Unity 生命周期：组件装载即建容器（内部调 <see cref="Init"/>，幂等）。
@@ -254,8 +254,8 @@ namespace SimplifyIoC.Bootstraps
                 : null;
         }
 
-        /// 启动 Bootstrap：启动语义由派生类定义（如 SimplifyBootstrap<T> 在此广播 StartupSignal）。
-        /// 启动永远显式——推荐路径由 SimplifyBootstrap<T>.Start 调用；
+        /// 启动 Bootstrap：启动语义由派生类定义（如 SimplifyBootstrap 在此广播 StartupSignal）。
+        /// 启动永远显式——推荐路径由 SimplifyBootstrap.Start 调用；
         /// 裸派生 Bootstrap 的类需自行调用 Launch()。
         public virtual void Launch()
         {
@@ -402,22 +402,22 @@ namespace SimplifyIoC.Bootstraps
         /// Remove a View from this Bootstrap
         public virtual void RemoveView(View view)
         {
-            if (mediationBinder == null) return; //场景卸载期 binder 可能已销毁（P0#9）；无 Mediator 机制时也无需处理
-            mediationBinder.Trigger(MediationEvent.Destroyed, view);
+            //场景卸载期 binder 可能已销毁（P0#9）；无 Mediator 机制时也无需处理
+            mediationBinder?.Trigger(MediationEvent.Destroyed, view);
         }
 
         /// Enable a View from this Bootstrap
         public virtual void EnableView(View view)
         {
-            if (mediationBinder == null) return; //无 Mediator 时没有 mediator 需要 enable
-            mediationBinder.Trigger(MediationEvent.Enabled, view);
+            //无 Mediator 时没有 mediator 需要 enable
+            mediationBinder?.Trigger(MediationEvent.Enabled, view);
         }
 
         /// Disable a View from this Bootstrap
         public virtual void DisableView(View view)
         {
-            if (mediationBinder == null) return; //无 Mediator 时没有 mediator 需要 disable
-            mediationBinder.Trigger(MediationEvent.Disabled, view);
+            //无 Mediator 时没有 mediator 需要 disable
+            mediationBinder?.Trigger(MediationEvent.Disabled, view);
         }
 
         /// <summary>
@@ -436,7 +436,7 @@ namespace SimplifyIoC.Bootstraps
             view.EnsureAttributesInitialized();
         }
 
-        public virtual void OnRemove()
+        private void OnRemove()
         {
             //3.2：不再有 base.OnRemove()——Bootstrap 已不继承 Binder。
             //3.1：三个组件 Binder 各自执行真实清理（信号监听/命令池/绑定注册表；3.3 起 suppliers 已并入绑定自身）。
@@ -455,12 +455,9 @@ namespace SimplifyIoC.Bootstraps
             //4.7：没有 mediationBinder 时不再抛异常——View 的注入与声明式解析本就
             //不依赖 Mediator，改走兜底路径，使"不使用 Mediator 机制"的 Bootstrap 也能驱动 View。
             if (mediationBinder != null)
-            {
                 _viewCache.MediateWith(mediationBinder);
-                return;
-            }
-
-            _viewCache.ForEach(InjectViewWithoutMediation);
+            else
+                _viewCache.ForEach(InjectViewWithoutMediation);
         }
         /// Caches early-riser Views.
         /// 
@@ -472,6 +469,64 @@ namespace SimplifyIoC.Bootstraps
         {
             //3.2：原 SemiBinding 的 One→Many 约束逻辑随 static 缓存一并移除
             _viewCache.Add(view);
+        }
+        /// <summary>
+        /// 3.2：从 Bootstrap 抽出的"早期视图"缓存。
+        ///
+        /// 背景：若某个 View 在 Bootstrap 初始化完成之前就 Awake（on-stage 的 View 很常见），
+        /// 它无法立刻被 Mediate，于是先缓存，等 Bootstrap 的 PostBindings 阶段统一补挂 Mediator。
+        ///
+        /// 原实现是一个 static 的 SemiBinding：所有 Bootstrap 共用一份缓存，
+        /// 任意 Bootstrap 的 PostBindings 都会把全局缓存清空——跨 Bootstrap 互相抢视图，
+        /// 同时 static 长期持有 View 引用造成跨场景泄漏。
+        /// 现在改为每个 Bootstrap 持有一个实例，隔离性与释放语义都随实例走。
+        /// </summary>
+        private class ViewCache
+        {
+            private readonly List<View> _views = new();
+
+            /// 当前缓存的 View 数量（测试与调试用）
+            public int count => _views.Count;
+
+            public void Add(View view)
+            {
+                if (view != null)
+                    _views.Add(view);
+            }
+
+            /// <summary>
+            /// 用传入的 mediationBinder 把这些"早到"的 View 补挂 Mediator，然后清空缓存。
+            /// </summary>
+            public void MediateWith(IMediationBinder binder)
+            {
+                if (binder == null)
+                    throw new Exception("Bootstrap cannot mediate views without a mediationBinder");
+
+                ForEach(v => binder.Trigger(MediationEvent.Awake, v));
+            }
+
+            /// <summary>
+            /// 4.7：对缓存中的每个 View 执行一次给定动作，然后清空缓存。
+            /// 供"没有 mediationBinder"的 Bootstrap 走兜底路径（注入 + 声明式解析）使用，
+            /// 不再只能依赖 Mediator 机制把缓存耗尽。
+            /// </summary>
+            public void ForEach(Action<View> action)
+            {
+                if (action == null) return;
+
+                foreach (var view in _views)
+                {
+                    action(view);
+                }
+
+                _views.Clear();
+            }
+
+            /// <summary>Bootstrap 销毁时清空，避免残留对已销毁 View 的引用。</summary>
+            public void Clear()
+            {
+                _views.Clear();
+            }
         }
     }
 }

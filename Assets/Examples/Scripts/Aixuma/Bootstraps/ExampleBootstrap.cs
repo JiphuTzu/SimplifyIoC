@@ -22,18 +22,19 @@ namespace Aixuma.Bootstraps
     //本场景里即 CrossContextBootstrap）之下，跨域绑定随之可用（2026-10-15 恢复 firstContext 语义）。
     //正因为不需要指定父，本类连 Awake 都不必覆写——继承来的 Awake 会在装载时自动 Init。
     //单独打开本场景、CrossContextBootstrap 不在场时锚点为 null，本 Bootstrap 自成链根并接任锚点。
-    public class ExampleBootstrap : SimplifyBootstrap<ExampleStartupCommand>
+    public class ExampleBootstrap : SimplifyBootstrap
     {
         //序列化字段：Unity 在 Awake 之前完成反序列化，所以 Init（→ MapBindings → BindValues）里读它是安全的。
         public GameObject[] objects;
-
-        protected override void BindSignals()
-        {
-        }
-
+        
         protected override void BindValues()
         {
             BindValue(objects);
+        }
+
+        protected override void SetStartupCommand()
+        {
+            SetStartupCommand<ExampleStartupCommand>();
         }
 
         protected override void BindCommands()

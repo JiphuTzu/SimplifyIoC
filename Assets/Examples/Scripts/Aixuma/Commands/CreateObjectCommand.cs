@@ -25,7 +25,7 @@ namespace Aixuma.Commands
         {
             Debug.Log("create object command execute");
             var index = Random.Range(0, objects.Length);
-            var go = GameObject.Instantiate(objects[index],root.transform);
+            var go = Object.Instantiate(objects[index], root.transform);
             go.transform.position = pos + Vector3.up * Random.Range(0.8f, 1.6f);
             go.SetActive(true);
         }

@@ -16,7 +16,7 @@ namespace Aixuma.Bootstraps
 {
     //2.0.0：旧 Context 更名为 Bootstrap——本类就是常驻的跨场景根 Bootstrap 本身，
     //各场景的 Bootstrap 以它为显式父（或退而落到框架级锚点 Bootstrap.root）来共享跨域绑定。
-    public class CrossContextBootstrap : SimplifyBootstrap<CrossContextStartupCommand>
+    public class CrossContextBootstrap : SimplifyBootstrap
     {
         protected override void Awake()
         {
@@ -24,18 +24,15 @@ namespace Aixuma.Bootstraps
             DontDestroyOnLoad(gameObject);
         }
 
-        protected override void BindCommands()
+        protected override void SetStartupCommand()
         {
+            SetStartupCommand<CrossContextStartupCommand>();
         }
 
         protected override void BindSignals()
         {
             BindSignal<CreateObjectSignal>(true);
             BindSignal<RecordChangedSignal>(true);
-        }
-
-        protected override void BindValues()
-        {
         }
 
         protected override void BindViews()
