@@ -5,7 +5,8 @@
  *
  * 继承本类，创建适合你的应用的绑定容器。
  *
- * 典型的 Unity 用法是：继承 Bootstrap（或使用推荐的 SimplifyBootstrap<T>），
+ * 典型的 Unity 用法是：继承 Bootstrap（或使用推荐的非泛型 SimplifyBootstrap，
+ * 在 SetStartupCommand() 里指定启动命令），
  * 把派生组件挂到 GameObject 上——Awake 即建容器并确定归属，Start 触发启动命令。
  *
  * 2026-10-15（2.0.0）：旧 `Context` 更名为本类，并与旧的 `Bootstrap`（纯层级锚点）合并——
@@ -38,13 +39,13 @@ namespace SimplifyIoC.Bootstraps
         private bool _disposed;
 
         /// 3.5：子 Bootstrap 列表（Composite）。父 Dispose 时级联释放，实现成链回收。
-        /// protected 以便派生类（含测试夹具）检查链结构。
+        /// protected 以便派生类检查链结构。
         protected readonly List<Bootstrap> _children = new();
 
         // 3.5：父 Bootstrap 引用。子 Dispose 时据此从父的子列表摘除自己，实现双向解绑。
         //private Bootstrap _parentBootstrap;
 
-        /// 5.6：划归关系的内读取入口（供测试夹具核对链结构）。<see cref="AddBootstrap"/> / Dispose 维护它。
+        /// 5.6：划归关系的内读取入口（供派生类核对链结构）。<see cref="AddBootstrap"/> / Dispose 维护它。
         protected Bootstrap parentBootstrap { get; private set; }
 
         /// 本 Bootstrap 是否为链根——只有链根持有共享 crossContextBinder
@@ -82,10 +83,16 @@ namespace SimplifyIoC.Bootstraps
         /// 典型用法（App 根常驻、各场景分别加载，两侧在 Transform 上毫无关系且分属不同程序集）：
         ///
         ///     //App 层：常驻（DontDestroyOnLoad），先 Init 即可——锚点自动登记
-        ///     class AppBootstrap : SimplifyBootstrap&lt;AppStartupCommand&gt; { }
-        ///     //场景层：什么都不用写（连 Awake 都不必覆写）——Init() 无父参数，
-        ///     //Transform 上没有父时自动落到本锚点下，跨域绑定随之可用
-        ///     class LevelBootstrap : SimplifyBootstrap&lt;LevelStartupCommand&gt; { }
+        ///     class AppBootstrap : SimplifyBootstrap
+        ///     {
+        ///         protected override void SetStartupCommand() => SetStartupCommand&lt;AppStartupCommand&gt;();
+        ///     }
+        ///     //场景层：连 Awake 都不必覆写，只需在 SetStartupCommand() 里指定启动命令；
+        ///     //Init() 无父参数，Transform 上没有父时自动落到本锚点下，跨域绑定随之可用
+        ///     class LevelBootstrap : SimplifyBootstrap
+        ///     {
+        ///         protected override void SetStartupCommand() => SetStartupCommand&lt;LevelStartupCommand&gt;();
+        ///     }
         ///
         /// 另：本成员与已删除的 `Context.firstContext` 是**同一语义的新名字**，旧名不再提供。
         /// 存为弱引用：锚点不会把整条链（注入容器、单例、订阅）长期吊住。
@@ -124,8 +131,8 @@ namespace SimplifyIoC.Bootstraps
         /// <summary>
         /// Unity 生命周期：组件装载即建容器（内部调 <see cref="Init"/>，幂等）。
         /// 派生类一般不必覆写它——归属由 <see cref="Init"/> 自动解析；要控制启动时机请覆写
-        /// <c>SimplifyBootstrap&lt;T&gt;.Start</c>。
-        /// 编辑模式不派发本消息，包内 EditMode 测试请显式调用 <see cref="Init"/>（<c>internal</c>，经 InternalsVisibleTo 可见）。
+        /// <c>SimplifyBootstrap.Start</c>。
+        /// 编辑模式不派发本消息；<see cref="Init"/> 为 <c>internal</c>，下游程序集无法显式调用，需要驱动生命周期请用 PlayMode。
         /// </summary>
         protected virtual void Awake()
         {
@@ -145,9 +152,9 @@ namespace SimplifyIoC.Bootstraps
         /// 5.6+：建容器 + 定归属 + 映射（InstantiateCoreComponents + MapBindings + PostBindings）。幂等。
         ///
         /// 由 <see cref="Awake"/> 自动调用；可见性是 <c>internal</c>——它是框架自用的生命周期入口，
-        /// 只有框架自身与包内测试程序集可见（<c>AssemblyInfo.cs</c> 的 <c>InternalsVisibleTo</c>）。
+        /// 仅框架程序集自身可见（包内测试程序集与 <c>InternalsVisibleTo</c> 已在 2.0.2 删除）。
         /// 运行时 <c>AddComponent&lt;Bootstrap&gt;()</c> 照常由 Unity 派发 <see cref="Awake"/>，
-        /// 下游正常使用不需要（也调不到）它；下游若要在 EditMode 里驱动 Bootstrap，请改用 PlayMode 测试。
+        /// 下游正常使用不需要（也调不到）它；若需驱动生命周期请用 PlayMode，由 Unity 派发 <see cref="Awake"/>。
         ///
         /// **无父参数**：归属自动解析——先沿 Transform 向上找最近的已就绪 Bootstrap，
         /// 找不到才回落到框架级锚点 <see cref="root"/>（第一个构造成链根的那个，即"后来者自动成为子"）。
@@ -182,7 +189,7 @@ namespace SimplifyIoC.Bootstraps
 
             AddCoreComponents();
             //启动语义（单一、显式）：Init = 建容器 + 归属 + 映射；
-            //启动（Launch）永远由调用方显式触发——推荐路径由 SimplifyBootstrap<T>.Start 补上，
+            //启动（Launch）永远由调用方显式触发——推荐路径由 SimplifyBootstrap.Start 补上，
             //裸派生 Bootstrap 的类需自行调用 Launch()。
             //注意 MapBindings 在 Init 内即被调用（虚调用陷阱）：派生类实例字段尚未赋值，
             //MapBindings 里只放类型绑定，值绑定请在 Init 完成后再补。
@@ -485,7 +492,7 @@ namespace SimplifyIoC.Bootstraps
         {
             private readonly List<View> _views = new();
 
-            /// 当前缓存的 View 数量（测试与调试用）
+            /// 当前缓存的 View 数量（调试用）
             public int count => _views.Count;
 
             public void Add(View view)
