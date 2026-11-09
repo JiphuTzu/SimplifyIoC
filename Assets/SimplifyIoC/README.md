@@ -1,6 +1,6 @@
 ﻿# SimplifyIoC
 
-[StrangeIoC](https://github.com/strangeioc/strangeioc) 的精简版：面向 Unity 的轻量 IoC / MVCS 框架，提供绑定容器、命令、类型安全信号，以及由框架自动解析的声明式绑定。
+面向 Unity 的分层 MVCS 框架：绑定容器、类型安全信号、命令与 View 调解四层各司其职，由 Bootstrap 层级链统一管理作用域与跨域共享，声明式绑定由框架自动解析。
 
 - **环境要求**：Unity 2022.3+（C# 9 / .NET Standard 2.1）
 - **示例工程**：[Assets/Examples](https://github.com/JiphuTzu/SimplifyIoC/tree/main/Assets/Examples)
@@ -16,14 +16,15 @@ https://github.com/JiphuTzu/SimplifyIoC.git#upm
 
 ## 快速上手
 
-### 1. 启动入口：`SimplifyBootstrap<T>`
+### 1. 启动入口：`SimplifyBootstrap`（非泛型）
 
 2.0.0 起框架里只有 `Bootstrap`——它自己就是 `MonoBehaviour`，既是**层级锚点**（挂在显示层级顶部的那块组件），也是**绑定容器**（1.3.2 及以前，这两个角色分属 `Context` 与 `Bootstrap` 两个类）。
-派生 `SimplifyBootstrap<TStartupCommand>`、实现四个 `Bind*` 分组，挂到场景 GameObject 上即可：`Awake` 建容器并确定归属，`Start` 派发 `StartupSignal` 触发启动命令。
+派生非泛型的 `SimplifyBootstrap`、实现 `SetStartupCommand()` 指定启动命令，再按需覆写四个 `Bind*` 分组，挂到场景 GameObject 上即可：`Awake` 建容器并确定归属，`Start` 依次调用 `SetStartupCommand()` 与 `Launch()`，派发 `StartupSignal` 触发启动命令。
 
 ```csharp
-public class GameBootstrap : SimplifyBootstrap<GameStartupCommand>
+public class GameBootstrap : SimplifyBootstrap
 {
+    protected override void SetStartupCommand() => SetStartupCommand<GameStartupCommand>();
     protected override void BindCommands() => BindCommand<CreateObjectSignal, CreateObjectCommand>();
     protected override void BindViews()    => BindView<LifeTimeView, LifeTimeMediator>();
     protected override void BindSignals()  => BindSignal<RecordChangedSignal>(true);
@@ -31,14 +32,18 @@ public class GameBootstrap : SimplifyBootstrap<GameStartupCommand>
 }
 ```
 
+`SetStartupCommand()` 是唯一必须实现的抽象方法；四个 `Bind*` 按需覆写，`MapBindings()` 已 sealed，不要覆写。注意 `BindCommand<S, C>(once, crossContext)` 的第一个 bool 是 `once`，而 `BindSignal` / `BindValue` 的第一个 bool 是 `crossContext`。
+
 把 `GameBootstrap` 挂到场景中层级最顶部的 GameObject 上，View 放在它的子树里。
 
-需要控制启动时机时，覆写 `Start`——归属不必在那里表达，`Init()` 会自动解析父：
+需要控制启动时机时覆写 `Start`（务必调 `base.Start()`）——归属不必在那里表达，`Init()` 会自动解析父：
 
 ```csharp
-public class LevelBootstrap : SimplifyBootstrap<LevelStartupCommand>
+public class LevelBootstrap : SimplifyBootstrap
 {
-    // 想在自己挑的时机启动就覆写它；base.Start() 即 Launch()
+    protected override void SetStartupCommand() => SetStartupCommand<LevelStartupCommand>();
+
+    // 想自己挑启动时机就覆写它；base.Start() = SetStartupCommand() + Launch()
     protected override void Start()
     {
         // ...先做自己的事
@@ -47,14 +52,14 @@ public class LevelBootstrap : SimplifyBootstrap<LevelStartupCommand>
 }
 ```
 
-- `Init()` 幂等、**无父参数**，且可见性是 **`internal`**：`Awake` 自动调用，正常使用不需要（也调不到）它——运行时 `AddComponent<XxxBootstrap>()` 照常由 Unity 派发 `Awake`；只有框架自身与包内测试程序集经 `InternalsVisibleTo` 可见。归属自动解析——沿 Transform 向上找最近的已就绪 `Bootstrap`，找不到才落到框架级锚点 `Bootstrap.root`；要指定「锚点之外的某个父」用 `AddBootstrap`。
+- `Init()` 幂等、**无父参数**，且可见性是 **`internal`**：`Awake` 自动调用，正常使用不需要（也调不到）它——运行时 `AddComponent<XxxBootstrap>()` 照常由 Unity 派发 `Awake`；仅框架程序集自身可见，下游程序集无法显式驱动（要驱动生命周期请用 PlayMode）。归属自动解析——沿 Transform 向上找最近的已就绪 `Bootstrap`，找不到才落到框架级锚点 `Bootstrap.root`；要指定「锚点之外的某个父」用 `AddBootstrap`。
 - `Dispose()` 之后调用 `Init()` 会抛 `ObjectDisposedException`——幂等不等于可复活。
-- `Launch()` 永远显式：`SimplifyBootstrap<T>.Start` 自动补调；直接派生 `Bootstrap`（不经 `SimplifyBootstrap<T>`）的类需自行在 `Start` 里调用。
+- `Launch()` 永远显式：`SimplifyBootstrap.Start` 自动补调；直接派生 `Bootstrap`（不经 `SimplifyBootstrap`）的类需自行在 `Start` 里调用。
 - Unity 在 `Awake` 之前完成反序列化，所以 `BindValues` 里读序列化字段是安全的。
 
 ### 2. 信号与命令
 
-信号是类型安全的事件。把信号绑到命令之后，`Dispatch` 会构造命令，并把信号载荷按类型注入进去。
+信号是类型安全的事件。把信号绑到命令之后，`Dispatch` 会从池中取一个命令实例，并把信号载荷按类型注入进去。
 
 ```csharp
 public class CreateObjectSignal : Signal<Vector3> { }
@@ -67,9 +72,14 @@ public class CreateObjectCommand : Command
     public override void Execute() { /* ... */ }
 }
 
-// 在 View / Mediator 内派发（5.6 起提供 Get<T>() 取信号单例）
+// View 内：GetSignal<T>() 取信号单例
+GetSignal<CreateObjectSignal>().Dispatch(new Vector3(1, 0, 0));
+
+// Mediator 内：同名能力叫 Get<T>()
 Get<CreateObjectSignal>().Dispatch(new Vector3(1, 0, 0));
 ```
+
+> View 侧是 `GetSignal<T>()`，Mediator 侧是 `Get<T>()`；两者都从容器取信号单例，名字不同，别混用。
 
 ### 3. View 与 Mediator
 
@@ -102,12 +112,14 @@ public class HudMediator : Mediator<HudView>
 
 多个场景各自带一个 Bootstrap 时，它们在 Transform 上往往并列，且分属不同程序集（热更新分层：场景/玩法层不应编译期依赖 App 层）。
 **第一个构造成功的链根 Bootstrap 自动成为框架级锚点**（`Bootstrap.root`，先到先得、不抢占），
-它同时承担 5.6 之前 `firstBootstrap` 的两条兜底，场景侧只依赖框架类型即可取得父 Bootstrap，跨域绑定随之可用：
+它同时是下面两条兜底的落点（1.3.2 恢复的 `Context.firstContext` 语义），场景侧只依赖框架类型即可取得父 Bootstrap，跨域绑定随之可用：
 
 ```csharp
 //App 层：常驻（DontDestroyOnLoad）——Awake 默认就是建容器 + 定归属，这里只补自己的事
-public class AppBootstrap : SimplifyBootstrap<AppStartupCommand>
+public class AppBootstrap : SimplifyBootstrap
 {
+    protected override void SetStartupCommand() => SetStartupCommand<AppStartupCommand>();
+
     protected override void Awake()
     {
         base.Awake();                 // 建容器 + 定归属 + 映射；锚点自动登记，无需额外声明
@@ -116,11 +128,14 @@ public class AppBootstrap : SimplifyBootstrap<AppStartupCommand>
 }
 
 //场景层：不认识 AppBootstrap，也不需要认识——连 Awake 都不必覆写
-public class LevelBootstrap : SimplifyBootstrap<LevelStartupCommand> { }
+public class LevelBootstrap : SimplifyBootstrap
+{
+    protected override void SetStartupCommand() => SetStartupCommand<LevelStartupCommand>();
+}
 ```
 
 - 锚点**自动**产生：第一个构造的链根持有，后来的 Bootstrap 不抢占；锚点被 `Dispose()`（App 根销毁）后清空，下一个链根接任。
-- 两条**兜底**（1.3.2 恢复 5.6 之前 `firstBootstrap` 的行为）：
+- 两条**兜底**（1.3.2 恢复的 `Context.firstContext` 兜底语义）：
   - `Init` 时 Transform 层级找不到父 ⇒ 自动挂到锚点下（跨场景并列加载时不必手写任何代码）；
   - View 找不到任何 Bootstrap ⇒ 注册到锚点而不是抛异常（`requiresBootstrap = false` 的 View 不参与）。
   归属始终是 **Transform 层级 > 锚点兜底**——层级上说得清楚时永远优先；要指定「锚点之外的某个父」用 `AddBootstrap`。
@@ -134,15 +149,16 @@ public class LevelBootstrap : SimplifyBootstrap<LevelStartupCommand> { }
 | 特性 | 可用位置 | 作用 |
 | --- | --- | --- |
 | `[Inject]` / `[Inject(name)]` | 属性 | 从容器注入；带名字取命名绑定（如 `[Inject(BootstrapKeys.Bootstrap)]`） |
-| `[Child]` | 字段 | 按名字 / 路径收集子物体上的组件，支持 `List<>` |
-| `[BindEvent("事件名", "成员名")]` | 字段 / 属性 / 方法 | 把成员上的 `UnityEvent` 绑到方法；事件源支持数组与 `List<>` |
+| `[Child]` | 字段 | 按名字 / 路径收集子物体上的组件，支持数组与 `List<>` |
+| `[BindEvent("onClick", nameof(confirm))]` | **仅方法** | 把事件宿主上的 `UnityEvent` 绑到该方法；第二参起是事件宿主的成员名（可为字段 / 属性，支持数组与 `List<>`） |
 | `[BindMethod("名1", "名2")]` | 方法 | 把方法注册到名字，之后用 `InvokeBind("名", 参数)` 调用；`order` 控制同名方法的顺序 |
 | `[PostConstruct(priority)]` | 方法 | 注入完成后立即调用（无参），`priority` 控制多个后置构造的顺序 |
-| `[MainThread(times, interval)]` | 方法 | 保证方法在主线程执行，可指定执行次数与间隔 |
-| `[ListensTo(typeof(SomeSignal))]` | 方法 | 把 Mediator / View 的方法直接挂到信号上 |
+| `[MainThread(times, interval)]` | 方法 | 让无参方法在主线程 Update 中按次数 / 间隔重复执行（`times` 默认 -1 不限次） |
+| `[ListensTo(typeof(SomeSignal))]` | 方法 | 把 Mediator / View 的方法直接挂到信号上；方法签名须与信号载荷一致，基类 private 方法扫不到 |
 | `[Construct]` / `[Name]` | 构造函数 / 参数 | 指定优先使用的构造函数；对构造参数做命名注入 |
 
 > `[Inject]` 只作用于**属性**（`public X x { get; set; }`），不要写在字段上。
+> 命名空间别混：`[Inject]` / `[Name]` / `[Construct]` / `[PostConstruct]` / `[ListensTo]` 在**全局命名空间**；`[Child]` / `[BindEvent]` / `[BindMethod]` / `[MainThread]` 在 `SimplifyIoC.Utils`。
 
 ## 支持平台
 

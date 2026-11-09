@@ -1,9 +1,30 @@
 ﻿# CHANGELOG
+## 2.0.2
+### 破坏性变更
++ **`SimplifyBootstrap<T>` 改为非泛型 `SimplifyBootstrap`**：启动命令类型不再写在类声明上，改由钩子指定——新增 `protected abstract void SetStartupCommand()`，派生类必须实现并在体内调用 `SetStartupCommand<T>()`（`T : Command`）；`BindCommand<StartupSignal, T>(true)` 从 `MapBindings()` 移到 `Start()`，由 `Start()` 先 `SetStartupCommand()` 再 `Launch()`。**迁移**：`class GameBootstrap : SimplifyBootstrap<GameStartupCommand>` 改为 `class GameBootstrap : SimplifyBootstrap`，并补 `protected override void SetStartupCommand() => SetStartupCommand<GameStartupCommand>();`；覆写 `Start()` 时仍须调 `base.Start()`（内含上述两步）。
++ **包内测试体系删除**：`Assets/Tests`、`Runtime/SimplifyIoC/AssemblyInfo.cs`（含 `InternalsVisibleTo("Aixuma.SimplifyIoC.Tests")`）及 Tests 的 csproj / sln 条目一并移除。`Init()` 现**仅框架程序集自身可见**，不再有外部程序集能显式驱动它；EditMode 下 Unity 不派发 `Awake`，自写测试一律走 PlayMode，包本身改为在 Unity 编辑器手动验收。
+
+### 修复与改进
++ **`ToHandler` 短路通路收口**：`SignalHandler` 由独立类改为 `CommandBinding` 的**私有嵌套类**，`handler` 字段改为私有的 `_handler`；读取口 `bool hasHandler { get; }` 与 `void InvokeHandler(IInjectionBinder, object)` 加进 `ICommandBinding`（正常只应由 `CommandBinder` 在派发时调用），派发端由此免去 `is CommandBinding` 类型判断。独立 `SignalHandler.cs` 已删除。
++ **`ViewCache` 收为 `Bootstrap` 的私有内部类**：早期视图缓存不再有独立类型与文件；`parentBootstrap` / `isRoot` / `isReady` 由 `internal` 放宽为 `protected` 供派生类检查链结构，`_viewCache` 收紧为 `private`。
++ `RemoveView` / `EnableView` / `DisableView` 的空判统一为 `mediationBinder?.Trigger(...)`，行为不变。
+
+### 升级注意（迁移速查）
++ 从 2.0.0 / 2.0.1 升级只需改启动入口：删掉类声明上的泛型实参，补一行 `SetStartupCommand()` 钩子；四个 `Bind*` 分组与 `MapBindings()`（sealed，不要覆写）的用法不变。
+
+## 2.0.1
+### 修复与改进
++ 修复 2.0.0 引入的基础 UI 能力（`SimplifyUI` / `UISettings`）里的条件分支问题：`GetBootstrapPrefab` 命中后未中断遍历会重复实例化预置体；预置体查找与弹窗回收改为早返回写法，逻辑等价但不再误触发。
++ **Runtime 字段命名统一**：非公开字段改为 `_camelCase` 前缀（如 `Binder.bindings` → `_bindings`），`Binder` / `Pool` / `SignalSubscription` / `ReflectionExtension` 等文件的引用同步更新；公开 API 未变。
+
+### 升级注意（迁移速查）
++ 自定义 `Binder` / `Pool` 等派生类若直接引用过基类的 `protected` 字段（如 `bindings`），按 `_camelCase` 新名更新引用即可。
+
 ## 2.0.0
 ### 破坏性变更
 + **`Context` 更名为 `Bootstrap`，并与旧的 `Bootstrap`（纯层级锚点类）合并为一个类**：框架里现在只剩 `Bootstrap`——它自己就是 `MonoBehaviour`，既是**层级锚点**（挂在显示层级顶部的那块组件），也是**绑定容器**。旧的 `Bootstrap` / `SimplifyBootstrap`（非泛型、负责创建 Context 的那两个）已删除；`SimplifyContext<T>` 更名为 `SimplifyBootstrap<T>`；`Context` 这个类名不再存在。改前两个类靠 `context ⇄ bootstrap` 双向可变链接相连，忘写其中一半就会**静默**分叉（Context 悄悄自任链根、跨域绑定各持一个 binder，报错现场离原因很远）；合并后这类失效在类型层面不可能发生。
-+ 启动入口只剩**一个组件**：派生 `SimplifyBootstrap<T>`（或裸 `Bootstrap`）后直接挂到 GameObject 上——`Awake` → `Init()`（建容器 + 确定归属 + 映射），`Start` → `Launch()`（`SimplifyBootstrap<T>` 自动补调）。
-+ **`Bootstrap.Init()` 取代带参构造**（MonoBehaviour 没有带参构造）：**无父参数**、幂等，`Awake` 自动调用，且**可见性为 `internal`**——它是框架自用的生命周期入口，只有框架自身与包内测试程序集经 `InternalsVisibleTo` 可见，下游程序集调不到；运行时 `AddComponent<XxxBootstrap>()` 照常由 Unity 派发 `Awake`，下游正常使用不受影响。归属自动解析，调用方不需要持有、也不需要知道任何别的 Bootstrap 的类型——**沿 Transform 向上找最近的已就绪 Bootstrap → 框架级锚点 `Bootstrap.root` 兜底**；要指定「锚点之外的某个父」用 `AddBootstrap(父)`。**幂等仅指"重复调用无副作用"**：`Dispose()` 之后调用 `Init()` 会抛 `ObjectDisposedException`（与 `Launch()` / `AddBootstrap()` 一致，已释放的 Bootstrap 不可复活）。
++ 启动入口只剩**一个组件**：派生 `SimplifyBootstrap<T>`（或裸 `Bootstrap`）后直接挂到 GameObject 上——`Awake` → `Init()`（建容器 + 确定归属 + 映射），`Start` → `Launch()`（`SimplifyBootstrap<T>` 自动补调）。（**2.0.2 起泛型入口已改为非泛型 `SimplifyBootstrap` + `SetStartupCommand()` 钩子，见文首 2.0.2 段。**）
++ **`Bootstrap.Init()` 取代带参构造**（MonoBehaviour 没有带参构造）：**无父参数**、幂等，`Awake` 自动调用，且**可见性为 `internal`**——它是框架自用的生命周期入口，当时仅框架自身与包内测试程序集（经 `InternalsVisibleTo`）可见，下游程序集调不到；**2.0.2 起测试程序集与 `AssemblyInfo.cs` 已删除，现仅框架程序集自身可见**；运行时 `AddComponent<XxxBootstrap>()` 照常由 Unity 派发 `Awake`，下游正常使用不受影响。归属自动解析，调用方不需要持有、也不需要知道任何别的 Bootstrap 的类型——**沿 Transform 向上找最近的已就绪 Bootstrap → 框架级锚点 `Bootstrap.root` 兜底**；要指定「锚点之外的某个父」用 `AddBootstrap(父)`。**幂等仅指"重复调用无副作用"**：`Dispose()` 之后调用 `Init()` 会抛 `ObjectDisposedException`（与 `Launch()` / `AddBootstrap()` 一致，已释放的 Bootstrap 不可复活）。
 + **框架级锚点改名 `Context.rootContext` → `Bootstrap.root`**（语义不变：第一个 `Init` 成功的链根自动持有、先到先得、弱引用、`Dispose()` 时清空）。
 + **命名注入键 `ContextKeys` → `BootstrapKeys`**，其成员 `Context` → `Bootstrap`（框架在 `Bootstrap.AddCoreComponents` 里 `Bind<Bootstrap>().ToValue(this).ToName(BootstrapKeys.Bootstrap)`）。
 + **跨域一族的命名不随本次更名而变**：`ICrossContextInjectionBinder`、`CrossContextInjectionBinder`、`CrossContextBridge`（宿主在 `Framework/`）、`crossContextBinder`、链式入口 `.CrossContext()`，以及 `SimplifyBootstrap.BindValue` / `BindSignal` 的 `crossContext` 参数，**一律保持 `Context` 命名**（“跨域”跨的是 `Context` 边界，与 `Context` 这个类本身是否更名无关）。绑定标记 `IInjectionBinding.isCrossContext` 同样**未动**。
@@ -17,13 +38,13 @@
 + **明确「命令绑定的 key 只能是 Signal 类型」**：`CommandBinder` / `ICommandBinder` 类头示例中原有的字符串 key 示例已删除，示例统一为 Signal 类型——`Bind<SomeSignal>().To<SomeCommand>()`，以及 `.Once()`（单次使用后立即销毁该绑定）/ `.InSequence()`（多个 Command 串行执行）两条链式用法。命令派发完全由 Signal 广播驱动，字符串 / 枚举 key 虽然能编译通过，却**没有任何触发路径**（本框架已无 Event 系统）——照旧写法绑定的命令会静默不执行。
 
 ### 升级注意（迁移速查）
-+ **一处机械替换可覆盖大半**：把工程里的 `Context` 换成 `Bootstrap`（`SimplifyContext<T>` → `SimplifyBootstrap<T>`、`ContextKeys.Context` → `BootstrapKeys.Bootstrap` 均自动覆盖）；两处例外——锚点属性 `Context.rootContext` 现名 **`Bootstrap.root`**、命名空间 `SimplifyIoC.Contexts` 现名 **`SimplifyIoC.Bootstraps`**。
++ **一处机械替换可覆盖大半**：把工程里的 `Context` 换成 `Bootstrap`（`SimplifyContext<T>` → `SimplifyBootstrap<T>`、`ContextKeys.Context` → `BootstrapKeys.Bootstrap` 均自动覆盖；**2.0.2 起入口改为非泛型 `SimplifyBootstrap` + `SetStartupCommand()`，见文首**）；两处例外——锚点属性 `Context.rootContext` 现名 **`Bootstrap.root`**、命名空间 `SimplifyIoC.Contexts` 现名 **`SimplifyIoC.Bootstraps`**。
 + **`Init(parent)` 的参数已移除**：原先写 `Init(Bootstrap.root)` 或 `Init(FindObjectOfType<XxxBootstrap>())` 的地方直接改成 `Init()` 即可，行为一致——父尚未就绪时该参数本来就会被忽略并退回锚点解析（跨场景加载的 Awake 顺序不受保证，所以它从来没能真正"指定"父）；它唯一多出的能力是"指定锚点之外的父"，请改用 `AddBootstrap(父)`。随之不再需要「覆写 `Awake` 后不要先调 `base.Awake()`，否则父被忽略」这条注意事项。
 + 旧的 `context = new MyContext(this)` / `new MyContext(bootstrap)` 写法请改为「派生 `Bootstrap` 组件」——建容器与归属已由 `Awake` 自动完成，`Bootstrap.context` 属性不再存在。
 + `[Inject(ContextKeys.Bootstrap)] Bootstrap root` 这类旧写法统一改成 `[Inject(BootstrapKeys.Bootstrap)] Bootstrap root`（`Bootstrap` 本身就是 MonoBehaviour，`root.transform` 照常可用）。
-+ **自写的 EditMode 测试请整体迁移为 PlayMode 测试**：`Init()` 的可见性已收为 `internal`，下游程序集无法显式调用它，而 EditMode 下 Unity 又不派发 `Awake`——旧写法「先 `AddComponent<Bootstrap>()` 再 `new XxxContext(bootstrap)`」的替代品，是 PlayMode 里 `AddComponent<XxxBootstrap>()` 后让 Unity 自己走 `Awake → Init()`。（包内测试不受影响：同仓测试程序集已 `InternalsVisibleTo`。）
++ **自写的 EditMode 测试请整体迁移为 PlayMode 测试**：`Init()` 的可见性已收为 `internal`，下游程序集无法显式调用它，而 EditMode 下 Unity 又不派发 `Awake`——旧写法「先 `AddComponent<Bootstrap>()` 再 `new XxxContext(bootstrap)`」的替代品，是 PlayMode 里 `AddComponent<XxxBootstrap>()` 后让 Unity 自己走 `Awake → Init()`。（2.0.2 起包内测试程序集与 `InternalsVisibleTo` 已删除，本条仅适用于外部使用者自写的测试。）
 + 示例工程只需跟随框架改类型引用：`using SimplifyIoC.Contexts` → `using SimplifyIoC.Bootstraps`、`Context` 类型引用 → `Bootstrap`、`[Inject(ContextKeys.Context)]` → `[Inject(BootstrapKeys.Bootstrap)]`。示例自身的类名 / 文件名 / 命名空间（`Aixuma.Bootstraps`）与场景 `CrossContextExample` 本就按 `Bootstrap` 命名，无需改动；`.unity` 按脚本 GUID 引用脚本，更不受影响。
-+ 本段之后的 1.3.x 及更早条目保留了当时真实的 API 名（`Context`、`Context.rootContext`、`Context.firstContext`、`ContextKeys` 等），仅供追溯，不代表现行 API。
++ 各版本条目均保留当时真实的 API 名（本段的 `SimplifyBootstrap<T>`、包内测试程序集与 `InternalsVisibleTo`，以及 1.3.x 及更早的 `Context`、`Context.rootContext`、`Context.firstContext`、`ContextKeys` 等），仅供追溯；现行 API 以文首 **2.0.2** 段与包内 README 为准。
 
 ## 1.3.2
 ### 新增

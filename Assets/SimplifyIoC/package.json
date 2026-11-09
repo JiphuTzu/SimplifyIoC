@@ -2,7 +2,7 @@
   "name": "com.aixuma.simplifyioc",
   "version": "2.0.2",
   "displayName": "SimplifyIoC",
-  "description": "StrangeIoC 的精简版：面向 Unity 的轻量 IoC / MVCS 框架，提供绑定容器、命令、类型安全信号与声明式绑定（[Child] / [BindEvent] / [BindMethod] / [MainThread]）。",
+  "description": "面向 Unity 的分层 MVCS 框架：绑定容器、类型安全信号、命令与 View 调解四层各司其职，由 Bootstrap 层级链统一管理作用域与跨域共享，声明式绑定（[Child] / [BindMethod] / [MainThread]）由框架自动解析。",
   "unity": "2022.3",
   "license": "Apache-2.0",
   "documentationUrl": "https://github.com/JiphuTzu/SimplifyIoC#readme",
@@ -14,7 +14,7 @@
     "dependency-injection",
     "signals",
     "framework",
-    "StrangeIoC"
+    "mediation"
   ],
   "author": {
     "name": "JiphuTzu",
