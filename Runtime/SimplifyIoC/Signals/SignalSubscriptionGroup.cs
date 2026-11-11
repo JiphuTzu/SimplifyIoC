@@ -1,7 +1,7 @@
 /*
  * @class SimplifyIoC.Signals.SignalSubscriptionGroup
  *
- * 5.1：随组件生命周期自动退订的订阅组。
+ * 随组件生命周期自动退订的订阅组。
  *
  * Mediator / View / Command 各自持有一个（惰性创建），由框架在摘除/销毁时 Dispose：
  *
@@ -11,7 +11,6 @@
  *          subscriptions.Listen(view.OnDead, OnDead);            //带载荷：subscriptions.Listen(sig<int>, cb)
  *          subscriptions.Track(scoreChanged.AddOnce(OnFirstScore)); //AddOnce 用 Track
  *      }
- *      //不用再写 OnRemove { view.OnDead.RemoveListener(OnDead); }
  *
  * 与 SignalSubscription 的分工：句柄管"一条订阅"，组管"一批订阅的生命周期"。
  * 组的 Dispose 只清空引用并逐条 Dispose，不持有任何静态状态——不存在跨场景残留。
@@ -72,9 +71,8 @@ namespace SimplifyIoC.Signals
     }
 
     /// <summary>
-    /// 5.1：组上的语法糖。把"订阅"两步合成一句，使集中回收成为默认写法而非额外纪律。
-    /// 只有 AddListener 形态；AddOnce 请写 subscriptions.Track(signal.AddOnce(cb))，
-    /// 免得 Listen / ListenOnce 两排重载把 API 面翻一倍。
+    /// 组上的语法糖。把"订阅"两步合成一句，使集中回收成为默认写法而非额外纪律。
+    /// 只有 AddListener 形态；AddOnce 请写 subscriptions.Track(signal.AddOnce(cb))。
     /// </summary>
     public static class SignalSubscriptionGroupExtensions
     {

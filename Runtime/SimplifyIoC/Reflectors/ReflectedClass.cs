@@ -14,8 +14,7 @@ using System.Reflection;
 namespace SimplifyIoC.Reflectors
 {
     /// <summary>
-    /// 2.3.a：由 struct 改为 class（避免携带委托字段后频繁复制），
-    /// 并为每个 setter 缓存强类型委托，注入路径不再走 PropertyInfo.SetValue。
+    /// 用 class 承载 setter 委托，避免复制开销；注入时走缓存的强类型委托而非 PropertyInfo.SetValue。
     /// </summary>
     public class ReflectedAttribute
     {
@@ -37,7 +36,7 @@ namespace SimplifyIoC.Reflectors
         /// <summary>
         /// 为属性 setter 构建 Action&lt;object,object&gt; 委托。
         /// 实现：泛型辅助方法 + Delegate.CreateDelegate 生成开放实例委托，再包一层 object 适配。
-        /// 2.5：非 public setter（private/protected/internal set）同样可绑定——
+        /// 非 public setter（private/protected/internal set）同样可绑定——
         /// CreateDelegate 不做可见性检查，与反射扫描路径一致。
         /// AOT 约束：IL2CPP 的泛型共享仅覆盖引用类型，涉及值类型（含 Nullable）时返回 null，
         /// 由调用方回落 PropertyInfo.SetValue；不使用 Expression.Compile / Reflection.Emit。
@@ -73,7 +72,7 @@ namespace SimplifyIoC.Reflectors
         public MethodInfo[] postConstructors { get; set; }
 
         /// <summary>
-        /// 2.3.c：与 postConstructors 一一对应的缓存调用委托（Action&lt;object&gt;）。
+        /// 与 postConstructors 一一对应的缓存调用委托（Action&lt;object&gt;）。
         /// AOT 不安全场景（目标为值类型、或方法签名非无参 void）对应槽位为 null，
         /// 由调用方回落 method.Invoke；不使用 Expression.Compile / Reflection.Emit。
         /// </summary>
@@ -83,7 +82,7 @@ namespace SimplifyIoC.Reflectors
         public KeyValuePair<MethodInfo, Attribute>[] attrMethods { get; set; }
 
         /// <summary>
-        /// 2.3.c：为 PostConstruct 无参方法构建 Action&lt;object&gt; 开放实例委托。
+        /// 为 PostConstruct 无参方法构建 Action&lt;object&gt; 开放实例委托。
         /// 实现：泛型辅助方法 + Delegate.CreateDelegate（MethodInfo 兼容，与构造函数不同）。
         /// 委托的泛型实参取 method.DeclaringType，目标为派生类实例时由闭包内引用转换承接。
         /// </summary>
@@ -93,8 +92,7 @@ namespace SimplifyIoC.Reflectors
 
             var declaringType = method.DeclaringType;
             if (declaringType == null || declaringType.IsValueType) return null;
-            //私有方法同样可委托绑定（CreateDelegate 不做可见性检查），
-            //与原反射路径保持一致——MapMethods 扫描 NonPublic 方法
+            //私有方法同样可委托绑定（CreateDelegate 不做可见性检查），MapMethods 会扫描 NonPublic 方法。
             if (method.ReturnType != typeof(void)) return null;
             if (method.GetParameters().Length != 0) return null;
 

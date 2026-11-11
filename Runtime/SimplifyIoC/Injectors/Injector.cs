@@ -28,7 +28,7 @@ namespace SimplifyIoC.Injectors
     {
         private Dictionary<IInjectionBinding, int> _infinityLock;
         private const int _INFINITY_LIMIT = 10;
-        //P0#5 修复：用递归深度决定锁的清空时机，避免内层 Instantiate 返回时清掉外层的计数
+        //用递归深度决定锁的清空时机，避免内层 Instantiate 返回时清掉外层的计数。
         private int _instantiationDepth;
 
         public InjectorFactory factory { get; set; } = new InjectorFactory();
@@ -36,8 +36,7 @@ namespace SimplifyIoC.Injectors
         public ReflectionBinder reflector { get; set; }
 
         /// <summary>
-        /// 3.4：新增可选的调用级作用域。scope 里的参数优先于全局绑定被解析，
-        /// 传 null 时行为与改造前完全一致（既有调用点无需改动）。
+        /// 可选的调用级作用域：scope 里的参数优先于全局绑定被解析，传 null 时仅用全局绑定。
         /// </summary>
         public object Instantiate(IInjectionBinding binding, bool tryInjectHere, InjectionScope scope = null)
         {
@@ -60,8 +59,7 @@ namespace SimplifyIoC.Injectors
                 {
                     var tl = binding.key as object[];
                     reflectionType = tl[0] as Type;
-                    //P0#9 修复：基元类型分支原来只赋 null 又继续反射 int/string，
-                    //现直接返回类型默认值（string 无默认构造，保持 null）并立即返回
+                    //基元类型直接返回类型默认值并立即返回；string 无默认构造，返回 null。
                     if (reflectionType != null && (reflectionType.IsPrimitive || reflectionType == typeof(Decimal)))
                     {
                         return Activator.CreateInstance(reflectionType);
@@ -84,7 +82,7 @@ namespace SimplifyIoC.Injectors
                     var parameterTypes = reflection.constructorParameters;
                     var parameterNames = reflection.constructorParameterNames;
 
-                    //2.3.b：无参构造复用共享空数组，避免每次实例化的分配
+                    //无参构造复用共享空数组，避免每次实例化的分配。
                     var aa = parameterTypes.Length;
                     var args = aa == 0 ? Array.Empty<object>() : new object[aa];
                     for (var a = 0; a < aa; a++)
@@ -189,18 +187,14 @@ namespace SimplifyIoC.Injectors
             var parameterNames = reflection.constructorParameterNames;
             var aa = parameterTypes.Length;
 
-            //2.3.b：无参构造提前返回，跳过参数数组分配
-            //（原逻辑在 aa==0 时也会先 new object[0] 再走 length 检查）
+            //无参构造提前返回，跳过参数数组分配。
             if (aa == 0)
             {
                 return target;
             }
 
-            //2.3.b 勘误说明：设计报告 §12 建议将 constructor.Invoke 换成 CreateDelegate，
-            //但 Delegate.CreateDelegate 只接受 MethodInfo，ConstructorInfo 无法使用；
-            //Expression.Compile（IL2CPP 解释执行）与 Reflection.Emit（不可用）均被排除，
-            //new T() 泛型工厂在 IL2CPP 下也退化回 Activator。参数化构造的委托化
-            //只能由 v2 源生成器（preGenerated 钩子）在编译期完成。
+            //参数化构造使用 constructor.Invoke：Delegate.CreateDelegate 不接受 ConstructorInfo，
+            //Expression.Compile 与 Reflection.Emit 在 IL2CPP 下不可用，泛型工厂也退化回 Activator。
             var values = new object[aa];
 
             var i = 0;
@@ -228,8 +222,8 @@ namespace SimplifyIoC.Injectors
 
         private object GetValueInjection(Type t, object name, object target, PropertyInfo propertyInfo, InjectionScope scope)
         {
-            //3.4.a：调用级作用域优先——信号载荷这类"仅本次调用有效"的参数由 Scope 显式传递，
-            //不再临时 Bind 进全局容器。作用域内不含 null 值（构建阶段已排除），故命中即返回。
+            //调用级作用域优先："仅本次调用有效"的参数由 Scope 显式传递，命中即返回
+            //（作用域内不含 null 值，构建阶段已排除）。
             if (scope != null && scope.TryGet(t, out var scopedValue))
             {
                 return scopedValue;
@@ -262,9 +256,8 @@ namespace SimplifyIoC.Injectors
                 }
                 return binding.value;
             }
-            //3.4.c 连带修复：作用域必须继续下钻——依赖对象的构造/注入与本次调用同属一个作用域。
-            //旧实现把参数临时绑进全局容器，嵌套构造链全程可见；若这里丢掉 scope，
-            //「mediator/command → 依赖服务 → view/载荷」这类链路就会查不到绑定而失败。
+            //作用域必须继续下钻——依赖对象的构造/注入与本次调用同属一个作用域，
+            //嵌套构造链（mediator/command → 依赖服务 → view/载荷）依赖 scope 逐层传递，否则查不到绑定。
             return Instantiate(binding, true, scope);
         }
 
@@ -275,7 +268,7 @@ namespace SimplifyIoC.Injectors
             FailIf(point == null, "Attempt to inject into a null point");
             FailIf(value == null, "Attempt to inject null into a target object");
 
-            //2.3.a：优先走缓存的 setter 委托；值类型等 AOT 不安全场景 setter 为 null，回落反射
+            //优先走缓存的 setter 委托；值类型等 AOT 不安全场景 setter 为 null，回落反射。
             if (point.setter != null)
             {
                 point.setter(target, value);
@@ -295,7 +288,7 @@ namespace SimplifyIoC.Injectors
             var postConstructors = reflection.postConstructors;
             if (postConstructors != null)
             {
-                //2.3.c：委托优先（反射缓存 Action<object>）；AOT 不安全槽位为 null，回落 method.Invoke
+                //委托优先（反射缓存 Action<object>）；AOT 不安全槽位为 null，回落 method.Invoke
                 var actions = reflection.postConstructorActions;
                 for (var i = 0; i < postConstructors.Length; i++)
                 {
@@ -317,7 +310,7 @@ namespace SimplifyIoC.Injectors
         {
             foreach (var attr in reflection.setters)
             {
-                //2.3.a：与注入路径同策略——委托优先，值类型回落反射
+                //与注入路径同策略——委托优先，值类型回落反射
                 if (attr.setter != null)
                 {
                     attr.setter(target, null);

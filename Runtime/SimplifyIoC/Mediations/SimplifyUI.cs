@@ -82,18 +82,14 @@ namespace SimplifyIoC.Mediations
 
         protected virtual void BGM(string path)
         {
-            //Signal<SoundSignal>().PlayBGM(path);
         }
 
         protected virtual void Sound(string path)
         {
-            //Signal<SoundSignal>().PlaySFX(path);
         }
 
         protected virtual void Toast(string message)
         {
-            //if(string.IsNullOrWhiteSpace(message)) return;
-            //Show<Toast>().SetMessage(message);
         }
 #if UNITY_EDITOR
         [ContextMenu("🔭 MapChildren",false,0)]

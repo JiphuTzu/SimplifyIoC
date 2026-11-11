@@ -64,7 +64,6 @@ namespace SimplifyIoC.Framework
 
         public IManagedList Remove(object o)
         {
-            //P0#9 修复：原来先 o.Equals(objectValue)（与内部数组比引用，无意义且 o 为 null 时 NRE）
             if (_objectValue == null) return this;
             var aa = _objectValue.Length;
             for (var a = 0; a < aa; a++)

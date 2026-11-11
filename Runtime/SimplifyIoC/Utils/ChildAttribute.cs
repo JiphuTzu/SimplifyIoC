@@ -1,17 +1,3 @@
-/*
- * @file    ChildAttribute.cs
- * @author  JiphuTzu
- * @date    2021/11/4
- *
- * @version  1.0
- *
- * @brief	（简要描述）
- *
- * @details	公司：Aixuma
- *			对该文档的详细说明和解释，可以换行
- * @see     （参见可添加URL地址）
- */
-
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -99,7 +85,6 @@ namespace SimplifyIoC.Utils
         {
             //变量类型要是GameObject或者Component的子类
             var ft = GetFieldType(field);
-            //Debug.Log($"========={field.Name} == {ft}");
             if (ft == -1) return;
             //是否已经赋值
             if (HasValue(ft, field, target)) return;
@@ -115,7 +100,7 @@ namespace SimplifyIoC.Utils
             else if (ft == 1) field.SetValue(target, t.GetComponent(field.FieldType));
             else if (ft == 2)
             {
-                //2.5：GameObject 数组——静态具体类型直接构造，无泛型反射
+                //GameObject 数组——静态具体类型直接构造，无泛型反射
                 var list = new List<GameObject>();
                 if (attribute.includeParent) list.Add(t.gameObject);
                 foreach (Transform c in t)
@@ -126,7 +111,7 @@ namespace SimplifyIoC.Utils
             }
             else if (ft == 4)
             {
-                //2.5：List<GameObject>——具体闭泛型直接 new，无泛型反射
+                //List<GameObject>——具体闭泛型直接 new，无泛型反射
                 var list = new List<GameObject>();
                 if (attribute.includeParent) list.Add(t.gameObject);
                 foreach (Transform c in t)
@@ -138,9 +123,8 @@ namespace SimplifyIoC.Utils
             else if (ft == 3)
             {
                 var et = field.FieldType.GetElementType();
-                //2.5 勘误：设计文档建议的 ListOf<T> 静态缓存帮不上忙（et 是运行期类型）。
-                //改为静态 List<Component> 收集 + Array.CreateInstance 物化为 et[]，
-                //不再对 List<et> 做 MakeGenericType（组件为引用类型，无装箱）
+                //用静态 List<Component> 收集 + Array.CreateInstance 物化为 et[]，
+                //不对 List<et> 做 MakeGenericType（组件为引用类型，无装箱）。
                 var list = new List<Component>();
                 if (attribute.includeParent)
                 {
@@ -159,7 +143,7 @@ namespace SimplifyIoC.Utils
             else //if (ft == 5)
             {
                 var et = field.FieldType.GetGenericArguments()[0];
-                //2.5：List<et> 的闭泛型在字段声明中静态可见（GetFieldType 已确认
+                //List<et> 的闭泛型在字段声明中静态可见（GetFieldType 已确认
                 //field.FieldType 就是 List<et>），Activator.CreateInstance(field.FieldType)
                 //即可让 IL2CPP 走已编译的实例化，无需 MakeGenericType；填充走 IList.Add
                 var list = (IList)Activator.CreateInstance(field.FieldType);
@@ -193,7 +177,7 @@ namespace SimplifyIoC.Utils
         private static readonly Type _TOG = typeof(GameObject);
         private static readonly Type _TOL = typeof(List<>);
 
-        //2.4：字段类型分类按 FieldInfo 缓存（含类型层级判断，同一字段的分类结果不变）
+        //字段类型分类按 FieldInfo 缓存（含类型层级判断，同一字段的分类结果不变）。
         private static readonly Dictionary<FieldInfo, int> _FIELD_TYPE_CACHE = new();
 
         private static int GetFieldType(FieldInfo field)
@@ -207,7 +191,6 @@ namespace SimplifyIoC.Utils
         private static int ComputeFieldType(FieldInfo field)
         {
             var fieldType = field.FieldType;
-            //Debug.Log($"{fieldType.Name} has element type: {fieldType.HasElementType}");
             if (!fieldType.HasElementType)
             {
                 if (fieldType == _TOG) return 0;
@@ -238,8 +221,7 @@ namespace SimplifyIoC.Utils
             if (type is 2 or 3) return (value as Array).Length > 0;
             if (type is 4 or 5) return ((IList)value).Count > 0;
 
-            //P0#9 修复：原用 "" + value != "null" 字符串比较判存活，脆弱。
-            //UnityEngine.Object 有伪 null 语义（已销毁对象 == null 为 true），直接利用它。
+            //UnityEngine.Object 有伪 null 语义（已销毁对象 == null 为 true），直接利用它判断存活。
             if (value is UnityEngine.Object unityObject) return unityObject != null;
             return value != null;
         }

@@ -20,10 +20,9 @@ namespace SimplifyIoC.Pools
 			poolType = typeof(T);
 		}
 
-		/// 5.2 勘误：下面的 `new GetInstance()` 与三套 Binder/Binding 的 new 是同一类问题——
-		/// 想把返回值从 object 收窄成 T 并同时 override，需要"协变返回"，
-		/// 而本项目的目标运行时（netstandard2.1 / Unity 2022.3）不支持，Roslyn 报 CS8830。
-		/// 因此这里保留隐藏，并把 <see cref="Pool"/> 做成唯一的真实实现，Pool&lt;T&gt; 只当门面。
+		/// 想把返回值从 object 收窄成 T 并同时 override 需要"协变返回"，
+		/// 而目标运行时（netstandard2.1 / Unity 2022.3）不支持，Roslyn 报 CS8830。
+		/// 因此这里用 new 隐藏，<see cref="Pool"/> 是唯一的真实实现，Pool&lt;T&gt; 只当门面。
 		public new T GetInstance()
 		{
 			return (T)base.GetInstance ();
@@ -31,11 +30,8 @@ namespace SimplifyIoC.Pools
 	}
 
 	/// <summary>
-	/// 5.5（design §6）：拆开"容器"与"元素"两种身份——池不再实现 <see cref="IPoolable"/>。
-	/// 旧实现里 Pool : IPool, IPoolable，且 Restore() 直接 Clean() 清空自己：
-	/// 把池放进另一个池（"you can employ Pools yourself" 就是这么用的）后，
-	/// 归还时的 `if (value is IPoolable) value.Restore()` 会把整个池抹成空——静态 retrieving 丢失。
-	/// 元素的清理契约由 <see cref="IPoolable"/> 独占，与容器无关。
+	/// 池只承担"容器"职责，不实现 <see cref="IPoolable"/>；元素的清理契约由
+	/// <see cref="IPoolable"/> 独占，与容器无关。
 	/// </summary>
 	public class Pool : IPool
 	{
@@ -63,7 +59,7 @@ namespace SimplifyIoC.Pools
 
 		public virtual IManagedList Add (object value)
 		{
-			//2.2 优化：消息拼接改为惰性求值，Add 高频路径不再白构造字符串
+			//消息拼接惰性求值，仅在失败时构造字符串，避免 Add 高频路径的开销。
 			FailIf(value.GetType () != poolType, () => "Pool Type mismatch. Pools must consist of a common concrete type.\n\t\tPool type: " + poolType + "\n\t\tMismatch type: " + value.GetType ());
 			instanceCount++;
 			_instancesAvailable.Push(value);
@@ -122,7 +118,7 @@ namespace SimplifyIoC.Pools
 		}
 
 		/// <summary>
-		/// 3.4.a：带调用级作用域的取用。
+		/// 带调用级作用域的取用。
 		/// 池按需惰性创建实例，创建动作发生在本方法内，所以作用域必须一并传下去——
 		/// 否则"信号载荷 → 池化 Command"的首次注入会在构造阶段因查不到绑定而报错。
 		/// 作用域为 null 时与无参重载完全等价。
@@ -253,7 +249,7 @@ namespace SimplifyIoC.Pools
 			}
 		}
 
-		/// 2.2 优化：接受消息工厂，仅失败时才构造字符串
+		/// 接受消息工厂，仅失败时才构造字符串
 		private void FailIf(bool condition, Func<string> messageFactory)
 		{
 			if (condition)

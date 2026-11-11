@@ -76,23 +76,10 @@ namespace SimplifyIoC.Framework
             set => _name.constraint = value;
         }
 
-        //private bool _isWeak = false;
         public bool isWeak {get; private set;}
 
-        // ------------------------------------------------------------------
-        // 5.2：单一收口（single choke point）
-        //
-        // 背景：本机实测 netstandard2.1（Unity 2022.3 的脚本目标是同一套引用程序集）
-        // 下 Roslyn 报 CS8830「目标运行时不支持替代中的协变返回类型」——
-        // 派生类无法把返回类型由 IBinding 收窄为 ICommandBinding 的同时 override。
-        // 因此 <T> / <object> 两组外观只能继续用 new 隐藏来维持链式类型，改 override 是死路。
-        //
-        // 既然 new 消不掉，就要让它无害。做法是：**所有逻辑只存在于本区域这几个 Core 方法里**，
-        // 上面的 public 外观与派生类的强类型外观都不包含任何逻辑，只做调用与转换。
-        // 派生类要加语义（互斥守卫、校验、日志…）只需 override 对应的 Core，
-        // 于是"每新增一个入口签名都要记得补一遍"这类遗漏（4.3 的 ToHandler 守卫就是这么被绕过的）
-        // 在结构上不可能再发生。
-        // ------------------------------------------------------------------
+        // 所有逻辑集中在下面几个 Core 方法中，public 外观与派生类的强类型外观只做调用与转换。
+        // 派生类要增加语义（互斥守卫、校验等）只需 override 对应的 Core。
 
         /// 登记 key。入口：Bind&lt;T&gt;() / Bind(object)
         protected virtual IBinding BindCore(object o)
@@ -118,7 +105,7 @@ namespace SimplifyIoC.Framework
             return this;
         }
 
-        /// 名字匹配。入口：Named&lt;T&gt;() / Named(object)。注意：不匹配时返回 null（既有语义，勿改）
+        /// 名字匹配。入口：Named&lt;T&gt;() / Named(object)。不匹配时返回 null。
         protected virtual IBinding NamedCore(object o)
         {
             return _name.value == o ? this : null;

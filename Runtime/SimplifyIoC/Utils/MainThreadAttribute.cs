@@ -34,9 +34,7 @@ namespace SimplifyIoC.Utils
 
         public static Action<T, MainThreadAttribute, MethodInfo, Type> GetMainThreadParser<T>(this T target)
         {
-            //阶段 4 勘误：Initialize() 原在"取 parser"时就调用，而取 parser 是每个组件的常规解析步骤。
-            //自动解析接入后，这会变成"任何 View 都凭空创建一个 MainThreadRunner 常驻对象"。
-            //挪到 ParseMainThread（真正命中 [MainThread] 时）——行为不变，副作用按需发生。
+            //取 parser 不触发 Initialize：没有 [MainThread] 的 View 不必创建常驻 MainThreadRunner，由 ParseMainThread 在真正命中时调用。
             return ParseMainThread;
         }
         private static void ParseMainThread<T>(T target, MainThreadAttribute attribute, MethodInfo method, Type

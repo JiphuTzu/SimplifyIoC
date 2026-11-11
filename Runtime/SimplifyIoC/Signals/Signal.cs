@@ -3,9 +3,8 @@
  *
  * 这里定义的是所有 Signal 的基础具体形态（一系列泛型类）。
  *
- * Signal 是类型安全的通信方式，本质上取代了传统 EventDispatcher 模型。
- * Signal 可以像其他对象一样被注入/映射——作为单例、实例或值，
- * 还可以跨 Context 映射，为应用各部分之间提供类型安全的通信。
+ * Signal 是类型安全的通信方式，可以像其他对象一样被注入/映射——作为单例、实例或值，
+ * 还可以跨 Context 映射，为应用各部分之间提供通信。
  *
  * Signal 用 Action 作为类型安全的底层机制，参数最多四个；
  * 需要更多参数时，考虑用一个值对象把多个值装在一起。
@@ -40,9 +39,8 @@
 		//移除第一个监听；AddOnce 添加的监听已被自动移除
 		signal.RemoveListener(callbackWithParamsIntAndString);
 
-		//5.1：订阅句柄
+		//订阅句柄
 		//AddListener / AddOnce 返回 SignalSubscription，Dispose 即退订。
-		//忘记 RemoveListener 曾经只能靠“记住回调引用”补救，现在有句柄可管：
 		SignalSubscription subscription = signalWithNoParameters.AddListener(callbackWithNoParameters);
 		...
 		subscription.Dispose();                       //退订，幂等，可重复调用
@@ -101,7 +99,7 @@ namespace SimplifyIoC.Signals
             base.Dispatch(null);
         }
 
-        /// 5.1：强类型通道先判，未命中再落到 BaseSignal 的无参通道。
+        /// 强类型通道先判，未命中再落到 BaseSignal 的无参通道。
         internal override bool ContainsCore(Delegate callback, bool once)
         {
             return ContainsImpl(once ? (Delegate)_onceListener : _listener, callback)

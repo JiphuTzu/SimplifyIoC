@@ -16,7 +16,7 @@
  * 若绑定指定了 InSequence()，Command 将串行执行，并可在任意时刻挂起链条。
  *
  * 绑定的 key 只能是 Signal 类型：派发完全由 Signal 广播驱动，
- * 字符串 / 枚举 key 虽然能编译通过，却没有任何触发路径（本框架已无 Event 系统）。
+ * 字符串 / 枚举 key 虽然能编译通过，却没有任何触发路径。
  *
  * 绑定示例：
 		Bind<SomeSignal>().To<SomeCommand>();

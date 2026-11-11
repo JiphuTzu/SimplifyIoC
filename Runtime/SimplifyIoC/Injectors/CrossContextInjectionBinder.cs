@@ -74,8 +74,7 @@ namespace SimplifyIoC.Injectors
         }
 
         /// <summary>
-        /// 3.3：供给关系改由绑定自身持有后，跨域绑定由 ResolveBinding 转交到根 binder，
-        /// 本地 bindings 里查不到 → 按"本地优先、跨域次之"（同 GetBinding 策略）回落一次。
+        /// 跨域绑定由 ResolveBinding 转交到根 binder，本地查不到时按"本地优先、跨域次之"（同 GetBinding 策略）回落一次。
         /// </summary>
         public override IInjectionBinding GetSupplier(Type injectionType, Type targetType)
         {

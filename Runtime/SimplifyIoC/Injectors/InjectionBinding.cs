@@ -15,10 +15,7 @@ namespace SimplifyIoC.Injectors
     public class InjectionBinding : Binding, IInjectionBinding
     {
 
-        /// 3.3：承诺供给的目标类型集合。
-        /// 原实现是 SemiBinding，且 InjectionBinder 另有一份 suppliers 反向索引——
-        /// 同一事实存两处，Unbind 只碰 bindings、Unsupply 只碰 suppliers，长期必然不一致。
-        /// 现在以本集合为唯一数据源，绑定没了供给关系自然消失。
+        /// 承诺供给的目标类型集合；绑定移除后供给关系随之消失。
         private readonly HashSet<Type> _suppliedTo = new HashSet<Type>();
 
         public InjectionBinding(Binder.BindingResolver resolver)
@@ -82,7 +79,6 @@ namespace SimplifyIoC.Injectors
 
         protected bool HasGenericAssignableFrom(Type keyType, Type objType)
         {
-            //FIXME: We need to figure out how to determine generic assignability
             return keyType.IsGenericType;
         }
 
@@ -122,7 +118,7 @@ namespace SimplifyIoC.Injectors
         public IInjectionBinding SupplyTo(Type type)
         {
             if (type != null) _suppliedTo.Add(type);
-            //保留 resolver 调用：与旧行为一致（SupplyTo 会重新解析一次绑定）
+            //调用 resolver 重新解析一次绑定。
             _resolver?.Invoke(this);
             return this;
         }
@@ -153,8 +149,7 @@ namespace SimplifyIoC.Injectors
         }
 
         /// <summary>
-        /// 3.3：本绑定是否承诺供给 <paramref name="targetType"/>。
-        /// InjectionBinder.GetSupplier 直接查这里，不再维护反向索引。
+        /// 本绑定是否承诺供给 <paramref name="targetType"/>；InjectionBinder.GetSupplier 直接查这里。
         /// </summary>
         public bool SuppliesTo(Type targetType)
         {

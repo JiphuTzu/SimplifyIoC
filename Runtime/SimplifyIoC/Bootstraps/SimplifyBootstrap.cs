@@ -2,16 +2,8 @@ using SimplifyIoC.Commands;
 using SimplifyIoC.Mediations;
 using SimplifyIoC.Signals;
 
-//============================================================
-//@author	JiphuTzu
-//@create	2019/11/13
-//@company	Aixuma
-//
-//@description:修改启动模式为手动启动，需要调用Launch方法，在Launch时会广播StartupSignal
-//             0.指定绑定一个启动命令到StartupSignal
-//             1.添加简便绑定方法
-//             2.完成虚方法，在方法中进行分类绑定
-//============================================================
+//手动启动模式——需调用 Launch()，Launch 时广播 StartupSignal
+
 namespace SimplifyIoC.Bootstraps
 {
     public abstract class SimplifyBootstrap : Bootstrap
@@ -59,7 +51,7 @@ namespace SimplifyIoC.Bootstraps
         /// <typeparam name="S">信号类型</typeparam>
         /// <typeparam name="C">命令类型</typeparam>
         /// <param name="once">该命令是否只执行一次</param>
-        /// <param name="crossContext"></param>
+        /// <param name="crossContext">是否跨域</param>
         protected void BindCommand<S, C>(bool once = false, bool crossContext = false) where S : BaseSignal where C : Command
         {
             if (crossContext) BindSignal<S>(true);

@@ -46,11 +46,7 @@ namespace SimplifyIoC.Framework
         }
 
         /// <summary>
-        /// 5.3：枚举键的强类型入口。.Bind(SomeEnum.VALUE) 原本只能匹配 Bind(object)，
-        /// 与字符串键、实例键在签名上完全无法区分。本重载把"键必须是枚举"这条约束前移到编译期。
-        /// 语义与 Bind(object) 一字不差（枚举按装箱值作键），因此历史上
-        /// `Bind(SomeEnum.VALUE)` / `GetBinding(SomeEnum.VALUE)` 的现有代码行为不变。
-        /// 注：为了不破坏 IBinder 的实现者，接口上暂不同声明——经接口调用仍走 Bind(object)，行为一致。
+        /// 枚举键的强类型绑定入口：把"键必须是枚举"的约束前移到编译期，枚举按装箱值作键。
         /// </summary>
         public virtual IBinding Bind(Enum key)
         {
@@ -68,7 +64,7 @@ namespace SimplifyIoC.Framework
         }
 
         /// <summary>
-        /// 5.3：与 <see cref="Bind(Enum)"/> 配套的取值入口，等价于 GetBinding(key, null)。
+        /// 与 <see cref="Bind(Enum)"/> 配套的取值入口，等价于 GetBinding(key, null)。
         /// </summary>
         public virtual IBinding GetBinding(Enum key)
         {
@@ -113,7 +109,7 @@ namespace SimplifyIoC.Framework
         }
 
         /// <summary>
-        /// 5.3：与 <see cref="Bind(Enum)"/> 配套的解绑入口，等价于 Unbind(key, null)。
+        /// 与 <see cref="Bind(Enum)"/> 配套的解绑入口，等价于 Unbind(key, null)。
         /// </summary>
         public virtual void Unbind(Enum key)
         {
@@ -143,7 +139,7 @@ namespace SimplifyIoC.Framework
             if (binding == null || value == null) return;
 
             var key = binding.key;
-            //P0#2 修复：原条件写反（存在时 return、不存在时直索引抛异常）
+            //key 不存在时直接索引会抛异常，故用 TryGetValue 提前返回
             if (!_bindings.TryGetValue(key, out var dict)) return;
             var name = binding.name ?? NULL_BINDING;
             if (!dict.TryGetValue(name, out var useBinding)) return;
@@ -187,7 +183,7 @@ namespace SimplifyIoC.Framework
             else
                 return;
 
-            //P0#9 修复：key 不存在时直索引会抛 KeyNotFoundException
+            //key 不存在时直接索引会抛 KeyNotFoundException
             if (!_bindings.TryGetValue(key, out var dict)) return;
             if (!dict.TryGetValue(name, out var useBinding)) return;
             useBinding.RemoveName(name);
@@ -208,7 +204,6 @@ namespace SimplifyIoC.Framework
             }
             else if(binding.key is object[] keys)
             {
-                //var keys = key as object[];
                 var aa = keys.Length;
                 for (var a = 0; a < aa; a++)
                 {
@@ -258,8 +253,6 @@ namespace SimplifyIoC.Framework
                     //If the existing binding is not this binding, and the existing binding is not weak
                     //If it IS weak, we will proceed normally and overwrite the binding in the dictionary
                     var existingBinding = dict[bindingName];
-                    //if (existingBinding != binding && !existingBinding.isWeak)
-                    //SDM2014-01-20: as part of cross-context implicit bindings fix, attempts by a weak binding to replace a non-weak binding are ignored instead of being 
                     if (existingBinding != binding)
                     {
                         if (!existingBinding.isWeak && !binding.isWeak)
@@ -271,7 +264,6 @@ namespace SimplifyIoC.Framework
 
                         if (existingBinding.isWeak && (!binding.isWeak || existingBinding.value == null || existingBinding.value is Type))
                         {
-                            //SDM2014-01-20: (in relation to the cross-context implicit bindings fix)
                             // 1) if the previous binding is weak and the new binding is not weak, then the new binding replaces the previous;
                             // 2) but if the new binding is also weak, then it only replaces the previous weak binding if the previous binding
                             // has not already been instantiated:
@@ -379,7 +371,7 @@ namespace SimplifyIoC.Framework
 
         public virtual void OnRemove()
         {
-            //3.1：由空实现改为真实清理——清空绑定注册表与冲突表。
+            //清空绑定注册表与冲突表。
             //子类 override 时应调用 base.OnRemove() 以获得注册表清理。
             _bindings.Clear();
             _conflicts.Clear();

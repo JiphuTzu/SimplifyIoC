@@ -16,7 +16,7 @@
  * 若绑定指定了 InSequence()，Command 将串行执行，并可在任意时刻挂起链条。
  *
  * 绑定的 key 只能是 Signal 类型：派发完全由 Signal 广播驱动，
- * 字符串 / 枚举 key 虽然能编译通过，却没有任何触发路径（本框架已无 Event 系统）。
+ * 字符串 / 枚举 key 虽然能编译通过，却没有任何触发路径。
  *
  * 绑定示例：
 
@@ -57,7 +57,7 @@ namespace SimplifyIoC.Commands
             base.ResolveBinding(binding, key);
 
             if (!_bindings.ContainsKey(key)) return; //If this key already exists, don't bind this again
-            //P0#9 修复：key 未必是信号（字符串/枚举也可作 key），无条件强转会崩
+            //key 未必是信号（字符串/枚举也可作 key），不能直接强转
             if (key is BaseSignal signal)
                 signal.AddListener(ReactTo);
         }
@@ -68,15 +68,13 @@ namespace SimplifyIoC.Commands
                 if (key is BaseSignal signal)
                     signal.RemoveListener(ReactTo);
             }
-            //5.5：归还池持有的全部命令实例（统一池化后每条命令类型都常驻一个池），
-            //并清空两组"进行中命令"追踪集合——旧实现只 Clear() 了 pools 字典本身，
-            //实例与追踪集合都留着等 GC，Bootstrap 销毁后这些引用依然存在。
+            //归还各命令池持有的全部实例，并清空两组"进行中命令"追踪集合。
             foreach (var pool in _pools.Values)
                 pool.Clean();
             _pools.Clear();
             _activeCommands.Clear();
             _activeSequences.Clear();
-            //3.1：释放绑定注册表与冲突表（放在最后：上面还要读 bindings）
+            //释放绑定注册表与冲突表（放在最后：上面还要读 bindings）
             base.OnRemove();
         }
 
@@ -96,9 +94,8 @@ namespace SimplifyIoC.Commands
                 poolable.Retain();
             if (GetBinding(trigger) is not ICommandBinding binding) return;
 
-            //4.3：短路通路——绑定声明了 handler 时直接解析服务并调用，不创建 Command、不进命令链。
-            //放在这里（而不是另起一个 signal listener）是为了与命令路径共用同一套订阅/退订逻辑：
-            //ResolveBinding/Unbind/OnRemove 三处的 signal.AddListener/RemoveListener 都无需改动。
+            //绑定声明了 handler 时直接解析服务并调用，不创建 Command、不进命令链；
+            //与命令路径共用 ResolveBinding/Unbind/OnRemove 三处的 signal.AddListener/RemoveListener 订阅/退订逻辑。
             if (binding.hasHandler)
             {
                 InvokeHandler(binding, data);
@@ -120,9 +117,9 @@ namespace SimplifyIoC.Commands
         }
 
         /// <summary>
-        /// 4.3：执行 ToHandler 绑定的短路处理器。
+        /// 执行 ToHandler 绑定的短路处理器。
         /// 服务经完整注入链解析（单例/transient 语义与普通绑定一致）；
-        /// isOneOff 沿用命令路径语义——调用一次后移除绑定。
+        /// isOneOff 与命令路径一致：调用一次后移除绑定。
         /// 无载荷信号（Signal）的 data 为 null，统一归一为空数组，避免 handler 侧出现 null/空两种形态。
         /// </summary>
         private void InvokeHandler(ICommandBinding binding, object data)
@@ -134,7 +131,6 @@ namespace SimplifyIoC.Commands
 
         private void Next(ICommandBinding binding, object data,object[] values, int depth)
         {
-            //var values = binding.value as object[];
             if (depth < values.Length)
             {
                 var cmd = values[depth] as Type;
@@ -151,7 +147,7 @@ namespace SimplifyIoC.Commands
             }
         }
 
-        //EventCommandBinder (and perhaps other sub-classes) use this method to dispose of the data in sequenced commands
+        //Subclasses can override this method to dispose of the data in sequenced commands.
         protected virtual void DisposeOfSequencedData(object data)
         {
             //No-op. Override if necessary.
@@ -159,7 +155,7 @@ namespace SimplifyIoC.Commands
 
         protected virtual Command InvokeCommand(Type cmd, ICommandBinding binding, object data, int depth)
         {
-            //P0#9 修复：key 未必是信号，改用 as 判别；载荷类型只在有信号时解析
+            //key 未必是信号，用 as 判别；载荷类型只在有信号时解析
             var signal = binding.key as BaseSignal;
             var command = CreateCommandForSignal(cmd, data, signal?.GetTypes()); //Special signal-only command creation
             command.sequenceId = depth;
@@ -170,11 +166,8 @@ namespace SimplifyIoC.Commands
         /// Create a Command and pass the Signal payload to it through a call-local scope
         protected Command CreateCommandForSignal(Type cmd, object data, List<Type> signalTypes)
         {
-            //3.4.a：载荷不再临时 Bind 进全局容器（原 Bind(type).ToValue(value).ToInject(false)
-            //→ 用完 Unbind）。改为构建调用级 InjectionScope 沿调用栈显式传递：
-            //  - 嵌套/并发派发各自持有自己的载荷，互不覆盖；
-            //  - 与用户已有的全局同名绑定不再产生冲突（原实现会直接把 Binder 打进 conflicted 状态）；
-            //  - 池化与临时绑定两条命令创建路径共用同一个入口。
+            //载荷通过调用级 InjectionScope 沿调用栈传递：嵌套/并发派发各自持有自己的载荷、互不覆盖，
+            //且不会与用户已有的全局同名绑定冲突。
             var scope = BuildScopeFromSignal(signalTypes, data, cmd);
 
             var command = GetCommand(cmd, scope);
@@ -183,11 +176,8 @@ namespace SimplifyIoC.Commands
         }
 
         /// <summary>
-        /// 3.4.a：把信号声明类型与载荷配成调用级作用域。
-        /// 配对规则与原"逐类型临时 Bind"的逻辑逐条对齐（顺序、去重、未匹配即报错、null 载荷即报错），
-        /// 只是落点由全局容器改为调用级 Scope——所以报错行为保持不变。
-        /// 另：P0#9 守卫——key 非信号时 signalTypes 为 null，原实现在此处 foreach null 直接 NRE；
-        /// 原错误信息里的 cmd.GetType() 恒为 System.RuntimeType，一并改为直接输出 cmd。
+        /// 把信号声明类型与载荷配成调用级作用域：按顺序配对，同类型只注入一次，
+        /// 未匹配到值或值为 null 时报错。key 非信号时 signalTypes 为 null，直接返回 null。
         /// </summary>
         private static InjectionScope BuildScopeFromSignal(List<Type> signalTypes, object data, Type cmd)
         {
@@ -244,26 +234,20 @@ namespace SimplifyIoC.Commands
         {
             if (type == null) return null;
 
-            //5.5：单一创建路径——命令实例一律来自该命令类型的池。
-            //旧实现在这两条路径间分叉（池化 vs 一次性 new），分叉的存在又反过来要求
-            //usePooling / isPooled 两个开关的表达一致；2.0.0 起这三处一并移除，分叉与开关都不在了。
+            //命令实例一律来自该命令类型的池。
             var pool = GetOrCreatePool(type);
             if (pool.GetInstance(scope) is not Command command) return null;
             if (!command.isClean) return command;
-            //P0#6 修复：池中实例已由 Unity/工厂构造完成，构造注入会凭空多造一个实例
-            //且新实例不在池的使用名单里、归还时被静默丢弃。回收实例只做 setter/PostConstruct 注入。
+            //池中实例已由 Unity/工厂构造完成，构造注入会多造一个不在池名单里的实例、归还时被静默丢弃；
+            //回收实例只做 setter/PostConstruct 注入。
             injectionBinder.injector.Inject(command, false, scope);
             command.isClean = false;
             return command;
         }
 
         /// <summary>
-        /// 5.5：命令类型的池，按需创建。相对旧 <see cref="MakePoolFromType"/> 的两处关键差别：
-        /// ① 不再由 Resolver 在绑定期扫绑定值预先灌好，改为首次派发该命令类型时惰性创建——
-        ///    没跑到过的命令不再白占一个池；
-        /// ② 不再往 injectionBinder 里补那条 `Bind(cmdType).To(cmdType)`：
-        ///    它一旦与用户自己的同名绑定相遇就会把容器打进 conflicted 状态（此后任何 GetBinding 都抛异常）。
-        ///    改为由内建的 <see cref="CommandInstanceProvider"/> 供应实例，容器注册表全程不被触碰。
+        /// 命令类型的池按需创建：首次派发该命令类型时才创建，实例由 <see cref="CommandInstanceProvider"/> 供应，
+        /// 不写入容器注册表，因此不会与用户自己的同名绑定冲突。
         /// </summary>
         protected Pool GetOrCreatePool(Type commandType)
         {
@@ -275,15 +259,9 @@ namespace SimplifyIoC.Commands
         }
 
         /// <summary>
-        /// 5.5：保留为可扩展点（GetOrCreatePool 的唯一创建出口，override 它就换了全部命令的池实现）。
-        /// 相对旧实现的两处关键差别：
-        /// ① 不再往 injectionBinder 里补那条 `Bind(type).To(type)`：它一旦与用户自己的同名绑定相遇，
-        ///    就会把容器打进 conflicted 状态（此后任何 GetBinding 都抛异常）。
-        ///    改为显式指定 <see cref="CommandInstanceProvider"/>，容器注册表全程不被触碰；
-        /// ② 池不再经 injectionBinder.injector.Inject(pool) 去凑 instanceProvider——
-        ///    注入进来的本来就是 injectionBinder 自身，显式赋值把这层绕开了。
-        /// 2.5 的结论仍然有效：Pool&lt;T&gt; 相对非泛型 Pool 只多一层编译期转换糖，
-        /// 这里直接构造非泛型 Pool 并显式设 poolType，避免 MakeGenericType 的 IL2CPP 裁剪风险。
+        /// 池的创建出口（GetOrCreatePool 唯一调用，override 它即替换全部命令的池实现）。
+        /// 显式指定 <see cref="CommandInstanceProvider"/>，不写入容器注册表，因此不会与用户同名绑定冲突；
+        /// 直接构造非泛型 Pool 并显式设 poolType，避免 MakeGenericType 的 IL2CPP 裁剪风险。
         /// </summary>
         protected virtual Pool MakePoolFromType(Type type)
         {
@@ -331,11 +309,11 @@ namespace SimplifyIoC.Commands
 
         public virtual void ReleaseCommand(Command command)
         {
-            //P0#9 修复：Next 在绑定值为空等情况下会传入 null
+            //Next 在绑定值为空等情况下会传入 null
             if (command == null) return;
             if (command.retain) return;
             var t = command.GetType();
-            //5.5：不再分支——统一池化后该命令类型的池一定存在（不存在说明本 Binder 没创建过它，忽略即可）
+            //该命令类型的池一定存在；不存在说明本 Binder 没创建过它，忽略即可
             if (_pools.TryGetValue(t, out var pool))
             {
                 pool.ReturnInstance(command);
@@ -402,7 +380,7 @@ namespace SimplifyIoC.Commands
                 signal.RemoveListener(ReactTo);
             }
             base.Unbind(key, name);
-            //5.5：绑定已删，为它服务过的命令池若无人再引用就该归还（见 DropOrphanPools 注释）。
+            //绑定删除后，若命令池不再被任何绑定引用则归还（见 DropOrphanPools）。
             DropOrphanPools();
         }
 
@@ -413,11 +391,8 @@ namespace SimplifyIoC.Commands
         }
 
         /// <summary>
-        /// 5.3：信号/命令成对入口，Bind&lt;MySignal, MyCommand&gt;() 等价于 Bind&lt;MySignal&gt;().To&lt;MyCommand&gt;()。
-        /// 两条约束是这一步真正的收益：
-        /// <c>where TSignal : BaseSignal</c> —— 旧写法里 Bind&lt;T&gt;() 会用 injectionBinder 去 GetInstance&lt;T&gt;()
-        /// 再把结果当信号用，T 不是信号时只能在运行期崩；
-        /// <c>where TCommand : Command</c> —— 命令一如既往做到了委托/强转校验之前就该明确的事。
+        /// 信号/命令成对入口：Bind&lt;MySignal, MyCommand&gt;() 等价于 Bind&lt;MySignal&gt;().To&lt;MyCommand&gt;()。
+        /// <c>where TSignal : BaseSignal</c> 保证 key 是信号类型，<c>where TCommand : Command</c> 保证绑定的是命令类型。
         /// </summary>
         public ICommandBinding Bind<TSignal, TCommand>()
             where TSignal : BaseSignal
@@ -427,11 +402,9 @@ namespace SimplifyIoC.Commands
         }
 
         /// <summary>
-        /// 5.5：绑定消失后回收"只为它服务"的命令池。
-        /// 统一池化后每个命令类型都常驻一个池（默认 size=0 的池会按需膨胀并缓存峰值并发数的实例），
-        /// Once() 这类一次性绑定如果不清理，实例会被持有到 Bootstrap 销毁为止。
-        /// 实现上不回头看"刚刚删掉的是谁"，而是按当前还活着的绑定重新统计——
-        /// 这样也不用调 GetBinding（在有冲突未消解的 Binder 上它会抛异常）。
+        /// 回收不再被任何绑定引用的命令池。池会缓存已创建的实例，Once() 等一次性绑定若不清理，
+        /// 实例会被持有到 Bootstrap 销毁。
+        /// 按当前存活的绑定重新统计引用，不调用 GetBinding（在有冲突未消解的 Binder 上它会抛异常）。
         /// </summary>
         protected void DropOrphanPools()
         {
@@ -472,8 +445,7 @@ namespace SimplifyIoC.Commands
         }
 
         /// <summary>
-        /// 5.5：池内命令实例的供应者。
-        /// 手法沿用 3.4.b：构造一个不入注册表的一次性绑定直接交给注入器，
+        /// 池内命令实例的供应者：构造一个不入注册表的一次性绑定直接交给注入器，
         /// 既不依赖容器里有没有该命令类型的绑定，也不会往容器里留下任何东西。
         /// </summary>
         private sealed class CommandInstanceProvider : IInstanceProvider
@@ -500,7 +472,7 @@ namespace SimplifyIoC.Commands
                 var transient = new InjectionBinding(null);
                 transient.Bind(typeof(Command)).To(key);
                 var injector = _binder.injectionBinder.injector;
-                //保持原 GetInstance<Command>() 的强转语义（类型不符时抛 InvalidCastException 而非静默 null）
+                //强转语义：类型不符时抛 InvalidCastException，而非静默返回 null
                 var instance = (Command)injector.Instantiate(transient, false, scope);
                 injector.TryInject(transient, instance, scope);
                 return instance;

@@ -85,9 +85,6 @@ namespace SimplifyIoC.Injectors
             {
                 return CreateFromValue(binding.value, args);
             }
-            //2.3.b 修复：原实现 GenerateImplicit 已构造出实例，
-            //随后又把【实例】传回 CreateFromValue 再构造一次并丢弃第一个（双重构造）。
-            //该路径仅存在于 value==null 的绑定（现行绑定机制下不会入库，属死路径），但保留即暗雷。
             return GenerateImplicit((binding.key as object[])[0], args);
         }
 
@@ -95,8 +92,7 @@ namespace SimplifyIoC.Injectors
         protected object CreateFromValue(object o, object[] args)
         {
             var value = (o is Type) ? o as Type : o.GetType();
-            //P0#7 修复：原为裸 catch 静默吞掉构造异常并返回 null，
-            //下游只看到莫名其妙的 NRE。现让异常直接上抛，由调用方决定如何处理。
+            //构造异常直接上抛，由调用方决定如何处理。
             if (args == null || args.Length == 0)
             {
                 return Activator.CreateInstance(value);

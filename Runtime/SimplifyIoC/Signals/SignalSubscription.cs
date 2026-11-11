@@ -1,11 +1,7 @@
 /*
  * @class SimplifyIoC.Signals.SignalSubscription
  *
- * 5.1：Signal 的订阅句柄。
- *
- * 背景：改前 AddListener / AddOnce 返回 void，退订只能在 OnRemove / OnDestroy 里
- * "照着回调的签名再写一遍 RemoveListener"，漏一行就是泄漏（长期单例 Signal 上尤其致命）。
- * 句柄把"我订阅过什么"这件事变成一个可传递、可 Dispose 的值：
+ * Signal 的订阅句柄，把"我订阅过什么"变成一个可传递、可 Dispose 的值：
  *
  *      var subscription = scoreChanged.AddListener(OnScoreChanged);
  *      ...

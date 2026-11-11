@@ -66,8 +66,7 @@ namespace SimplifyIoC.Utils
     public static class BindMethodExtension
     {
         /// <summary>
-        /// 2.3.e：InvokeBind 是运行期可重复调用的入口，原实现每次都 Sort + ToArray（分配 + 比较开销）。
-        /// 排序结果在解析完成后不再变化，首次调用后缓存为快照。
+        /// 排序结果在解析完成后不再变化，首次调用后缓存为快照，避免每次 InvokeBind 重复 Sort + ToArray。
         /// </summary>
         private sealed class BindGroup
         {
@@ -75,17 +74,13 @@ namespace SimplifyIoC.Utils
             public BindMethodAttribute[] sorted;
         }
 
-        //4.4：原实现是 static Dictionary<Component, …>——以组件"实例"为 key，
-        //唯一清理入口是用户手写 UnbindMethods()，框架不保证调用，组件销毁后条目永久残留。
-        //改为 ConditionalWeakTable：组件一旦不可达，条目被 GC 连带清除，零钩子依赖。
-        //（CWT 按引用标识比较，不受 UnityEngine.Object 重写的 ==/Equals 影响。）
+        //以 ConditionalWeakTable 按组件实例持有：组件不可达时条目被 GC 连带清除，无需清理钩子；
+        //按引用标识比较，不受 UnityEngine.Object 重写的 ==/Equals 影响。
         private static readonly ConditionalWeakTable<Component, Dictionary<object, BindGroup>> _METHODS = new();
 
         public static Action<T,BindMethodAttribute, MethodInfo, Type> GetBindMethodParser<T>(this T target) where T : Component
         {
-            //4.4（自动解析接入后的优化）：这里**不再建条目**。取 parser 是每个组件实例的常规解析步骤，
-            //若在此建表，没有 [BindMethod] 的组件也会常驻一个空字典。改为惰性——由 MethodParser
-            //在第一次真正命中时创建（见下）。注册表因此只包含"确实用了 [BindMethod]"的组件。
+            //这里不建条目：没有 [BindMethod] 的组件不必常驻空字典，条目由 MethodParser 按需惰性创建。
             return MethodParser;
         }
 
@@ -104,12 +99,10 @@ namespace SimplifyIoC.Utils
                 var name = names[i];
                 if (name == null || string.IsNullOrEmpty(name.ToString()))
                     continue;
-                //
                 attribute.method = method;
-                //var sn = name.ToString().ToLower();
                 if (methods.TryGetValue(name, out var group))
                 {
-                    //4.4：同一 (目标, 名称) 下按实例去重——重复解析不会让 InvokeBind 调两次
+                    //同一 (目标, 名称) 下按实例去重——重复解析不会让 InvokeBind 调两次
                     if (group.attributes.Contains(attribute)) continue;
                     group.attributes.Add(attribute);
                     group.sorted = null;
@@ -125,22 +118,19 @@ namespace SimplifyIoC.Utils
 
         public static void UnbindMethods(this Component target)
         {
-            //4.4：CWT 无 Keys 可枚举，且已 GC 的组件条目自动消失，
-            //原实现"key 为 null 时清空全部"的分支已无对象可清，退化为对 target 的定向清理。
+            //CWT 无 Keys 可枚举，且已 GC 的组件条目自动消失，这里对 target 做定向清理。
             //用 ReferenceEquals 而非 GameObject 重载的 == ：View.OnDestroy 期间组件可能已是
             //"伪 null"（== null 为真），若在这里提前返回，条目就摘不掉了。
             if (ReferenceEquals(target, null)) return;
             if (_METHODS.TryGetValue(target, out var map)) ClearBinds(map);
             _METHODS.Remove(target);
-            //Debug.Log($"unbind methods for {target}");
         }
 
 
         public static void InvokeBind(this Component target, object name, params object[] parameters)
         {
             if (target == null) return;
-            //4.4：自动解析已在 View/Mediator.InitAttributes 接入，这里不再需要懒解析
-            //Debug.Log($"Invoke Bind {name}");
+            //自动解析由 View/Mediator.InitAttributes 完成，这里直接查表。
             if (!_METHODS.TryGetValue(target, out var attributeMap))
             {
                 Debug.Log($"{target} has no method bound to {name}()");
@@ -156,7 +146,6 @@ namespace SimplifyIoC.Utils
             var attributes = group.sorted;
             if (attributes == null)
             {
-                //P0#3 修复：原为 a.order.CompareTo(a.order)，恒为 0，order 失效
                 group.attributes.Sort((a, b) => a.order.CompareTo(b.order));
                 attributes = group.sorted = group.attributes.ToArray();
             }
@@ -165,10 +154,8 @@ namespace SimplifyIoC.Utils
             {
                 try
                 {
-                    //2.3.e 勘误：method.Invoke 无法安全委托化——绑定方法签名任意，
-                    //CreateDelegate 需与委托类型精确匹配，按参数类型 MakeGenericMethod 遇到
-                    //int 等值类型时泛型共享不安全（同 2.3.b 构造函数的结论），
-                    //留待 v2 源生成器（preGenerated 钩子）在编译期生成
+                    //绑定方法签名任意，CreateDelegate 需与委托类型精确匹配，值类型下
+                    //MakeGenericMethod 泛型共享不安全，故用 method.Invoke 反射调用。
                     attribute.method.Invoke(target, parameters);
                 }
                 catch (Exception e)
