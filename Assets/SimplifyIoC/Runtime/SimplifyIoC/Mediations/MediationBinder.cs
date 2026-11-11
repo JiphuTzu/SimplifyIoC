@@ -89,23 +89,17 @@ namespace SimplifyIoC.Mediations
                 m0.PreRegister();
 
             var typeToInject = binding.abstraction == null || binding.abstraction.Equals(Binder.NULL_BINDING) ? viewType : binding.abstraction as Type;
-            //3.4.c：view 改走调用级作用域（3.4.a 定形的 InjectionScope），不再临时写进全局容器。
-            //原实现 Bind(typeToInject).ToValue(view).ToInject(false) → Inject → Unbind 有三个问题：
-            //  1) 容器里若已有同 key 的绑定，Bind 会触发 RegisterNameConflict，Binder 被打进 conflicted 状态，
-            //     此后任何 GetBinding 都抛异常（mediation 自身随即失败）；
-            //  2) 注入期间发生的嵌套 mediation（注入点 setter / PostConstruct 内再创建 View）会重复 Bind 同一 key，
-            //     同样触发冲突，且收尾的 Unbind 会把绑定整个删掉；
-            //  3) 收尾的 Unbind 会连带删掉用户本已存在的同 key 全局绑定。
-            //走 Scope 后容器全程不被触碰，且调用级参数优先于全局绑定（见 Injector.GetValueInjection 的解析顺序）。
+            //view 通过调用级作用域注入（InjectionScope），容器全程不被触碰，
+            //且调用级参数优先于全局绑定（见 Injector.GetValueInjection 的解析顺序）。
             var scope = new InjectionScope(new[] { typeToInject }, new object[] { view });
-            //P0#6：mediator 是 MonoBehaviour，已由 Unity 构造，构造注入会凭空多造一个实例。只做 setter/PostConstruct 注入。
+            //mediator 是 MonoBehaviour，由 Unity 构造，构造注入会凭空多造一个实例。只做 setter/PostConstruct 注入。
             injectionBinder.injector.Inject(mediator, false, scope);
             if (isTrueMediator && mediator is Mediator m1)
             {
-                //4.2：强类型视图直赋值。Mediator<TView> 覆写后由泛型参数直赋（零容器往返），
+                //强类型视图直赋值。Mediator<TView> 覆写后由泛型参数直赋（零容器往返），
                 //非泛型 Mediator 为 no-op（view 已由上面的 scope 注入）。
                 m1.SetViewFromBinder(view);
-                //4.1：声明式解析放在注入完成之后、OnRegister 之前——
+                //声明式解析放在注入完成之后、OnRegister 之前——
                 //[BindEvent(nameof(view))] 这类写法依赖已注入/已赋值的成员。
                 m1.EnsureAttributesInitialized();
                 m1.OnRegister();
@@ -134,7 +128,7 @@ namespace SimplifyIoC.Mediations
                 }
             }
             injectionBinder.injector.Inject(view, false);
-            //4.1：注入完成后再解析声明式绑定，使 [BindEvent(nameof(注入成员))] 在 View 侧也可用。
+            //注入完成后再解析声明式绑定，使 [BindEvent(nameof(注入成员))] 在 View 侧也可用。
             view.EnsureAttributesInitialized();
             HandleDelegates(view, view.GetType(), true);
         }
@@ -155,7 +149,7 @@ namespace SimplifyIoC.Mediations
         }
 
         /// <summary>
-        /// 5.3：视图/中介者成对入口，Bind&lt;MyView, MyMediator&gt;() 等价于 Bind&lt;MyView&gt;().ToMediator&lt;MyMediator&gt;()。
+        /// 视图/中介者成对入口，Bind&lt;MyView, MyMediator&gt;() 等价于 Bind&lt;MyView&gt;().ToMediator&lt;MyMediator&gt;()。
         /// <c>where TMediator : Mediator</c> 把"绑上去的不是中介者"从让人摸不着头脑的运行时行为提前到编译期。
         /// </summary>
         public IMediationBinding Bind<TView, TMediator>() where TMediator : Mediator
@@ -171,7 +165,6 @@ namespace SimplifyIoC.Mediations
 
             if (_bindings.ContainsKey(viewType) && binding.value is object[] values)
             {
-                //var values = binding.value as object[];
                 var aa = values.Length;
                 for (var a = 0; a < aa; a++)
                 {
@@ -214,7 +207,6 @@ namespace SimplifyIoC.Mediations
 
             if (_bindings.ContainsKey(viewType) && binding.value is object[] values)
             {
-                //var values = binding.value as object[];
                 var aa = values.Length;
                 for (var a = 0; a < aa; a++)
                 {
@@ -243,9 +235,9 @@ namespace SimplifyIoC.Mediations
             if (mediator != null)
             {
                 mediator.OnRemove();
-                //5.1：OnRemove 之后由框架统一退订组内订阅（用户无需手写 RemoveListener）。
+                //OnRemove 之后由框架统一退订组内订阅（用户无需手写 RemoveListener）。
                 mediator.DisposeSubscriptions();
-                //4.4：Mediator 的 [BindMethod] 条目同步立即摘除（Mediator 没有 Unity 销毁钩子）
+                //Mediator 的 [BindMethod] 条目同步立即摘除（Mediator 没有 Unity 销毁钩子）
                 mediator.UnbindMethods();
                 HandleDelegates(mediator, mediatorType, false);
             }
@@ -313,8 +305,7 @@ namespace SimplifyIoC.Mediations
         /// Remove any existing ListensTo Delegates
         private void RemoveDelegate(object target, ISignal signal, MethodInfo method)
         {
-            //P0#4 修复：原用 BaseType.IsGenericType 判断，直接使用 Signal<T> 或二级继承会走错分支。
-            //改为：无载荷 Signal（及其子类）走 Action 路径，其余（Signal<T,...> 及任意子类）走委托路径。
+            //无载荷 Signal（及其子类）走 Action 路径，其余（Signal<T,...> 及任意子类）走委托路径。
             if (signal is Signal plainSignal)
             {
                 var toRemove = (Action)Delegate.CreateDelegate(typeof(Action), target, method);
@@ -330,7 +321,7 @@ namespace SimplifyIoC.Mediations
         /// Apply ListensTo delegates
         private void AssignDelegate(object target, ISignal signal, MethodInfo method)
         {
-            //P0#4 修复：判别逻辑同 RemoveDelegate
+            //判别逻辑同 RemoveDelegate
             if (signal is Signal plainSignal)
             {
                 plainSignal.AddListener((Action)Delegate.CreateDelegate(typeof(Action), target, method));

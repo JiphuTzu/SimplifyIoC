@@ -50,10 +50,8 @@ namespace SimplifyIoC.Utils
         }
 
         /// <summary>
-        /// 2.3.d：注册时保留用户委托本体（原先 parser.Method 拆成 MethodInfo 后委托即被丢弃，
-        /// 调用期再用 MethodInfo.Invoke + object[] 装箱重建），包装成统一调用形状。
-        /// 附带修复：原 Invoke(this=ReflectedTarget) 在用户传实例方法组时会因 this 类型不符抛异常，
-        /// 保留原委托后其捕获的目标实例原样生效。纯闭包转换，无泛型反射，AOT 安全。
+        /// 注册时保留用户委托本体并包装成统一调用形状；纯闭包转换，无泛型反射，AOT 安全。
+        /// 调用时直接使用委托，其捕获的目标实例原样生效。
         /// </summary>
         private static Parser CreateParser<TTarget, TAttribute, TMember>(Type attributeType,
             Action<TTarget, TAttribute, TMember, Type> parser) where TAttribute : Attribute where TMember : MemberInfo
@@ -76,8 +74,8 @@ namespace SimplifyIoC.Utils
                 .Clear();
         }
 
-        //2.4：Type+flags → 成员表缓存。ParseAttributes 每组件实例都会调用，
-        //同一类型的成员枚举结果不变，按 (Type, flags) 只枚举一次
+        //Type+flags → 成员表缓存。ParseAttributes 每组件实例都会调用，
+        //同一类型的成员枚举结果不变，按 (Type, flags) 只枚举一次。
         private static readonly Dictionary<(Type, BindingFlags), MethodInfo[]> _METHODS_TABLE = new();
         private static readonly Dictionary<(Type, BindingFlags), FieldInfo[]> _FIELDS_TABLE = new();
         private static readonly Dictionary<(Type, BindingFlags), PropertyInfo[]> _PROPERTIES_TABLE = new();
@@ -115,9 +113,7 @@ namespace SimplifyIoC.Utils
             return value;
         }
 
-        //4.1：类型级"匹配结果"缓存。
-        //原实现是 成员×解析器 双循环，每个成员对每个解析器各调一次 GetCustomAttribute，
-        //一个 30 成员 / 3 解析器的 View ≈ 90 次反射调用，且每次实例化都重跑。
+        //类型级"匹配结果"缓存。
         //成员枚举结果与特性归属只取决于 (类型, 解析器特性类型, 成员种类, 查找标志)，
         //故按该四元组缓存"命中的成员 + 对应的特性实例"（平行数组，按下标配对）。
         private enum MemberKind
@@ -159,7 +155,7 @@ namespace SimplifyIoC.Utils
             var hitAttributes = new List<Attribute>();
             for (var i = 0; i < all.Length; i++)
             {
-                //2.3.d 注释保留：getCustomAttribute 结果按 (类型,成员,特性类型) 恒定，
+                //getCustomAttribute 结果按 (类型,成员,特性类型) 恒定，
                 //特性实例本身也被复用——这四个特性类的字段均为只读（BindMethodAttribute.method
                 //例外，但其写入值 = (该类型,该方法) 唯一，同 key 内覆盖幂等）。
                 var attribute = all[i].GetCustomAttribute(attributeType, true);
@@ -176,7 +172,7 @@ namespace SimplifyIoC.Utils
         }
 
         /// <summary>
-        /// 2.3.d：委托优先；手工构造且未设 invoker 的 Parser 回落反射 Invoke。
+        /// 委托优先；手工构造且未设 invoker 的 Parser 回落反射 Invoke。
         /// </summary>
         private static void InvokeParser(Parser parser, object target, Attribute attribute, MemberInfo member, Type targetType)
         {
@@ -256,7 +252,7 @@ namespace SimplifyIoC.Utils
         public MethodInfo parser;
 
         /// <summary>
-        /// 2.3.d：注册时从用户委托包装而来的统一调用路径。
+        /// 注册时从用户委托包装而来的统一调用路径。
         /// 形状为 (target, attribute, memberInfo, type)；为 null 时调用方回落 parser.Invoke。
         /// 闭包转换，无 MakeGenericMethod / Expression / Emit，IL2CPP AOT 安全。
         /// </summary>

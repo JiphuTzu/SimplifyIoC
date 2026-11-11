@@ -520,8 +520,6 @@ namespace SimplifyIoC.Utils
                 image.raycastTarget = false;
                 //
                 _cg = GetComponent<CanvasGroup>();
-                //_cg.blocksRaycasts = false;
-                //_cg.interactable = false;
                 _cg.alpha = 0.3f;
             }
 

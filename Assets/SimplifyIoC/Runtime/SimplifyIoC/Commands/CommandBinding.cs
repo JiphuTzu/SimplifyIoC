@@ -18,7 +18,7 @@ namespace SimplifyIoC.Commands
 		public bool isSequence{ get; set; }
 
 		/// <summary>
-		/// 4.3：短路处理器。非 null 时该绑定不再创建 Command，派发直接调用它。
+		/// 短路处理器。非 null 时该绑定不创建 Command，派发直接调用它。
 		/// SignalHandler 是私有嵌套类，绑定内部结构不外泄；对外只暴露 ICommandBinding.hasHandler / InvokeHandler 两个读取口。
 		/// </summary>
 		private SignalHandler _handler;
@@ -57,14 +57,14 @@ namespace SimplifyIoC.Commands
 
 		public ICommandBinding InSequence()
 		{
-			//4.3：D3——没有命令链，isSequence 无意义，静默忽略比报错更糟，绑定期即抛
+			//短路处理器没有命令链，isSequence 无意义，绑定期即抛
 			if (_handler != null)
 				throw new Exception("InSequence() cannot be combined with ToHandler(...): a signal handler is invoked directly and has no command chain.");
 			isSequence = true;
 			return this;
 		}
 
-		// ---- 4.3：ToHandler 短路通路 ----
+		// ---- ToHandler 短路通路 ----
 
 		public ICommandBinding ToHandler<TService>(Action<TService> callback)
 		{
@@ -121,12 +121,12 @@ namespace SimplifyIoC.Commands
 
 		private ICommandBinding SetHandler(Type serviceType, Action<object, object[]> invoke)
 		{
-			//4.3：两条通路互斥，后到者抛异常（早失败，避免半配置的绑定静默失效）
+			//两条通路互斥，后到者抛异常（早失败，避免半配置的绑定静默失效）
 			if (isSequence)
 				throw new Exception("ToHandler(...) cannot be combined with InSequence().");
 			if (_value.value != null)
 				throw new Exception("ToHandler(...) cannot be combined with To<T>() / To(value).");
-			//4.3：命名是另一处"来源声明"。Binding._name 是基类私有字段，故走公开的 name 属性——
+			//命名是另一处"来源声明"。Binding._name 是基类私有字段，故走公开的 name 属性——
 			//未被 ToName(...) 设置时它对外暴露为 Binder.NULL_BINDING。
 			if (!Equals(name, Binder.NULL_BINDING))
 				throw new Exception("ToHandler(...) cannot be combined with ToName(...).");
@@ -157,15 +157,9 @@ namespace SimplifyIoC.Commands
 		}
 
 		/// <summary>
-		/// 5.2：ToHandler 互斥守卫，**收敛到 value / name 两个收口方法**。
-		///
-		/// 4.3 的写法是把 ThrowIfHandlerSet 逐个抄进 To&lt;T&gt;() / To(object) / ToName&lt;T&gt;() / ToName(object)，
-		/// 那是在"修补 coincidence 而不修补结构"：入口每多一个泛型/object 重载就要再抄一遍，
-		/// 漏一个就悄悄产出半配置绑定（当时正是这样翻的车）。
-		/// 现在两侧都只在这两个 Core 上设卡，任何入口（含将来新增的重载、
-		/// 以及 SetValue 绕过 To 直接进 ToCore 的路径）都必然经过。
+		/// ToHandler 互斥守卫，收敛在 ToCore / ToNameCore 两个收口方法上，所有赋值入口都会经过。
 		/// </summary>
-		/// <param name="memberName">报错文案里的入口名。收口处已无法区分调用的是哪个重载，故统称。</param>
+		/// <param name="memberName">报错文案里的入口名。收口处无法区分调用的是哪个重载，故统称。</param>
 		private void ThrowIfHandlerSet(string memberName)
 		{
 			if (_handler != null)
@@ -185,8 +179,8 @@ namespace SimplifyIoC.Commands
 		}
 
 		//Everything below this point is simply facade on Binding to ensure fluent interface.
-		//5.2：这些方法不含任何逻辑（守卫已在 ToCore/ToNameCore 上），只负责把返回类型收窄以便链式书写。
-		//不要往这里加语义——加了就等于重新引入一个可以被绕过得掉的入口。
+		//这些方法不含逻辑（守卫在 ToCore/ToNameCore 上），只负责把返回类型收窄以便链式书写，
+		//不要往这里加语义，否则会绕过守卫。
 		public new ICommandBinding Bind<T>()
 		{
 			return base.Bind<T> () as ICommandBinding;
@@ -228,12 +222,8 @@ namespace SimplifyIoC.Commands
 		}
 
 		/// <summary>
-		/// 4.3：Bind&lt;TSignal&gt;().ToHandler(...) 的短路处理器（私有嵌套类，仅供本绑定与 CommandBinder 经 internal 口使用）。
-		///
+		/// Bind&lt;TSignal&gt;().ToHandler(...) 的短路处理器（私有嵌套类，仅供本绑定与 CommandBinder 使用）。
 		/// 信号派发时由 CommandBinder 直接解析服务并调用 invoke，**不创建 Command、不进命令链**。
-		/// 这是框架里第三条"信号 → 目标"通路（另两条：To&lt;C&gt;() 信号→命令，[ListensTo] 信号→Mediator 方法）：
-		/// 它补的是"在绑定期声明、直达任意服务、且不需要 Mediator/View"这条路。
-		///
 		/// 不持有静态/长生命周期状态，随绑定一起被回收。
 		/// </summary>
 		private sealed class SignalHandler

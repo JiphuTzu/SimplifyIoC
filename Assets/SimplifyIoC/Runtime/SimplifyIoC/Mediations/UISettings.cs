@@ -63,10 +63,9 @@ namespace SimplifyIoC.Mediations
             var canvas = screen.GetComponentInParent<Canvas>();
             camera = canvas.worldCamera;
             canvasRectTrans = canvas.GetComponent<RectTransform>();
-            //var scale = canvas.localScale.x;
             var height = Screen.height;
-            safeAreaBottom = (int)safeArea.y;//(int)(safeArea.y / scale);
-            safeAreaTop = (int)(height - safeArea.height - safeArea.y);//((height - safeArea.height - safeArea.y) / scale);
+            safeAreaBottom = (int)safeArea.y;
+            safeAreaTop = (int)(height - safeArea.height - safeArea.y);
             if(safeAreaTop < 50) safeAreaTop = 50;
             if(safeAreaBottom < 50) safeAreaBottom = 50;
             var ort = overlay.GetComponent<RectTransform>();
@@ -74,7 +73,6 @@ namespace SimplifyIoC.Mediations
             ort.offsetMin = new Vector2(0, safeAreaBottom);
             canvasHeight = canvasRectTrans.sizeDelta.y;
             canvasScale = height / 1920f;
-            //Debug.Log($"SafeTop: {safeAreaTop} -- SafeBottom: {safeAreaBottom} -- CanvasHeight: {canvasHeight}");
             return this;
         }
 
@@ -307,23 +305,6 @@ namespace SimplifyIoC.Mediations
                 ShowToast(view);
             return view;
         }
-
-        // public UISettings ReleaseView<T>() where T: SimplifyUI
-        // {
-        //     var type = typeof(T);
-        //     if (!GetCustomPrefab(type, out var prefab)) return this;
-        //     var parent = _viewRoot[prefab.type];
-        //     for (var i = parent.childCount - 1; i >= 0; i--)
-        //     {
-        //         var view = parent.GetChild(i).GetComponent<T>();
-        //         if (view !=null) Destroy(view.gameObject);
-        //     }
-        //
-        //     if (!_viewCache.TryGetValue(type, out var views)) return this;
-        //     views.Clear();
-        //     _viewCache.Remove(type);
-        //     return this;
-        // }
 
         private void ShowScreen(SimplifyUI view)
         {

@@ -6,7 +6,6 @@ using UnityEngine.UI;
 
 namespace Aixuma.Views
 {
-    //阶段 4：删掉 Start() 里手抄的 this.AddAttributeParser(this.GetEventMethodParser()).ParseAttributes()，
     //[BindEvent] 由框架在注入完成后自动解析（见 View.InitAttributes / MediationBinder.InjectViewAndChildren）。
     public class MenuView : View
     {

@@ -17,8 +17,7 @@ namespace SimplifyIoC.Injectors
     public class InjectionBinder : Binder, IInjectionBinder
     {
         private Injector _injector;
-        //3.3：原 suppliers 反向索引已删除——供给关系改由 InjectionBinding 自身持有
-        //（唯一数据源），本类不再维护第二份注册表。
+        //供给关系由 InjectionBinding 自身持有。
 
         public InjectionBinder()
         {
@@ -33,7 +32,7 @@ namespace SimplifyIoC.Injectors
         }
 
         /// <summary>
-        /// 3.4：带调用级作用域的实例获取（IInstanceProvider 的 scope 重载）。
+        /// 带调用级作用域的实例获取（IInstanceProvider 的 scope 重载）。
         /// 池化对象的首次构造会走到这里。
         /// </summary>
         public object GetInstance(Type key, bool ignoreException, InjectionScope scope)
@@ -111,7 +110,7 @@ namespace SimplifyIoC.Injectors
             return base.Bind(key) as IInjectionBinding;
         }
 
-        #region 5.3 强类型入口
+        #region 强类型入口
 
         // 这一组方法全是语法糖：每一条都严格等价于某个既有链式写法，运行时语义（包括 resolver
         // 触发顺序在内）不变——新增的价值只在编译期。
@@ -212,9 +211,7 @@ namespace SimplifyIoC.Injectors
         }
 
         /// <summary>
-        /// 3.3：改为查绑定自身的供给集合（原为 suppliers 反向索引的直接读取）。
-        /// 行为对齐：仍不区分 name——原 suppliers 注册表在登记时就丢掉了 name 维度，
-        /// 这里同样取该 key 下第一个承诺供给 targetType 的绑定。
+        /// 查绑定自身的供给集合；不区分 name，取该 key 下第一个承诺供给 targetType 的绑定。
         /// </summary>
         public virtual IInjectionBinding GetSupplier(Type injectionType, Type targetType)
         {
@@ -236,8 +233,7 @@ namespace SimplifyIoC.Injectors
         }
 
         /// <summary>
-        /// 3.3：供给关系随绑定走，Unsupply 只需改绑定自身；
-        /// 绑定被 Unbind 后 GetSupplier 自然查不到（不再需要手工同步第二份注册表）。
+        /// 供给关系随绑定走，Unsupply 只需改绑定自身；绑定被 Unbind 后 GetSupplier 自然查不到。
         /// </summary>
         public void Unsupply(Type injectionType, Type targetType)
         {

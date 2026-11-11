@@ -125,11 +125,8 @@ namespace SimplifyIoC.Reflectors
                                           BindingFlags.NonPublic |
                                           BindingFlags.Instance |
                                           BindingFlags.InvokeMethod);
-            //2.2 优化：ArrayList+IComparer → 泛型 List；priority 在收集时记录，
-            //排序不再对每个元素反复反射取特性（原 PriorityComparer 每次比较调两次 GetCustomAttribute）
-            //2.4 优化：原每方法 2 次 GetCustomAttributes（PostConstruct/ListensTo 各一次），
-            //改为一次取全量再按类型分桶（GetCustomAttributes(typeof(X), true) 内部本就是
-            //全量获取后过滤，合并后元数据扫描减半）
+            //一次取全量特性再按类型分桶（PostConstruct / ListensTo），避免每方法多次反射；
+            //priority 在收集时记录，排序无需再取特性。
             var methodList = new List<KeyValuePair<MethodInfo, int>>();
             var attrMethods = new List<KeyValuePair<MethodInfo, Attribute>>();
             foreach (var method in methods)
@@ -164,7 +161,7 @@ namespace SimplifyIoC.Reflectors
             for (var i = 0; i < methodList.Count; i++)
             {
                 postConstructors[i] = methodList[i].Key;
-                //2.3.c：委托化调用路径；签名/目标类型不合规时为 null，运行时回落 method.Invoke
+                //委托化调用路径；签名/目标类型不合规时为 null，运行时回落 method.Invoke。
                 postConstructorActions[i] = ReflectedClass.BuildPostConstructorDelegate(methodList[i].Key);
             }
             reflected.postConstructors = postConstructors;
@@ -174,10 +171,8 @@ namespace SimplifyIoC.Reflectors
 
         private void MapSetters(ReflectedClass reflected, IBinding binding, Type type)
         {
-            //2.5：[Inject] 不再要求 public set——private/protected/internal set 同样可注入。
-            //原实现会先扫一遍 NonPublic 并对带 [Inject] 的非 public setter 抛异常；
-            //现合并为一次扫描（Public|NonPublic），只收集带 [Inject] 的属性，访问级别不再受限。
-            //已知限制（与原实现一致）：基类的 private 成员不受 FlattenHierarchy 影响，不会被扫到。
+            //[Inject] 支持 private/protected/internal set：一次扫描（Public|NonPublic），只收集带 [Inject] 的属性。
+            //已知限制：基类的 private 成员不受 FlattenHierarchy 影响，不会被扫到。
             var members = type.FindMembers(MemberTypes.Property,
                                                           BindingFlags.FlattenHierarchy |
                                                           BindingFlags.SetProperty |

@@ -32,7 +32,7 @@ namespace SimplifyIoC.Commands
 		/// Get/set the property set by InSequence() and InParallel()
 		bool isSequence{ get; set;}
 
-		// ---- 4.3：信号直达处理器的短路通路 ----
+		// ---- 信号直达处理器的短路通路 ----
 		// 与 To<T>() / InSequence() 互斥，混用会在绑定期抛异常（早失败）。
 
 		/// <summary>把信号直接绑到一个无载荷处理委托：Bind&lt;S&gt;().ToHandler&lt;TService&gt;(svc =&gt; svc.Do())</summary>

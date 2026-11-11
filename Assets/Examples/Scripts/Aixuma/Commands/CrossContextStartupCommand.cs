@@ -1,14 +1,7 @@
 using SimplifyIoC.Commands;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-//============================================================
-//支持中文，文件使用UTF-8编码
-//@author	JiphuTzu
-//@create	20210311
-//@company	Aixuma
-//
-//@description:
-//============================================================
+
 namespace Aixuma.Commands
 {
     public class CrossContextStartupCommand : Command

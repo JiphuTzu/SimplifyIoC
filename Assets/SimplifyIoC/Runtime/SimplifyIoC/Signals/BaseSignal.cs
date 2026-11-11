@@ -38,7 +38,7 @@ namespace SimplifyIoC.Signals
         /// Adds a listener.
         /// </summary>
         /// <param name="callback">The method to be called when Dispatch fires.</param>
-        /// <returns>5.1：订阅句柄，Dispose 即退订。旧写法忽略返回值照常编译。</returns>
+        /// <returns>订阅句柄，Dispose 即退订。</returns>
         public SignalSubscription AddListener(Action<BaseSignal, object[]> callback)
         {
             _baseListener = (Action<BaseSignal, object[]>)CombineUnique(_baseListener, callback);
@@ -49,7 +49,7 @@ namespace SimplifyIoC.Signals
         /// Adds a listener which will be removed immediately after the Signal fires.
         /// </summary>
         /// <param name="callback">The method to be called when Dispatch fires.</param>
-        /// <returns>5.1：订阅句柄，Dispose 可在派发前取消这条一次性订阅。</returns>
+        /// <returns>订阅句柄，Dispose 可在派发前取消这条一次性订阅。</returns>
         public SignalSubscription AddOnce(Action<BaseSignal, object[]> callback)
         {
             _onceBaseListener = (Action<BaseSignal, object[]>)CombineUnique(_onceBaseListener, callback);
@@ -61,8 +61,7 @@ namespace SimplifyIoC.Signals
         /// </summary>
         /// <param name="callback">The callback to be removed.</param>
         /// <remarks>
-        /// 5.1：重复通道与一次性通道都查。改前 AddOnce 挂上的回调无法显式摘除
-        /// （RemoveListener 只查 _baseListener），两条通道自此一致。
+        /// 重复通道与一次性通道都查。
         /// </remarks>
         public void RemoveListener(Action<BaseSignal, object[]> callback)
         {
@@ -79,7 +78,7 @@ namespace SimplifyIoC.Signals
             _onceBaseListener = null;
         }
 
-        #region 5.1：订阅句柄内部通道
+        #region 订阅句柄内部通道
 
         /// internal：回调是否仍在链上。子类先查自己的强类型通道，未命中再回落到此处。
         internal virtual bool ContainsCore(Delegate callback, bool once)
@@ -101,10 +100,9 @@ namespace SimplifyIoC.Signals
 
         #endregion
 
-        #region 委托链工具（5.1：收敛原先散落在 5 个 Signal 里的 AddUnique 实现）
+        #region 委托链工具
 
-        /// 去重判定：引用相等优先，否则展开比对。Delegate.Equals 比的是 Target+Method，
-        /// 与旧实现的 GetInvocationList().Contains(callback) 语义等价。
+        /// 去重判定：引用相等优先，否则展开比对。Delegate.Equals 比的是 Target+Method。
         internal static bool ContainsImpl(Delegate source, Delegate callback)
         {
             if (source == null || callback == null) return false;
@@ -126,7 +124,7 @@ namespace SimplifyIoC.Signals
             return Delegate.Remove(source, callback);
         }
 
-        /// 去重追加：保持旧 AddUnique 的"同一回调只挂一次"契约。
+        /// 去重追加：同一回调只挂一次。
         internal static Delegate CombineUnique(Delegate source, Delegate callback)
         {
             if (callback == null) return source;

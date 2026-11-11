@@ -1,19 +1,12 @@
 using SimplifyIoC.Commands;
 using SimplifyIoC.Bootstraps;
 using UnityEngine;
-//============================================================
-//支持中文，文件使用UTF-8编码
-//@author	JiphuTzu
-//@create	20210310
-//@company	Aixuma
-//
-//@description:
-//============================================================
+
 namespace Aixuma.Commands
 {
     public class CreateObjectCommand : Command
     {
-		//2.0.0：Context 更名为 Bootstrap 后，框架绑定的命名实例就是 Bootstrap 自身
+		//框架绑定的命名实例就是 Bootstrap 自身
 		//（Bootstrap.AddCoreComponents 里 Bind<Bootstrap>().ToValue(this).ToName(BootstrapKeys.Bootstrap)）。
 		[Inject(BootstrapKeys.Bootstrap)]
 		public Bootstrap root{get;set;}

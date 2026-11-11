@@ -2,14 +2,7 @@ using SimplifyIoC.Mediations;
 using SimplifyIoC.Utils;
 using Aixuma.Signals;
 using UnityEngine.UI;
-//============================================================
-//支持中文，文件使用UTF-8编码
-//@author	JiphuTzu
-//@create	20210311
-//@company	Aixuma
-//
-//@description:
-//============================================================
+
 namespace Aixuma.Views
 {
     public class RecordView : View

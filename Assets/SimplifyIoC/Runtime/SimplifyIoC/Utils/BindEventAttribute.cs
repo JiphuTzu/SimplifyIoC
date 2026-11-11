@@ -65,8 +65,7 @@ namespace SimplifyIoC.Utils
         {
             if (string.IsNullOrWhiteSpace(attribute.eventName)
                 || attribute.targetNames.Length == 0) return;
-            //多目标支持：每个 targetName 独立解析、互不影响（原来各分支命中即 return，
-            //导致多按钮只有第一个生效；名字写错还会静默跳过后面全部目标）
+            //多目标支持：每个 targetName 独立解析、互不影响。
             foreach (var targetName in attribute.targetNames)
             {
                 var fieldInfo = GetFieldCached(targetType, targetName);
@@ -82,7 +81,7 @@ namespace SimplifyIoC.Utils
                     if (fieldInfo.FieldType.IsGenericType &&
                              fieldInfo.FieldType.GetGenericTypeDefinition() == typeof(List<>))
                     {
-                        //2.3.e：原走 GetMethod("ToArray")+Invoke 反射，改为 IList 拷贝，零反射
+                        //用 IList 拷贝完成数组转换，避免反射调用。
                         var arr = MaterializeArray(fieldInfo.GetValue(target));
                         TryAddListener(arr,attribute.eventName, target, method);
                         continue;
@@ -102,7 +101,7 @@ namespace SimplifyIoC.Utils
                 if (propertyInfo.PropertyType.IsGenericType &&
                     propertyInfo.PropertyType.GetGenericTypeDefinition() == typeof(List<>))
                 {
-                    //2.3.e：同上，IList 拷贝替代反射 ToArray
+                    //同上：用 IList 拷贝完成数组转换，避免反射调用。
                     var arr = MaterializeArray(propertyInfo.GetValue(target));
                     TryAddListener(arr, attribute.eventName, target, method);
                     continue;
@@ -128,8 +127,7 @@ namespace SimplifyIoC.Utils
         }
 
         /// <summary>
-        /// 2.3.e：把 List&lt;T&gt; 物化为 object[]。原实现 GetMethod("ToArray") + Invoke（反射），
-        /// 现走 IList.CopyTo，零反射；元素均为引用类型，无装箱。
+        /// 把 List&lt;T&gt; 物化为 object[]：经 IList.CopyTo 拷贝，零反射；元素均为引用类型，无装箱。
         /// </summary>
         private static object[] MaterializeArray(object source)
         {
@@ -140,7 +138,7 @@ namespace SimplifyIoC.Utils
             return res;
         }
 
-        //2.3.e：AddListener 的 MethodInfo 按事件类型缓存（原每次调用都 GetMethod）
+        //AddListener 的 MethodInfo 按事件类型缓存，避免每次调用都 GetMethod。
         private static readonly Dictionary<Type, MethodInfo> _ADD_LISTENER_CACHE = new();
 
         private static void AddListener(UnityEventBase ue, object target, MethodInfo method)
@@ -154,7 +152,7 @@ namespace SimplifyIoC.Utils
             ual?.Invoke(ue, new[] { target, method });
         }
 
-        //2.3.e：事件成员查找按 (类型, 名称) 缓存；MemberInfo 为 null 表示确认无此成员
+        //事件成员查找按 (类型, 名称) 缓存；MemberInfo 为 null 表示确认无此成员。
         private static readonly Dictionary<(Type, string), MemberInfo> _EVENT_MEMBER_CACHE = new();
 
         private static UnityEventBase GetEvent(object target, string name)

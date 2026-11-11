@@ -19,25 +19,22 @@ namespace SimplifyIoC.Mediations
 	    public IInjectionBinder injectionBinder { get; set; }
 
         /// <summary>
-        /// 5.6：从 injectionBinder 取一个实例（绝大多数场景就是取信号单例）。
-        /// 与 View.Get&lt;T&gt;() 同一形状，两侧写起来一样顺手。
+        /// 从 injectionBinder 取一个实例（绝大多数场景就是取信号单例），与 View.Get&lt;T&gt;() 同形。
         /// </summary>
         protected T Get<T>() where T : BaseSignal
         {
             return injectionBinder != null ? injectionBinder.GetInstance<T>() : null;
         }
 
-        //public Mediator() { }
-
-        /// 4.1：解析只跑一次的哨兵（与 View 同策略）。
+        /// 解析只跑一次的哨兵（与 View 同策略）。
         private bool _attributesInitialized;
 
-        /// 5.1：订阅组（惰性创建，从未订阅过则不分配）。
+        /// 订阅组（惰性创建，从未订阅过则不分配）。
         private SignalSubscriptionGroup _subscriptions;
 
         /// <summary>
-        /// 5.1：随本 Mediator 生命周期的订阅组。组内订阅在 Mediator 被摘除时自动退订，
-        /// 用以取代"OnRemove 里逐条手写 RemoveListener"的样板（漏一行就是泄漏）。
+        /// 随本 Mediator 生命周期的订阅组。组内订阅在 Mediator 被摘除时自动退订，
+        /// 无需在 OnRemove 里逐条手写 RemoveListener（漏一行就是泄漏）。
         ///
         ///     public override void OnRegister()
         ///     {
@@ -47,7 +44,7 @@ namespace SimplifyIoC.Mediations
         protected SignalSubscriptionGroup subscriptions => _subscriptions ??= new SignalSubscriptionGroup();
 
         /// <summary>
-        /// 5.1：由框架在摘除 Mediator 时调用（MediationBinder.DestroyMediator，紧接 OnRemove 之后）。
+        /// 由框架在摘除 Mediator 时调用（MediationBinder.DestroyMediator，紧接 OnRemove 之后）。
         /// 用户覆写 OnRemove 时无需做任何事，订阅一律回收。
         /// </summary>
         internal void DisposeSubscriptions() => _subscriptions?.Dispose();
@@ -82,13 +79,11 @@ namespace SimplifyIoC.Mediations
         public virtual void OnDisabled() { }
 
         /// <summary>
-        /// 4.1：Mediator 侧声明式绑定解析。框架在注入完成后、OnRegister 之前自动调用一次
+        /// Mediator 侧声明式绑定解析。框架在注入完成后、OnRegister 之前自动调用一次
         /// （见 MediationBinder.ApplyMediationToView）。
         ///
         /// 这一侧尤其需要"注入之后"这个时机：Mediator 的 [BindEvent("onClick", nameof(view))]
         /// 里的 view 通常是 [Inject] 成员，注入前取不到。
-        ///
-        /// 4.4：GetBindMethodParser 治理完成，[BindMethod] 一并接入。
         /// </summary>
         protected virtual void InitAttributes()
         {
@@ -102,7 +97,7 @@ namespace SimplifyIoC.Mediations
         }
 
         /// <summary>
-        /// 4.1：InitAttributes 的幂等包装，由框架在注入完成后调用。
+        /// InitAttributes 的幂等包装，由框架在注入完成后调用。
         /// </summary>
         internal void EnsureAttributesInitialized()
         {
@@ -112,14 +107,14 @@ namespace SimplifyIoC.Mediations
         }
 
         /// <summary>
-        /// 4.2：强类型视图直赋值通道。非泛型 Mediator 走 [Inject] view（3.4.c 的调用级作用域），
-        /// 此处为 no-op；Mediator&lt;TView&gt; 覆写后由泛型类型参数直赋，不再经容器解析。
+        /// 强类型视图直赋值通道。非泛型 Mediator 走 [Inject] view（调用级作用域），
+        /// 此处为 no-op；Mediator&lt;TView&gt; 覆写后由泛型类型参数直赋，无需经容器解析。
         /// </summary>
         internal virtual void SetViewFromBinder(View view) { }
     }
 
     /*
-     * 4.2：强类型视图 Mediator。
+     * 强类型视图 Mediator。
      *
      * 用法：
      *     public class LifeTimeMediator : Mediator<LifeTimeView>
@@ -130,13 +125,8 @@ namespace SimplifyIoC.Mediations
      *         }
      *     }
      *
-     * 与既有写法的关系：
-     *  - 泛型版：视图引用由泛型类型参数给出，框架注入后直赋值（零容器往返），不需要也不能再写 [Inject] view；
-     *  - 非泛型 Mediator + [Inject] TView view：完全保留，走 3.4.c 的调用级作用域
-     *    （见 MediationBinder.ApplyMediationToView），两种写法可以混用。
-     *
      * 视图赋值发生在 注入之后、InitAttributes/OnRegister 之前，
-     * 因此 [BindEvent(..., nameof(view))] 在两条路径上都可用。
+     * 因此 [BindEvent(..., nameof(view))] 在泛型与非泛型写法下都可用。
      *
      * 说明：Mediator<TView> 与基类同文件（本类型的脚本资产即本文件）。它是抽象泛型类，
      * 由 MediationBinder 通过 AddComponent(mediatorType) 实例化其具体派生类，不依赖独立脚本资产。
