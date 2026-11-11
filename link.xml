@@ -18,6 +18,9 @@
 -->
 <linker>
   <assembly fullname="Aixuma.SimplifyIoC" preserve="all" ignoreIfMissing="1" />
+  <!-- UI 程序集里的类型大量经预置体反序列化 / 反射实例化（SimplifyUI 子类、UISettings、
+       CustomPrefabCreator 派生类），同样整体保留，避免 IL2CPP 裁剪掉仅被资产引用的类型。 -->
+  <assembly fullname="Aixuma.SimplifyIoC.UI" preserve="all" ignoreIfMissing="1" />
 
   <!-- MakeGenericType 涉及的 BCL 泛型容器兜底（按需可自行增删） -->
   <assembly fullname="mscorlib" ignoreIfMissing="1">

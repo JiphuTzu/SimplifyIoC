@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using SimplifyIoC.Bootstraps;
+using SimplifyIoC.UI;
 using UnityEngine;
 using UnityEngine.UI;
 
 // ReSharper disable InconsistentNaming
 
-namespace SimplifyIoC.Mediations
+namespace SimplifyIoC.Settings
 {
     public enum UIType
     {
@@ -16,15 +17,6 @@ namespace SimplifyIoC.Mediations
         Toast
     }
 
-    public interface IPrefabCreator
-    {
-        bool GetUIPrefab(string name, out SimplifyUI prefab);
-        void GetUIPrefab(string name, Action<SimplifyUI> callback);
-        bool GetUIPrefab(Type type, out SimplifyUI prefab);
-        void GetUIPrefab(Type type, Action<SimplifyUI> callback);
-        bool GetBootstrapPrefab(string name, out Bootstrap prefab);
-        void GetBootstrapPrefab(string name, Action<Bootstrap> callback);
-    }
     [CreateAssetMenu(fileName = "UISettings", menuName = "Aixuma/UISettings")]
     public class UISettings : ScriptableObject
     {

@@ -7,11 +7,9 @@
  */
 
 using System;
-using System.Reflection;
 using SimplifyIoC.Bootstraps;
 using SimplifyIoC.Injectors;
 using SimplifyIoC.Signals;
-using SimplifyIoC.Utils;
 using UnityEngine;
 
 namespace SimplifyIoC.Mediations
@@ -59,9 +57,6 @@ namespace SimplifyIoC.Mediations
             owningBootstrap = bootstrap;
         }
 
-        /// 解析只跑一次的哨兵：UnityEvent.AddListener 不去重，二次解析会让回调执行两次。
-        private bool _attributesInitialized;
-
         /// 订阅组（惰性创建，从未订阅过则不分配）。
         private SignalSubscriptionGroup _subscriptions;
 
@@ -80,50 +75,6 @@ namespace SimplifyIoC.Mediations
         {
             if (autoRegisterWithBootstrap && !registeredWithBootstrap && shouldRegister)
                 BubbleToBootstrap(BubbleType.Add, false);
-
-            //不向 Bootstrap 注册且此刻无归属的 View，在 Awake 兜底解析属性。
-            if (!autoRegisterWithBootstrap && owningBootstrap == null)
-                EnsureAttributesInitialized();
-        }
-
-        /// <summary>
-        /// 从 <see cref="injectionBinder"/> 取一个实例（绝大多数场景就是取信号单例），
-        /// 等价于 injectionBinder.GetInstance&lt;T&gt;()，省掉每个 View 都要写一遍的容器往返。
-        ///
-        ///     [Inject] 之外的轻量写法：startSignal = Get&lt;StartSignal&gt;();
-        /// 没有归属容器时返回 null，不抛异常。
-        /// </summary>
-        protected T GetSignal<T>() where T : BaseSignal
-        {
-            return injectionBinder?.GetInstance<T>();
-        }
-
-        /// <summary>
-        /// 声明式绑定解析。框架在注入完成后自动调用一次（见 MediationBinder）。
-        /// 子类覆写此方法即可扩展解析内容，无需关心调用时机。
-        /// </summary>
-        protected virtual void InitAttributes()
-        {
-            //[BindMethod] 依赖弱引用静态表（ConditionalWeakTable），避免自动解析放大泄漏。
-            var bindMethodParser = this.GetBindMethodParser();
-            var reflected = this.AddAttributeParser(this.GetEventMethodParser())
-                .AddAttributeParser(this.GetChildParser())
-                .AddAttributeParser(this.GetMainThreadParser());
-            //判空是防御性的：GetBindMethodParser 恒返回委托，但 null 委托传给
-            //AddAttributeParser 会在 CreateParser 里因 parser.Method 立即 NRE，不值得赌。
-            if (bindMethodParser != null)
-                reflected = reflected.AddAttributeParser(bindMethodParser);
-            reflected.ParseAttributes();
-        }
-
-        /// <summary>
-        /// InitAttributes 的幂等包装。注入完成后由框架调用；Awake 兜底路径也走这里。
-        /// </summary>
-        internal void EnsureAttributesInitialized()
-        {
-            if (_attributesInitialized) return;
-            _attributesInitialized = true;
-            InitAttributes();
         }
 
         /// A MonoBehaviour Start handler
@@ -133,13 +84,6 @@ namespace SimplifyIoC.Mediations
         {
             if (autoRegisterWithBootstrap && !registeredWithBootstrap && shouldRegister)
                 BubbleToBootstrap(BubbleType.Add, true);
-
-            //走到这里仍未注册到任何 Bootstrap ⇒ 不会有任何人替它做"注入后解析"。
-            //自行兜底一次（幂等），使 View 在没有 Mediator / 没有 Bootstrap 时，
-            //[Child] / [BindEvent] / [BindMethod] / [MainThread] 依然照常生效。
-            //（requiresBootstrap 为 true 的 View 在上一行要么已注册、要么已抛异常，走不到这里。）
-            if (owningBootstrap == null)
-                EnsureAttributesInitialized();
         }
 
         /// A MonoBehaviour OnDestroy handler
@@ -149,9 +93,6 @@ namespace SimplifyIoC.Mediations
         {
             //先退订组内订阅（此处执行回调移除，避免后续 BubbleToBootstrap 期间误触发）。
             _subscriptions?.Dispose();
-            //立即释放本组件的 [BindMethod] 静态注册表条目（不依赖 GC 时机）。
-            //静态表使用 ConditionalWeakTable，这里只是及时释放的补充，不影响正确性。
-            this.UnbindMethods();
             BubbleToBootstrap(BubbleType.Remove, false);
             //通知发出后断开归属引用，避免已销毁的 View 继续 root 住整个 Bootstrap 链
             owningBootstrap = null;
@@ -245,14 +186,5 @@ namespace SimplifyIoC.Mediations
             msg += "\nView: " + this;
             throw new Exception(msg);
         }
-#if UNITY_EDITOR
-        [ContextMenu("🔭 MapChildren", false, 0)]
-        private void AutoMapChildren()
-        {
-            this.AddAttributeParser(this.GetChildParser())
-                .ParseFields(BindingFlags.Instance | BindingFlags.Public  | BindingFlags.NonPublic);
-            UnityEditor.EditorUtility.SetDirty(this);
-        }
-#endif
     }
 }

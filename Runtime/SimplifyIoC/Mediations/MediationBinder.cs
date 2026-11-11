@@ -12,7 +12,6 @@ using System.Reflection;
 using SimplifyIoC.Injectors;
 using SimplifyIoC.Framework;
 using SimplifyIoC.Signals;
-using SimplifyIoC.Utils;
 using Binder = SimplifyIoC.Framework.Binder;
 
 namespace SimplifyIoC.Mediations
@@ -99,9 +98,6 @@ namespace SimplifyIoC.Mediations
                 //强类型视图直赋值。Mediator<TView> 覆写后由泛型参数直赋（零容器往返），
                 //非泛型 Mediator 为 no-op（view 已由上面的 scope 注入）。
                 m1.SetViewFromBinder(view);
-                //声明式解析放在注入完成之后、OnRegister 之前——
-                //[BindEvent(nameof(view))] 这类写法依赖已注入/已赋值的成员。
-                m1.EnsureAttributesInitialized();
                 m1.OnRegister();
             }
         }
@@ -128,8 +124,6 @@ namespace SimplifyIoC.Mediations
                 }
             }
             injectionBinder.injector.Inject(view, false);
-            //注入完成后再解析声明式绑定，使 [BindEvent(nameof(注入成员))] 在 View 侧也可用。
-            view.EnsureAttributesInitialized();
             HandleDelegates(view, view.GetType(), true);
         }
 
@@ -237,8 +231,6 @@ namespace SimplifyIoC.Mediations
                 mediator.OnRemove();
                 //OnRemove 之后由框架统一退订组内订阅（用户无需手写 RemoveListener）。
                 mediator.DisposeSubscriptions();
-                //Mediator 的 [BindMethod] 条目同步立即摘除（Mediator 没有 Unity 销毁钩子）
-                mediator.UnbindMethods();
                 HandleDelegates(mediator, mediatorType, false);
             }
             return mediator;

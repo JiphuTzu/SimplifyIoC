@@ -1,11 +1,13 @@
 using System;
 using System.Reflection;
+using SimplifyIoC.Mediations;
+using SimplifyIoC.Settings;
 using SimplifyIoC.Signals;
 using SimplifyIoC.Utils;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace SimplifyIoC.Mediations
+namespace SimplifyIoC.UI
 {
 
     public abstract class SimplifyUI : View
@@ -17,6 +19,7 @@ namespace SimplifyIoC.Mediations
         //
         public UnityEvent<SimplifyUI> onRecycle { get; } = new();
         private bool _initialized;
+        private bool _attributesInitialized;
 
         public void Show()
         {
@@ -37,6 +40,7 @@ namespace SimplifyIoC.Mediations
         protected override void Start()
         {
             base.Start();
+            EnsureAttributesInitialized();
             Init();
             _initialized = true;
             OnShow();
@@ -80,12 +84,37 @@ namespace SimplifyIoC.Mediations
             return injectionBinder.GetInstance<T>();
         }
 
-        protected virtual void BGM(string path)
+        /// <summary>
+        /// 声明式绑定解析（[Child] / [BindEvent] / [BindMethod] / [MainThread]）。
+        /// 核心 View 不再承担解析，这套能力只属于 UI 层；本类在首次 Start、
+        /// base.Start() 完成注入之后触发一次，业务可覆写以扩展解析内容。
+        /// </summary>
+        protected virtual void InitAttributes()
         {
+            //[BindMethod] 依赖弱引用静态表（ConditionalWeakTable），避免自动解析放大泄漏。
+            var bindMethodParser = this.GetBindMethodParser();
+            var reflected = this.AddAttributeParser(this.GetEventMethodParser())
+                .AddAttributeParser(this.GetChildParser())
+                .AddAttributeParser(this.GetMainThreadParser());
+            //判空是防御性的：GetBindMethodParser 恒返回委托，但 null 委托传给
+            //AddAttributeParser 会在 CreateParser 里因 parser.Method 立即 NRE。
+            if (bindMethodParser != null)
+                reflected = reflected.AddAttributeParser(bindMethodParser);
+            reflected.ParseAttributes();
         }
 
-        protected virtual void Sound(string path)
+        private void EnsureAttributesInitialized()
         {
+            if (_attributesInitialized) return;
+            _attributesInitialized = true;
+            InitAttributes();
+        }
+
+        protected override void OnDestroy()
+        {
+            //立即释放本组件的 [BindMethod] 静态注册表条目（不依赖 GC 时机）。
+            this.UnbindMethods();
+            base.OnDestroy();
         }
 
         protected virtual void Toast(string message)

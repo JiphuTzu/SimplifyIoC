@@ -1,8 +1,9 @@
 using System;
 using SimplifyIoC.Bootstraps;
+using SimplifyIoC.UI;
 using UnityEngine;
 
-namespace SimplifyIoC.Mediations
+namespace SimplifyIoC.Settings
 {
     public abstract class CustomPrefabCreator : ScriptableObject, IPrefabCreator
     {

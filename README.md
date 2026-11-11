@@ -14,6 +14,29 @@
 https://github.com/JiphuTzu/SimplifyIoC.git#upm
 ```
 
+## 程序集结构
+
+| 程序集 | 目录 | 内容 |
+| --- | --- | --- |
+| `Aixuma.SimplifyIoC` | `Runtime/` | 绑定容器、Signal / Command、View 调解、Bootstrap 层级链 —— 不依赖 uGUI，也不含 `SimplifyIoC.Utils` |
+| `Aixuma.SimplifyIoC.UI` | `UI/` | `SimplifyUI`、`UISettings`、`IToast`、两个 `PrefabCreator`、声明式特性与反射工具、`Materials/` 下的遮罩 / 转场 shader —— 单向依赖核心 + uGUI |
+
+UI 是可选层：不需要 uGUI 的工程可以只引用核心程序集。**使用 asmdef 且用到 UI 类型或 `SimplifyIoC.Utils` 的下游工程需要补一条引用**（`Aixuma.SimplifyIoC.UI`，或 `GUID:85be5796041942a8867159794464d6aa`）到业务 asmdef 的 `references`。未使用 asmdef 的工程（Assembly-CSharp）由 `autoReferenced` 自动可见，无需改动。
+
+UI 目录下按两级归类，**命名空间与目录一一对应**，规则和核心一致（`Runtime/SimplifyIoC/<目录>/` → `SimplifyIoC.<目录>`）：
+
+| 目录 | 命名空间 | 类型 |
+| --- | --- | --- |
+| `UI/SimplifyIoC/UI/` | `SimplifyIoC.UI` | `SimplifyUI`、`IToast` |
+| `UI/SimplifyIoC/Settings/` | `SimplifyIoC.Settings` | `UISettings`、`UIType`、`IPrefabCreator`、`CustomPrefabCreator`、`DefaultPrefabCreator` |
+| `UI/SimplifyIoC/Utils/` | `SimplifyIoC.Utils` | `[Child]` / `[BindEvent]` / `[BindMethod]` / `[MainThread]`、`ReflectionExtension`、`DebugX` |
+
+`UI/Materials/` 放 `ColorMask` / `Voronoi` 的 shader 与材质，是纯资源、不参与命名空间；连 `.meta` 一起从 `Runtime/Materials/` 迁入，GUID 未变。核心程序集至此不再引用 `com.unity.ugui`（`DebugX` 原先也 `using UnityEngine.UI`）。
+
+> **升级注意（命名空间）**：原本位于 `SimplifyIoC.Mediations` 的 5 个 UI 类型已按目录分层，下游源码要把对应的 `using SimplifyIoC.Mediations;` 换成 `using SimplifyIoC.UI;`（界面基类 / `IToast`）或 `using SimplifyIoC.Settings;`（配置 / 预置体创建器）；只用核心 `View` / `Mediator` 的代码不用动。脚本 GUID 保持不变，Unity 资产与预置体上的序列化引用不会断。
+
+> **声明式解析的归属变了**：核心 `View` / `Mediator` 不再自动解析 `[Child]` / `[BindEvent]` / `[BindMethod]` / `[MainThread]`，只有 `SimplifyUI` 在首次 `Start`（`base.Start()` 完成注入之后）解析一次，并在 `OnDestroy` 释放 `[BindMethod]` 静态表条目。普通 `View` 若仍要用这些特性，需在自己的 `Start` 里显式调用解析链（扩展方法在 UI 程序集）。`[Inject]` / `[PostConstruct]` / `[Construct]` / `[ListensTo]` 仍在核心，行为不变。
+
 ## 快速上手
 
 ### 1. 启动入口：`SimplifyBootstrap`（非泛型）
@@ -72,14 +95,17 @@ public class CreateObjectCommand : Command
     public override void Execute() { /* ... */ }
 }
 
-// View 内：GetSignal<T>() 取信号单例
-GetSignal<CreateObjectSignal>().Dispatch(new Vector3(1, 0, 0));
+// 普通 View 内：直接从容器取信号单例（也可用 [Inject] 属性注入）
+injectionBinder.GetInstance<CreateObjectSignal>().Dispatch(new Vector3(1, 0, 0));
+
+// SimplifyUI 内：简写 Signal<T>()
+Signal<CreateObjectSignal>().Dispatch(new Vector3(1, 0, 0));
 
 // Mediator 内：同名能力叫 Get<T>()
 Get<CreateObjectSignal>().Dispatch(new Vector3(1, 0, 0));
 ```
 
-> View 侧是 `GetSignal<T>()`，Mediator 侧是 `Get<T>()`；两者都从容器取信号单例，名字不同，别混用。
+> `View` 不再提供 `GetSignal<T>()`：UI 层用 `SimplifyUI.Signal<T>()`，普通 View 用 `injectionBinder.GetInstance<T>()` 或 `[Inject]` 属性注入；Mediator 侧仍是 `Get<T>()`。
 
 ### 3. View 与 Mediator
 
@@ -144,7 +170,9 @@ public class LevelBootstrap : SimplifyBootstrap
 
 ## 声明式绑定
 
-在 `View` / `Mediator` 的成员上标注即可，框架会在**注入完成后自动解析**，无需手写调用。
+`[Inject]` / `[PostConstruct]` / `[Construct]` / `[Name]` / `[ListensTo]` 由核心程序集在注入与 View 注册时处理，行为不变。
+
+`[Child]` / `[BindEvent]` / `[BindMethod]` / `[MainThread]` 这一组的类型与解析器已随 `SimplifyIoC.Utils` 迁入 UI 程序集，**只有 `SimplifyUI` 会自动解析**（首次 `Start`、注入完成之后）。普通 `View` / `Mediator` 上的这四个特性不再自动生效，需要显式调用解析链，或改为继承 `SimplifyUI`。
 
 | 特性 | 可用位置 | 作用 |
 | --- | --- | --- |
@@ -158,7 +186,7 @@ public class LevelBootstrap : SimplifyBootstrap
 | `[Construct]` / `[Name]` | 构造函数 / 参数 | 指定优先使用的构造函数；对构造参数做命名注入 |
 
 > `[Inject]` 只作用于**属性**（`public X x { get; set; }`），不要写在字段上。
-> 命名空间别混：`[Inject]` / `[Name]` / `[Construct]` / `[PostConstruct]` / `[ListensTo]` 在**全局命名空间**；`[Child]` / `[BindEvent]` / `[BindMethod]` / `[MainThread]` 在 `SimplifyIoC.Utils`。
+> `[Child]` / `[BindEvent]` / `[BindMethod]` / `[MainThread]` 在 `SimplifyIoC.Utils` 命名空间、**UI 程序集**里；其余在全局命名空间、核心程序集。
 
 ## 支持平台
 
