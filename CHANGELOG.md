@@ -1,5 +1,5 @@
 ﻿# CHANGELOG
-## Unreleased
+## 2.1.0
 ### 破坏性变更（程序集拆分）
 + **基础 UI 能力拆为独立程序集 `Aixuma.SimplifyIoC.UI`**：`SimplifyUI.cs` / `UISettings.cs`（含 `UIType`、`IPrefabCreator`）/ `IToast.cs` / `CustomPrefabCreator.cs` / `DefaultPrefabCreator.cs` 从 `Runtime/SimplifyIoC/Mediations/` 移到与 `Runtime` 平级的 `UI/`，由新 asmdef 编译；新程序集单向引用核心 `Aixuma.SimplifyIoC`，核心不再包含任何 UI 类型，也不再依赖 `com.unity.ugui`。文件连同 `.cs.meta` 一起迁移，脚本 GUID 保持不变，下游已有的 `UISettings` / `DefaultPrefabCreator` 资产与预置体脚本引用不会断。命名空间随后按目录规则调整，见下节。
 + **迁移**：使用 asmdef 且用到上述 UI 类型的下游工程，需在业务 asmdef 的 `references` 里补一条 `Aixuma.SimplifyIoC.UI`（或 `GUID:85be5796041942a8867159794464d6aa`）；只用核心 IoC、或不用 asmdef（Assembly-CSharp）的工程无需改动。`link.xml` 同步为新程序集加了 `preserve="all"` 裁剪兜底。
@@ -19,6 +19,8 @@
 
 ### 其它
 + `IPrefabCreator` 从 `UISettings.cs` 拆到同目录独立文件 `UI/SimplifyIoC/Settings/IPrefabCreator.cs`，命名空间仍为 `SimplifyIoC.Settings`；`UIType` 枚举仍留在 `UISettings.cs`。接口不参与 Unity 资产序列化，新脚本 GUID 独立生成，`UISettings` / `DefaultPrefabCreator` 等存量资产的引用不受影响。
++ 随包附带可选的 **WorkBuddy Skill** `Skills~/simplifyioc-quick-coding/`（API 速查、5 个模板、`lint_mvcs.py`）。它只是随 `Assets/SimplifyIoC/` 一起分发的文件，**不自动生效**：使用者需自行复制到 `~/.workbuddy/skills/` 或工程的 `.workbuddy/skills/`。目录名以 `~` 结尾是 UPM 的既有惯例（同 `Samples~`）：Unity 资产管线完全忽略该目录，**不生成也不需要任何 `.meta`**，但 git 与 `git subtree split --prefix=Assets/SimplifyIoC --branch upm` 照常把它随包分发；通过 git URL 安装时可从 `Library/PackageCache/com.aixuma.simplifyioc@<版本>/Skills~/` 复制安装。
++ 校正随包分发的 Skill 与包元数据里残留的过时描述：移除「`View` 自动解析声明式特性 / `EnsureAttributesInitialized()`」、不存在的 `UISettings.ReleaseView<T>()`、`InitRoots` 四参与虚构的 `UIRoots` 类型——`InitRoots` 实为三参 `(Transform screen, Transform overlay, Transform popup)`、返回 `UISettings`，遮罩取 `popup.GetChild(0)`。`package.json` 的 `description` 与包内 README 首段同步改为描述 UI 可选程序集；skill 的 `SKILL.md` / `README.md` / `references/{api,pitfalls}.md`、两个模板与 `lint_mvcs.py` 一并更新（新增 W207：普通 View 上用了声明式特性却未显式解析时告警；`View.cs.tpl` 改用 `[SerializeField]` 以免生成的绑定静默失效）。历史版本段落（1.3.0 等）保持原样。
 
 ### 升级注意（迁移速查）
 + 使用 asmdef 的下游工程补一条 UI 程序集引用；用到 `SimplifyIoC.Utils` 的工程**也必须引用 UI 程序集**，这些类型已不在核心。`UI/` 与 `Runtime/` 一同随 UPM 包发布，脚本 GUID 均未变；命名空间已按目录分层，见上一节。
