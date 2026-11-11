@@ -1,3 +1,4 @@
+using System;
 using System.Reflection;
 using SimplifyIoC.Signals;
 using SimplifyIoC.Utils;
@@ -62,6 +63,11 @@ namespace SimplifyIoC.Mediations
         protected T Show<T>() where T : SimplifyUI
         {
             return uiSettings.CreateView<T>();
+        }
+
+        protected void Show<T>(Action<SimplifyUI> callback) where T : SimplifyUI
+        {
+            uiSettings.CreateView<T>(callback);
         }
 
         protected void Interactable(bool value)
