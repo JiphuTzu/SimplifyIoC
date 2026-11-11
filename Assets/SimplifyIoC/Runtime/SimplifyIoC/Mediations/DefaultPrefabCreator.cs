@@ -24,21 +24,30 @@ namespace SimplifyIoC.Mediations
                 _typeCache.Add(p.GetType(), p);
             }
         }
-
         public override bool GetUIPrefab(string name, out SimplifyUI prefab)
         {
             return _nameCache.TryGetValue(name, out prefab);
         }
 
+        public override void GetUIPrefab(string name, Action<SimplifyUI> callback)
+        {
+            callback?.Invoke(_nameCache.GetValueOrDefault(name));
+        }
         public override bool GetUIPrefab(Type type, out SimplifyUI prefab)
         {
             return _typeCache.TryGetValue(type, out prefab);
         }
-
+        public override void GetUIPrefab(Type type, Action<SimplifyUI> callback)
+        {
+            callback?.Invoke(_typeCache.GetValueOrDefault(type));
+        }
         public override bool GetBootstrapPrefab(string name, out Bootstrap prefab)
         {
             prefab = null;
             return false;
+        }
+        public override void GetBootstrapPrefab(string name, Action<Bootstrap> prefab)
+        {
         }
     }
 }

@@ -3,7 +3,6 @@ using Aixuma.Commands;
 using Aixuma.Mediators;
 using Aixuma.Signals;
 using Aixuma.Views;
-using UnityEngine;
 //============================================================
 //支持中文，文件使用UTF-8编码
 //@author	JiphuTzu
