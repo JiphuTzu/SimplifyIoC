@@ -1,6 +1,6 @@
 ﻿# SimplifyIoC
 
-面向 Unity 的分层 MVCS 框架：绑定容器、类型安全信号、命令与 View 调解四层各司其职，由 Bootstrap 层级链统一管理作用域与跨域共享，声明式绑定由框架自动解析。
+面向 Unity 的分层 MVCS 框架：绑定容器、类型安全信号、命令与 View 调解四层各司其职，由 Bootstrap 层级链统一管理作用域与跨域共享。UI 能力位于可选程序集 `Aixuma.SimplifyIoC.UI`（`UI/`），核心 `Runtime/` 不依赖 uGUI；声明式绑定只在 `SimplifyUI` 上自动解析。
 
 - **环境要求**：Unity 2022.3+（C# 9 / .NET Standard 2.1）
 - **示例工程**：[Assets/Examples](https://github.com/JiphuTzu/SimplifyIoC/tree/main/Assets/Examples)
@@ -191,6 +191,14 @@ public class LevelBootstrap : SimplifyBootstrap
 ## 支持平台
 
 PC · WebGL · iOS · Android · UWP
+
+## WorkBuddy Skill（可选，不自动生效）
+
+包内 `Skills~/simplifyioc-quick-coding/` 附带一份配套 Skill（目录名以 `~` 结尾是 UPM 惯例，同 `Samples~`：Unity 资产管线忽略它、不生成 `.meta`，但随包正常分发）：把一句功能需求翻译成符合 SimplifyIoC 分层的业务代码（`Bootstrap` / `Signal` / `Command` / `SimplifyUI` / `View`），内含现行 API 速查、5 个 C# 模板与静态自检脚本。
+
+**它只是随包分发的文件**，不会被 WorkBuddy 自动加载，也不参与 Unity 编译（模板是 `.tpl`，目录内没有 `.cs`）。装不装完全由使用者决定：把 `Skills~/simplifyioc-quick-coding/` 整个目录复制到 `~/.workbuddy/skills/`（用户级）或你工程的 `.workbuddy/skills/`（项目级），刷新 WorkBuddy 后即可使用；卸载时删掉该目录即可。命令与说明见该目录内的 `README.md`。
+
+由于本包通过 `git subtree split --prefix=Assets/SimplifyIoC --branch upm` 发布，这份 Skill 会随 UPM 包一起到达通过 git URL 安装的使用者。
 
 ## 相关链接
 

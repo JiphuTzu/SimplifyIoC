@@ -2,7 +2,7 @@
 
 A layered MVCS framework for Unity: container, signals, commands and view mediation on hierarchical Bootstrap scopes.
 
-当前版本 **2.0.2**（Unity 2022.3+）。包内说明见 [Assets/SimplifyIoC/README.md](Assets/SimplifyIoC/README.md)，版本变更见 [CHANGELOG](Assets/SimplifyIoC/CHANGELOG.md)。
+当前版本 **2.1.0**（Unity 2022.3+）。包内说明见 [Assets/SimplifyIoC/README.md](Assets/SimplifyIoC/README.md)，版本变更见 [CHANGELOG](Assets/SimplifyIoC/CHANGELOG.md)。
 
 ## 修改内容
 + 修改为一个UPM的结构，能够通过UnityPackageManager的git方式安装。
@@ -28,6 +28,10 @@ A layered MVCS framework for Unity: container, signals, commands and view mediat
 ```
 + 设置tag的版本名并上传
 ```
-    git tag 2.0.2 upm
+    git tag 2.1.0 upm
     git push origin upm --tags
 ```
+
+## WorkBuddy Skill（可选）
+
+框架包内 `Assets/SimplifyIoC/Skills~/simplifyioc-quick-coding/` 附带一份配套 Skill（按分层约定生成业务代码，含 API 速查与模板）。它**不会自动生效**、是否安装由使用者自己决定，也不参与 Unity 编译；目录名以 `~` 结尾是 UPM 惯例，Unity 资产管线忽略它、不生成 `.meta`，但发布走 `git subtree split --prefix=Assets/SimplifyIoC` 时会随 UPM 包一起分发。安装方式见 [包内 README](Assets/SimplifyIoC/README.md)。
