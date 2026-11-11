@@ -1,4 +1,4 @@
-namespace SimplifyIoC.Mediations
+namespace SimplifyIoC.UI
 {
     public interface IToast
     {

@@ -350,8 +350,7 @@ namespace SimplifyIoC.Bootstraps
         }
 
         /// Register a View with this Bootstrap
-        /// View 的注入与声明式解析（[Child]/[BindEvent]/[BindMethod]/[MainThread]）
-        /// 都不依赖 Mediator——没有 mediationBinder 时走兜底路径，View 照常可用。
+        /// View 的注入不依赖 Mediator——没有 mediationBinder 时走兜底路径，View 照常可用。
         public virtual void AddView(View view)
         {
             if (view == null) return;
@@ -396,18 +395,14 @@ namespace SimplifyIoC.Bootstraps
         }
 
         /// <summary>
-        /// 无 Mediator 机制时 View 的兜底处理——只做 View 自身必需的两件事：
-        /// 容器注入 + 声明式解析。不涉及任何 Mediator 概念，也不递归子视图
-        /// （子视图各自走自己的 AddView / Awake 兜底路径，避免重复注入）。
-        ///
-        /// View 的解析由框架触发，若只在 MediationBinder 里触发，
-        /// 不使用 Mediator 的项目就解析不到 [Child]/[BindEvent]。
+        /// 无 Mediator 机制时 View 的兜底处理——只做容器注入，不涉及任何 Mediator 概念，
+        /// 也不递归子视图（子视图各自走自己的 AddView / Awake 兜底路径，避免重复注入）。
+        /// 声明式特性（[Child] / [BindEvent] 等）的解析由表现层自行负责，见 UI 层的 SimplifyUI。
         /// </summary>
         protected virtual void InjectViewWithoutMediation(View view)
         {
             if (view == null) return;
             injectionBinder.injector.Inject(view, false);
-            view.EnsureAttributesInitialized();
         }
 
         private void OnRemove()

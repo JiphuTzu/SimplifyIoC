@@ -1,9 +1,10 @@
 using System;
 using System.Collections.Generic;
 using SimplifyIoC.Bootstraps;
+using SimplifyIoC.UI;
 using UnityEngine;
 
-namespace SimplifyIoC.Mediations
+namespace SimplifyIoC.Settings
 {
     [CreateAssetMenu(fileName = "DefaultPrefabCreator", menuName = "Aixuma/DefaultPrefabCreator")]
     public class DefaultPrefabCreator : CustomPrefabCreator

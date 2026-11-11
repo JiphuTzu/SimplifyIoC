@@ -1,4 +1,29 @@
 ﻿# CHANGELOG
+## Unreleased
+### 破坏性变更（程序集拆分）
++ **基础 UI 能力拆为独立程序集 `Aixuma.SimplifyIoC.UI`**：`SimplifyUI.cs` / `UISettings.cs`（含 `UIType`、`IPrefabCreator`）/ `IToast.cs` / `CustomPrefabCreator.cs` / `DefaultPrefabCreator.cs` 从 `Runtime/SimplifyIoC/Mediations/` 移到与 `Runtime` 平级的 `UI/`，由新 asmdef 编译；新程序集单向引用核心 `Aixuma.SimplifyIoC`，核心不再包含任何 UI 类型，也不再依赖 `com.unity.ugui`。文件连同 `.cs.meta` 一起迁移，脚本 GUID 保持不变，下游已有的 `UISettings` / `DefaultPrefabCreator` 资产与预置体脚本引用不会断。命名空间随后按目录规则调整，见下节。
++ **迁移**：使用 asmdef 且用到上述 UI 类型的下游工程，需在业务 asmdef 的 `references` 里补一条 `Aixuma.SimplifyIoC.UI`（或 `GUID:85be5796041942a8867159794464d6aa`）；只用核心 IoC、或不用 asmdef（Assembly-CSharp）的工程无需改动。`link.xml` 同步为新程序集加了 `preserve="all"` 裁剪兜底。
+
+### 破坏性变更（声明式解析收归 UI 层）
++ **`Runtime/SimplifyIoC/Utils/` 整体迁入 `UI/SimplifyIoC/Utils/`**：`[Child]` / `[BindEvent]` / `[BindMethod]` / `[MainThread]`、`ReflectionExtension`（含 `ReflectedTarget<T>`）与 `DebugX` 现归属 `Aixuma.SimplifyIoC.UI`。至此核心程序集才真正不再引用 `com.unity.ugui`——`DebugX` 原先也 `using UnityEngine.UI`，上一轮只挪 `UISettings` 时并未摘干净。UI 目录按两级归类：`UI/`（`SimplifyUI`、`IToast`）、`Settings/`（`UISettings`、两个 `PrefabCreator`）、`Utils/`。
++ **`View.InitAttributes()` 移到 `SimplifyUI`**：`View` / `Mediator` 删掉 `InitAttributes` 与 `EnsureAttributesInitialized`，`MediationBinder` / `Bootstrap` 删掉全部触发调用与 `UnbindMethods()` 清理，编辑器菜单 `MapChildren` 也随解析能力只留在 UI 层。核心只保留容器注入、`[ListensTo]` 与生命周期上报，彻底不依赖 `SimplifyIoC.Utils`。`SimplifyUI` 在首次 `Start`（`base.Start()` 完成注入之后）幂等解析一次，并在 `OnDestroy` 里释放 `[BindMethod]` 静态表条目。
++ **影响面**：普通 `View` / `Mediator` 上的 `[Child]` / `[BindEvent]` / `[BindMethod]` / `[MainThread]` 不再自动生效；`Assets/Examples` 的 `MenuView` / `RecordView` / `CameraMediator` / `LifeTimeMediator` 即属此类（编译仍通过，但需改为显式解析或迁移基类）。`[Inject]` / `[PostConstruct]` / `[Construct]` / `[Name]` / `[ListensTo]` 不受影响。Mediator 的 `[BindMethod]` 条目不再主动摘除，由 `ConditionalWeakTable` 随 GC 回收。
+
+### 破坏性变更（UI 命名空间按目录分层）
++ **命名空间与目录一一对应**：沿用核心既有规则（`Runtime/SimplifyIoC/<目录>/` → `SimplifyIoC.<目录>`），UI 程序集内 `UI/SimplifyIoC/UI/` 下的 `SimplifyUI` / `IToast` 改为 `SimplifyIoC.UI`，`UI/SimplifyIoC/Settings/` 下的 `UISettings` / `UIType` / `IPrefabCreator` / `CustomPrefabCreator` / `DefaultPrefabCreator` 改为 `SimplifyIoC.Settings`；`Utils/` 下的 6 个类原本就是 `SimplifyIoC.Utils`，保持不变。跨命名空间引用已在各文件补齐 `using`，`DebugX.cs` 中全局 `DebugXExtensions` 依赖的 `using SimplifyIoC.Utils;` 保留。
++ **迁移**：下游源码把 UI 类型对应的 `using SimplifyIoC.Mediations;` 换成 `using SimplifyIoC.UI;` / `using SimplifyIoC.Settings;`；只用核心 `View` / `Mediator` / `MediationBinder` 的代码不受影响（它们仍在 `SimplifyIoC.Mediations`）。脚本 GUID 与资产序列化引用不变。
++ **`Runtime/Materials/` 迁入 `UI/Materials/`**：`ColorMask` / `Voronoi` 的 shader 与 mat 连 `.meta` 一起迁移，目录 GUID 也不变；4 个资源仅存在 mat → shader 的内部引用，工程内没有其它资产或代码引用它们，路径变化不影响序列化。
+
+### 破坏性变更（`View.GetSignal<T>()` 移除）
++ `View` 不再提供 `protected T GetSignal<T>()`：它只是 `injectionBinder.GetInstance<T>()` 的转发，与 `SimplifyUI.Signal<T>()` / `Mediator.Get<T>()` 三套同义 API 并存容易混淆。**迁移**：普通 View 改用 `injectionBinder.GetInstance<T>()` 或 `[Inject]` 属性注入，UI 层用 `Signal<T>()`，Mediator 侧 `Get<T>()` 不变。包内 README 的信号示例、配套 skill 的 `View.cs.tpl` 模板与 W205 自检规则已同步。
+
+### 其它
++ `IPrefabCreator` 从 `UISettings.cs` 拆到同目录独立文件 `UI/SimplifyIoC/Settings/IPrefabCreator.cs`，命名空间仍为 `SimplifyIoC.Settings`；`UIType` 枚举仍留在 `UISettings.cs`。接口不参与 Unity 资产序列化，新脚本 GUID 独立生成，`UISettings` / `DefaultPrefabCreator` 等存量资产的引用不受影响。
+
+### 升级注意（迁移速查）
++ 使用 asmdef 的下游工程补一条 UI 程序集引用；用到 `SimplifyIoC.Utils` 的工程**也必须引用 UI 程序集**，这些类型已不在核心。`UI/` 与 `Runtime/` 一同随 UPM 包发布，脚本 GUID 均未变；命名空间已按目录分层，见上一节。
++ 排查所有普通 `View` / `Mediator` 上的四个声明式特性：改为在 `Start` 里显式调用解析链，或把组件迁到 `SimplifyUI` 派生类。
+
 ## 2.0.2
 ### 破坏性变更
 + **`SimplifyBootstrap<T>` 改为非泛型 `SimplifyBootstrap`**：启动命令类型不再写在类声明上，改由钩子指定——新增 `protected abstract void SetStartupCommand()`，派生类必须实现并在体内调用 `SetStartupCommand<T>()`（`T : Command`）；`BindCommand<StartupSignal, T>(true)` 从 `MapBindings()` 移到 `Start()`，由 `Start()` 先 `SetStartupCommand()` 再 `Launch()`。**迁移**：`class GameBootstrap : SimplifyBootstrap<GameStartupCommand>` 改为 `class GameBootstrap : SimplifyBootstrap`，并补 `protected override void SetStartupCommand() => SetStartupCommand<GameStartupCommand>();`；覆写 `Start()` 时仍须调 `base.Start()`（内含上述两步）。

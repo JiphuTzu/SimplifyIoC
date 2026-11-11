@@ -1,7 +1,8 @@
 {
     "name": "Aixuma.SimplifyIoC.Examples",
     "references": [
-        "GUID:26b986a63142c8641b26b9a2d1fa35e7"
+        "GUID:26b986a63142c8641b26b9a2d1fa35e7",
+        "GUID:85be5796041942a8867159794464d6aa"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -8,7 +8,6 @@
 
 using SimplifyIoC.Injectors;
 using SimplifyIoC.Signals;
-using SimplifyIoC.Utils;
 using UnityEngine;
 
 namespace SimplifyIoC.Mediations
@@ -25,9 +24,6 @@ namespace SimplifyIoC.Mediations
         {
             return injectionBinder != null ? injectionBinder.GetInstance<T>() : null;
         }
-
-        /// 解析只跑一次的哨兵（与 View 同策略）。
-        private bool _attributesInitialized;
 
         /// 订阅组（惰性创建，从未订阅过则不分配）。
         private SignalSubscriptionGroup _subscriptions;
@@ -79,34 +75,6 @@ namespace SimplifyIoC.Mediations
         public virtual void OnDisabled() { }
 
         /// <summary>
-        /// Mediator 侧声明式绑定解析。框架在注入完成后、OnRegister 之前自动调用一次
-        /// （见 MediationBinder.ApplyMediationToView）。
-        ///
-        /// 这一侧尤其需要"注入之后"这个时机：Mediator 的 [BindEvent("onClick", nameof(view))]
-        /// 里的 view 通常是 [Inject] 成员，注入前取不到。
-        /// </summary>
-        protected virtual void InitAttributes()
-        {
-            var bindMethodParser = this.GetBindMethodParser();
-            var reflected = this.AddAttributeParser(this.GetEventMethodParser())
-                .AddAttributeParser(this.GetChildParser())
-                .AddAttributeParser(this.GetMainThreadParser());
-            if (bindMethodParser != null)
-                reflected = reflected.AddAttributeParser(bindMethodParser);
-            reflected.ParseAttributes();
-        }
-
-        /// <summary>
-        /// InitAttributes 的幂等包装，由框架在注入完成后调用。
-        /// </summary>
-        internal void EnsureAttributesInitialized()
-        {
-            if (_attributesInitialized) return;
-            _attributesInitialized = true;
-            InitAttributes();
-        }
-
-        /// <summary>
         /// 强类型视图直赋值通道。非泛型 Mediator 走 [Inject] view（调用级作用域），
         /// 此处为 no-op；Mediator&lt;TView&gt; 覆写后由泛型类型参数直赋，无需经容器解析。
         /// </summary>
@@ -125,8 +93,7 @@ namespace SimplifyIoC.Mediations
      *         }
      *     }
      *
-     * 视图赋值发生在 注入之后、InitAttributes/OnRegister 之前，
-     * 因此 [BindEvent(..., nameof(view))] 在泛型与非泛型写法下都可用。
+     * 视图赋值发生在 注入之后、OnRegister 之前，OnRegister 里可直接使用强类型 view。
      *
      * 说明：Mediator<TView> 与基类同文件（本类型的脚本资产即本文件）。它是抽象泛型类，
      * 由 MediationBinder 通过 AddComponent(mediatorType) 实例化其具体派生类，不依赖独立脚本资产。
@@ -134,7 +101,7 @@ namespace SimplifyIoC.Mediations
     public abstract class Mediator<TView> : Mediator where TView : View
     {
         /// <summary>
-        /// 本 Mediator 所中介的视图。由框架在注入完成后赋值，早于 InitAttributes 与 OnRegister。
+        /// 本 Mediator 所中介的视图。由框架在注入完成后赋值，早于 OnRegister。
         /// </summary>
         public TView view { get; private set; }
 
