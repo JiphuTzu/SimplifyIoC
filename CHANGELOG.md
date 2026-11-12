@@ -1,4 +1,14 @@
 ﻿# CHANGELOG
+## 2.1.1
+### 接口变更 
++ 增加``UISettings.GetActiveView<T>(out T view)``
++ 增加``UISettings.IsViewShowing<T>()``
++ 增加``UISettings.ReleaseView<T>()``
++ 删除``UISettings.GetView<T>()``
++ 增加``IToast.SetDuration(float)``
+### 修复BUG
++ 没有设置StartupCommand时报错
+
 ## 2.1.0
 ### 破坏性变更（程序集拆分）
 + **基础 UI 能力拆为独立程序集 `Aixuma.SimplifyIoC.UI`**：`SimplifyUI.cs` / `UISettings.cs`（含 `UIType`、`IPrefabCreator`）/ `IToast.cs` / `CustomPrefabCreator.cs` / `DefaultPrefabCreator.cs` 从 `Runtime/SimplifyIoC/Mediations/` 移到与 `Runtime` 平级的 `UI/`，由新 asmdef 编译；新程序集单向引用核心 `Aixuma.SimplifyIoC`，核心不再包含任何 UI 类型，也不再依赖 `com.unity.ugui`。文件连同 `.cs.meta` 一起迁移，脚本 GUID 保持不变，下游已有的 `UISettings` / `DefaultPrefabCreator` 资产与预置体脚本引用不会断。命名空间随后按目录规则调整，见下节。

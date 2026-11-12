@@ -161,7 +161,45 @@ namespace SimplifyIoC.Settings
                 callback?.Invoke(view);
             });
         }
-        
+        public bool GetActiveView<T>(out T view) where T : SimplifyUI
+        {
+            view = null;
+            var type = typeof(T);
+            if (!_viewCache.TryGetValue(type, out var views)) return false;
+            foreach (var v in views)
+            {
+                if (v.gameObject.activeSelf)
+                {
+                    view = v as T;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        public bool IsViewShowing<T>() where T : SimplifyUI
+        {
+            var type = typeof(T);
+            if (!_viewCache.TryGetValue(type, out var views)) return false;
+            foreach (var view in views)
+            {
+                if (view.gameObject.activeSelf) return true;
+            }
+
+            return false;
+        }
+        public UISettings ReleaseView<T>() where T : SimplifyUI
+        {
+            var type = typeof(T);
+            if (!_viewCache.TryGetValue(type, out var views)) return this;
+            foreach (var view in views)
+            {
+                Destroy(view.gameObject);
+            }
+            views.Clear();
+            _viewCache.Remove(type);
+            return this;
+        }
 
         public void CreateCustomBootstrap(string name, Transform parent = null)
         {
@@ -186,18 +224,6 @@ namespace SimplifyIoC.Settings
                 bs.name = prefab.name;
                 onCreate?.Invoke(bs);
             });
-        }
-
-        public T GetView<T>() where T : SimplifyUI
-        {
-            foreach (var kv in _viewRoot)
-            {
-                if(kv.Key == UIType.Toast) continue;
-                var view = kv.Value.GetComponentInChildren<T>(false);
-                if (view == null) continue;
-                return view;
-            }
-            return null;
         }
 
         
