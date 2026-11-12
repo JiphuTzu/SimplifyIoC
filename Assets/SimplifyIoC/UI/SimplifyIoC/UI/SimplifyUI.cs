@@ -117,8 +117,9 @@ namespace SimplifyIoC.UI
             base.OnDestroy();
         }
 
-        protected virtual void Toast(string message)
+        protected virtual IToast Toast(string message)
         {
+            return null;
         }
 #if UNITY_EDITOR
         [ContextMenu("🔭 MapChildren",false,0)]

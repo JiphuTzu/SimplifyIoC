@@ -8,6 +8,7 @@ namespace SimplifyIoC.Bootstraps
 {
     public abstract class SimplifyBootstrap : Bootstrap
     {
+        private bool _hasStartupCommand;
         /// <summary>
         /// 要控制启动时机就覆写它（记得调 base.Start()），或干脆自己调 <see cref="Bootstrap.Launch"/>。
         /// </summary>
@@ -24,6 +25,7 @@ namespace SimplifyIoC.Bootstraps
         protected void SetStartupCommand<T>() where T : Command
         {
             BindCommand<StartupSignal, T>(true);
+            _hasStartupCommand = true;
         }
 
         protected sealed override void MapBindings()
@@ -36,6 +38,7 @@ namespace SimplifyIoC.Bootstraps
         }
         public override void Launch()
         {
+            if (!_hasStartupCommand) return;
             injectionBinder.GetInstance<StartupSignal>().Dispatch();
         }
         protected virtual void BindCommands(){}

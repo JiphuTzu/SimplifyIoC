@@ -1,6 +1,6 @@
 {
   "name": "com.aixuma.simplifyioc",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "displayName": "SimplifyIoC",
   "description": "面向 Unity 的分层 MVCS 框架：绑定容器、类型安全信号、命令与 View 调解四层各司其职，由 Bootstrap 层级链统一管理作用域与跨域共享；UI 能力拆为可选程序集 Aixuma.SimplifyIoC.UI，核心不依赖 uGUI。",
   "unity": "2022.3",
